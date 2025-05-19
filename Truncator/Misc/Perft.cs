@@ -21,13 +21,9 @@ public static class Perft
         watch.Reset();
         long totalNodes = 0;
         
-        foreach (var entry in PerftPositions)
+        foreach (var (fen, nodes, depth) in PerftPositions)
         {
-            var fen   = entry.Item1;
-            var nodes = entry.Item2;
-            var depth = entry.Item3;
-
-            Console.WriteLine(fen+"; depth "+depth);
+            Console.WriteLine($"{fen}; depth {depth}");
             Pos p = new(fen);
 
             watch.Start();
