@@ -78,6 +78,8 @@ public partial struct Pos
 
         // fifty move rule
         FiftyMoveRule = 0;
+
+        Castling.UpdateNewPosition(ref this);
     }
 
     private unsafe void SetPiece(Color c, PieceType pt, int sq)
@@ -100,7 +102,7 @@ public partial struct Pos
         {
             'K' or 'k' => FileOf((int)Square.H1),
             'Q' or 'q' => FileOf((int)Square.A1),
-            _ => LetterToFile(cr),
+            _ => LetterToFile(char.ToLower(cr)),
         };
 
         bool kingside = castleFile > kingFile;

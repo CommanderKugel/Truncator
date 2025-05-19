@@ -172,20 +172,26 @@ public static class MoveGen
         }
     }
 
-    private static void GenerateCastling(ref Span<Move> moves, ref int moveCount, ref Pos p)
+    private static unsafe void GenerateCastling(ref Span<Move> moves, ref int moveCount, ref Pos p)
     {
         // kingside castling
         if (p.HasCastlingRight(p.Us, true))
         {
-            var (from, to) = Castling.GetKingCastlingSquares(p.Us, true);
-            moves[moveCount++] = new Move(from, to, MoveFlag.Castling);
+            moves[moveCount++] = new Move(
+                p.KingSquares[(int)p.Us],
+                Castling.GetKingCastlingTarget(p.Us, 1),
+                MoveFlag.Castling
+            );
         }
 
         // queenside castling
-        if (true || p.HasCastlingRight(p.Us, false))
+        if (p.HasCastlingRight(p.Us, false))
         {
-            var (from, to) = Castling.GetKingCastlingSquares(p.Us, false);
-            moves[moveCount++] = new Move(from, to, MoveFlag.Castling);
+            moves[moveCount++] = new Move(
+                p.KingSquares[(int)p.Us],
+                Castling.GetKingCastlingTarget(p.Us, 0),
+                MoveFlag.Castling
+            );
         }
     }
 

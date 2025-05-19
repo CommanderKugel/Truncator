@@ -2,6 +2,7 @@ using System.Diagnostics;
 
 public static partial class UCI
 {
+    public static bool IsChess960 = false;
 
     public static UciState state = UciState.Idle;
     public static SearchThread thread = new SearchThread(0);

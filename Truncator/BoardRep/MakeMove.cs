@@ -25,22 +25,24 @@ public unsafe partial struct Pos
         // 2. we have the corresponding castling rights
         // 3. the kings and rooks path is not blocked by other pieces
         if (m.IsCastling)
-        {   
+        {
+            block ^= 1ul << to;
             // check if we have the castling rights, the path is not blocked
             // and if we are currently in check
             if (!HasCastlingRight(Us, from < to) ||
-                (blocker & Castling.GetCastlingBlocker(Us, from < to)) != 0 ||
-                 GetCheckers() != 0)
+                (block & Castling.GetCastlingBlocker(Us, from < to)) != 0)
             {
                 return false;
             }
 
-            var (rookStart, rookEnd) = Castling.GetRookCastlingSquares(Us, from < to);
-            block = (block ^ (1ul << rookStart)) | (1ul << rookEnd);
-            int dir = from < to ? 1 : -1;
+            var (kingEndSq, rookEndSq) = Castling.GetCastlingSquares(Us, from < to);
+            int target = Castling.GetKingDestination(Us, from < to);
 
+            block ^= (1ul << kingEndSq) | (1ul << rookEndSq);
+            int dir = from < to ? 1 : -1;
+            
             // check if we move through check
-            for (int sq = from + dir; sq != to; sq += dir)
+            for (int sq = from; sq != target; sq += dir)
             {
                 if ((AttackerTo(sq, block) & ColorBB[(int)Them]) != 0)
                 {
@@ -49,7 +51,7 @@ public unsafe partial struct Pos
             }
 
             // check if we would end in check
-            return (AttackerTo(to, block) & ColorBB[(int)Them]) == 0;
+            return (AttackerTo(target, block) & ColorBB[(int)Them]) == 0;
         }
 
         if (m.IsEnPassant)
@@ -90,7 +92,7 @@ public unsafe partial struct Pos
         FiftyMoveRule++;
 
         // if capture: remove the victim
-        if (victimPt != PieceType.NONE)
+        if (victimPt != PieceType.NONE && !m.IsCastling)
         {
             ColorBB[(int)Them] ^= toBB;
             PieceBB[(int)victimPt] ^= toBB;
@@ -135,21 +137,29 @@ public unsafe partial struct Pos
         // move the rooks when castling
         if (m.IsCastling)
         {
-            var (rookStart, rookEnd) = Castling.GetRookCastlingSquares(Us, from < to);
-            ulong rookBB = (1ul << rookStart) | (1ul << rookEnd);
-            PieceBB[(int)PieceType.Rook] ^= rookBB;
-            ColorBB[(int)Us] ^= rookBB;
+            var (kingEnd, rookEnd) = Castling.GetCastlingSquares(Us, from < to);
+            // first, move the king to the correct square.
+            // for (d)frc, castling is encoded as capturing the rook.
+            PieceBB[(int)PieceType.King] ^= 1ul << to;
+            PieceBB[(int)PieceType.King] |= 1ul << kingEnd;
+            // now move the rook to its destination.
+            PieceBB[(int)PieceType.Rook] ^= 1ul << to;
+            PieceBB[(int)PieceType.Rook] |= 1ul << rookEnd;
+            // lastly, update out colors occupancy.
+            // the rook was already 'captured', only place down both pieces.
+            ColorBB[(int)Us] ^= 1ul << kingEnd | 1ul << rookEnd;
+
+            // correctly update kingsquare
+            KingSquares[(int)Us] = kingEnd;
+        }
+        else if (movingPt == PieceType.King)
+        {
+            KingSquares[(int)Us] = to;
         }
 
         // update castling rights
         CastlingRights &= Castling.modifier[from];
         CastlingRights &= Castling.modifier[to];
-
-        // update the kingsquare
-        if (movingPt == PieceType.King)
-        {
-            KingSquares[(int)Us] = to;
-        }
 
         // swap the side-to-move
         Us = Them;

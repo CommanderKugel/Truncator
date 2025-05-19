@@ -1,3 +1,4 @@
+using System.Data;
 using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.InteropServices;
@@ -10,7 +11,18 @@ public static class Utils
 
     public static int lsb(ulong bb) => BitOperations.TrailingZeroCount(bb);
 
-    public static int msb(ulong bb) => BitOperations.LeadingZeroCount(bb);
+    public static int msb(ulong bb)
+    {
+        while (bb != 0)
+        {
+            int sq = popLsb(ref bb);
+            if (bb == 0)
+            {
+                return sq;
+            }
+        }
+        return 64;
+    }
 
     public static int popLsb(ref ulong bb)
     {
@@ -58,7 +70,11 @@ public static class Utils
             {
                 ulong block = (1ul << ksq) | (1ul << sq);
 
-                if (FileOf(ksq) == FileOf(sq) || RankOf(ksq) == RankOf(sq) && sq != ksq)
+                if (ksq == sq)
+                {
+                    Rays[ksq * 64 + sq] = 0;
+                }
+                else if (FileOf(ksq) == FileOf(sq) || RankOf(ksq) == RankOf(sq) && sq != ksq)
                 {
                     ulong ray = Attacks.ratt(ksq, block) & Attacks.ratt(sq, block);
                     Rays[ksq * 64 + sq] = ray;

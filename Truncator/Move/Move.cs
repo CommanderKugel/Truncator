@@ -21,9 +21,9 @@ public struct Move
         value = (ushort)(from | (to << 6) | (ushort)flag);
     }
 
-    public Move(Square from, Square to)
+    public Move(Square from, Square to, MoveFlag flag = MoveFlag.Normal)
     {
-        value = (ushort)((int)from | ((int)to << 6));
+        value = (ushort)((int)from | ((int)to << 6) | (ushort)flag);
     }
 
 
@@ -45,9 +45,12 @@ public struct Move
 
     public override string ToString()
     {
-        var val = Utils.SquareToString(from) + Utils.SquareToString(to);
+        int target = IsCastling && !UCI.IsChess960 ? CastlingDestination() : to;
+        var val = Utils.SquareToString(from) + Utils.SquareToString(target);
         return IsPromotion ? val + ".nbrq."[(int)PromoType] : val;
     }
+
+    private readonly int CastlingDestination() => (Utils.RankOf(from) == 7 ? 56 : 0) ^ (from < to ? (int)Square.G1 : (int)Square.C1);
 
 
     public unsafe Move(string movestr, ref Pos p)
@@ -63,7 +66,8 @@ public struct Move
 
         if (movestr.Length == 5)
         {
-            myFlag = movestr[4] switch {
+            myFlag = movestr[4] switch
+            {
                 'n' => MoveFlag.KnightPromo,
                 'b' => MoveFlag.BishopPromo,
                 'r' => MoveFlag.RookPromo,
@@ -72,9 +76,14 @@ public struct Move
             };
         }
 
-        else if (pt == PieceType.King && (to == Castling.kingTargets[2 * (int)p.Us] || to == Castling.kingTargets[1 + 2 * (int)p.Us]))
+        else if (pt == PieceType.King &&
+                (UCI.IsChess960 ?
+                    (to == Castling.kingTargets[2 * (int)p.Us] || to == Castling.kingTargets[1 + 2 * (int)p.Us]) :
+                    (to == ((int)Square.G1 ^ 56 * (int)p.Us) || to == ((int)Square.C1 ^ 56 * (int)p.Us))
+                ))
         {
             myFlag = MoveFlag.Castling;
+            to = Castling.GetKingCastlingTarget(p.Us, from < to);
         }
 
         else if (pt == PieceType.Pawn && p.EnPassantSquare != (int)Square.NONE && to == (p.EnPassantSquare + (p.Us == Color.White ? 8 : -8)))
