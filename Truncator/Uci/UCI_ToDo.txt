@@ -1,0 +1,63 @@
+
+uci -> uciok & id
+
+isready -> readyok
+
+setoption name <id> [value <x>]
+
+position [fen <fenstring> | startpos] moves <move1> ... <movei>
+
+go
+    searchmoves <move1> ... <movei>
+    ponder
+    wtime <x>
+    btime <x>
+    winc <x>
+    binc <x>
+    movestogo <x>
+    depth <x>
+    nodes <x>
+    mate <x>
+    movetime <x>
+    infinite
+
+stop
+
+ponderhit
+
+quit
+
+- - - - - - - - - -
+
+id
+    name <x>
+    author <x>
+
+bestmove <move1> [ponder <move2>]
+
+info
+    depth <x>
+    seldepth <x>
+    time <x>
+    nodes <x>
+    pv <move1> ... <movei>
+    multipv <num>
+    score
+        cp <x>
+        mate <y>
+        lowerbound
+        upperbound
+    currmove <move>
+    currmovenumber <x>
+    hashfull <x>
+    nps <x>
+    tbhits <x>
+    string <str> // whatever
+
+option
+    name <id>
+    type <t>
+    default <x>
+    min <x>
+    max <x>
+    var <x>
