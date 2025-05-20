@@ -66,7 +66,7 @@ public partial struct Pos
         {
             int file = LetterToFile(fen[idx++]);
             int rank = NumberToRank(fen[idx++]);
-            EnPassantSquare = 8 * rank + file;
+            EnPassantSquare = 8 * rank + file + (Us == Color.White ? -8 : 8);
             Debug.Assert(EnPassantSquare >= 0 && EnPassantSquare < 64);
         }
         else
