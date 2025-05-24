@@ -115,9 +115,7 @@ public static partial class UCI
                     }
                 }
             }
-
-            Console.WriteLine(state);
-
+            
         }
     }
 

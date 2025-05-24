@@ -71,7 +71,7 @@ public static class Castling
         modifier[(int)Square.H8] &= (byte)~GetCastlingRightMask(Color.Black, true);
         modifier[(int)Square.E8] &= (byte)(modifier[(int)Square.A8] & modifier[(int)Square.H8]);
 
-        kingTargets = (int*)NativeMemory.Alloc(sizeof(int) * 4);
+        kingTargets = (int*)NativeMemory.Alloc(sizeof(int) * 6);
         kingTargets[0] = (int)Square.A1;
         kingTargets[1] = (int)Square.H1;
         kingTargets[2] = (int)Square.A8;
@@ -91,6 +91,9 @@ public static class Castling
             modifier[f] = 0xF;
             modifier[56 + f] = 0xF;
         }
+
+        kingTargets[4 + (int)Color.White] = p.KingSquares[(int)Color.White];
+        kingTargets[4 + (int)Color.Black] = p.KingSquares[(int)Color.Black];
 
         if (p.HasCastlingRight(Color.White, false)) // Q
         {

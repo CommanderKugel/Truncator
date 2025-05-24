@@ -82,6 +82,8 @@ public struct Move
                 (UCI.IsChess960 ?
                     (to == Castling.kingTargets[2 * (int)p.Us] || to == Castling.kingTargets[1 + 2 * (int)p.Us]) :
                     (to == ((int)Square.G1 ^ 56 * (int)p.Us) || to == ((int)Square.C1 ^ 56 * (int)p.Us))
+                ) && (
+                   from == Castling.kingTargets[4 + (int)p.Us]
                 ))
         {
             myFlag = MoveFlag.Castling;

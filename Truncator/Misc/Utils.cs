@@ -60,7 +60,7 @@ public static class Utils
         return Rays[x * 64 + y];
     }
 
-    public static unsafe void InitUtils()
+    static unsafe Utils()
     {
         Rays = (ulong*)NativeMemory.AlignedAlloc(sizeof(ulong) * 64 * 64, sizeof(ulong) * 64);
 

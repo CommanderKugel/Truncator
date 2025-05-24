@@ -8,8 +8,6 @@ public static class Truncator
         try
         #endif
         {
-            Utils.InitUtils();
-            Attacks.InitAttacks();
 
             UCI.rootPos = new RootPos();
             UCI.rootPos.SetNewFen(Utils.startpos);

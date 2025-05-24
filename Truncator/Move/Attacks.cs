@@ -273,7 +273,7 @@ public static class Attacks
     private static unsafe Magic* BishopMagic_;
     private static unsafe Magic* RookMagic_;
 
-    public static unsafe void InitAttacks()
+    static unsafe Attacks()
     {
         BishopMagic_ = (Magic*)NativeMemory.Alloc((nuint)(sizeof(Magic) * 64));
         RookMagic_ = (Magic*)NativeMemory.Alloc((nuint)(sizeof(Magic) * 64));

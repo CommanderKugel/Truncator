@@ -84,19 +84,21 @@ public static partial class Search
             int score = -Negamax<PVNode>(thread, next, -beta, -alpha, depth - 1);
 
             // #25 time-out check
-            if (!isRoot && (!thread.doSearch || thread.IsMainThread && TimeManager.IsHardTimeout()))
+            //     do not use SCORE_TIMEOUT for anything, as it is invalid
+            if (!isRoot && (!thread.doSearch || thread.IsMainThread && TimeManager.IsHardTimeout()) ||
+                 score == SCORE_TIMEOUT || -score == SCORE_TIMEOUT)
             {
                 return SCORE_TIMEOUT;
             }
 
             // report to root/UCI
-            if (isRoot && Math.Abs(score) != SCORE_TIMEOUT)
+            if (isRoot)
             {
                 UCI.rootPos.ReportBackMove(m, score, thread.nodeCount - startNodes, depth);
             }
 
 
-            if (score > bestScore && Math.Abs(score) != SCORE_TIMEOUT)
+            if (score > bestScore)
             {
                 bestScore = score;
 

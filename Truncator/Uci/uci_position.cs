@@ -21,6 +21,8 @@ public static partial class UCI
         foreach (string movestr in SkipPast(tokens, "moves"))
         {
             rootPos.MakeMove(movestr);
+            Console.WriteLine(movestr);
+            Utils.print(rootPos.p);
         }
 
         rootPos.InitRootMoves();
