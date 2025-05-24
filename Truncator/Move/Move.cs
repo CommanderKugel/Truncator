@@ -43,6 +43,8 @@ public struct Move
 
     public readonly PieceType PromoType => (PieceType)(((value >> 12) & 0b11) + 1);
 
+    public static readonly Move NullMove = new((ushort)0);
+
     public override string ToString()
     {
         int target = IsCastling && !UCI.IsChess960 ? CastlingDestination() : to;

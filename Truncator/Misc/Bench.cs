@@ -1,6 +1,8 @@
 public static class Bench
 {
-    private static readonly string[] Positions = {
+    public static int BenchDepth = 5;
+
+    public static readonly string[] Positions = {
         "r4rk1/5pb1/3R2p1/p2Q1qBp/8/7P/1P3PP1/2R3K1 w - - 4 29",
         "r2qkbnr/ppp2p2/2npb3/4p1p1/2P1P2p/1PN1N3/P2PBPPP/R1BQK2R w KQq - 0 10",
         "3k4/8/4Q3/P2P4/8/5K1P/8/8 b - - 14 68",
@@ -67,16 +69,9 @@ public static class Bench
         "rn1qkbnr/ppp1pppp/4b3/3p4/P1PP4/8/1P2PPPP/RNBQKBNR w KQkq - 0 5",
     };
 
-    public static void runBench() 
+    public static void runBench(int depth)
     {
-        foreach (var fen in Positions)
-        {
-            UCI.thread.p.ParseFen(fen);
-            Search.GetBestMove(UCI.thread);
-        }
-
-        //double bf = Round(Exp(Log(TimeManager.TotalNodes / Positions.Length) / (depth-1)), 2);
-        //Console.WriteLine($"nps {(int)(TimeManager.TotalNodes * 1000 / ms)} bf {bf}");
-        Console.WriteLine($"bench {Positions.Length}");
+        TimeManager.PrepareBench(depth);
+        ThreadPool.MainThread.RunBench();
     }
 }

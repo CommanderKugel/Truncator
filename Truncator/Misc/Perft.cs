@@ -62,7 +62,7 @@ public static class Perft
             }
 
             Pos next = p;
-            next.MakeMove(m);
+            next.MakeMove(m, ThreadPool.MainThread);
 
             long nodes = Recurse(ref next, depth - 1);
             Console.WriteLine($"{m} - {nodes}");
@@ -94,7 +94,7 @@ public static class Perft
                 continue;
 
             Pos next = p;
-            next.MakeMove(m);
+            next.MakeMove(m, ThreadPool.MainThread);
             nodes += Recurse(ref next, depth - 1);
         }
         return nodes;

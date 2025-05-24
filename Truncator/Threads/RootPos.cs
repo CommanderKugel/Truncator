@@ -1,11 +1,13 @@
 using System.Diagnostics;
+using System.Xml.Serialization;
 
 
 public unsafe struct RootPos
 {
-    private fixed ushort rootMoves[256];
-    private fixed int moveScores[256];
-    private fixed long moveNodes[256];
+    public fixed ushort rootMoves[256];
+    public fixed int moveScores[256];
+    public fixed long moveNodes[256];
+    public fixed int completedDepth[256];
 
     public Pos p;
     public int moveCount;
@@ -13,6 +15,21 @@ public unsafe struct RootPos
     public fixed long movesPlayed[100];
     public int ply;
 
+    /// <summary>
+    /// lock this object when changing values, to avoid racing conditions between threads
+    /// </summary>
+    public object lockobject;
+
+    public RootPos()
+    {
+        lockobject = new object();
+    }
+
+    public RootPos(string fen)
+    {
+        SetNewFen(fen);
+        lockobject = new object();
+    }
 
     public void MakeMove(string movestr)
     {
@@ -20,15 +37,76 @@ public unsafe struct RootPos
         Debug.Assert(m.NotNull);
 
         // make move on board representation
-        p.MakeMove(m);
+        p.MakeMove(m, ThreadPool.MainThread);
 
         // save move in game hostory (necessary for 3-fold detection later)
         movesPlayed[ply % 100] = m.value;
         ply++;
     }
 
+    public Move GetBestMove()
+    {
+        return new(rootMoves[GetBestIndex()]);
+    }
+
+    public int GetBestIndex()
+    {
+        lock (lockobject)
+        {
+            int bestIdx = 0;
+
+            for (int i = 0; i < moveCount; i++)
+            {
+                if (moveScores[i] > moveScores[bestIdx] &&
+                    completedDepth[i] >= completedDepth[bestIdx])
+                {
+                    bestIdx = i;
+                }
+            }
+
+            return bestIdx;
+        }
+    }
+
+    public unsafe void Print()
+    {
+        Console.WriteLine($"moveCount: {moveCount}");
+        for (int i = 0; i < moveCount; i++)
+        {
+            Console.WriteLine($"move {new Move(rootMoves[i])} score {moveScores[i]} nodes {moveNodes[i]} depth {completedDepth[i]}");
+        }
+    }
+
+    public void ReportBackMove(Move m, int score, long nodes, int depth)
+    {
+        Debug.Assert(m.NotNull, "cant report on null moves for root pos!");
+        Debug.Assert(Math.Abs(score) != Search.SCORE_TIMEOUT, "tiemout scores are always wrong!");
+        Debug.Assert(nodes > 0, "did you even search?");
+        Debug.Assert(depth >= 1, "depth needs to '1' or greater!");
+
+        lock (lockobject)
+        {
+            int idx = 0;
+            for (int i = 0; i < moveCount; i++)
+            {
+                if (rootMoves[i] == m.value)
+                {
+                    idx = i;
+                    break;
+                }
+            }
+
+            Debug.Assert(idx < moveCount, "no move found to report back to!");
+
+            moveScores[idx] = score;
+            moveNodes[idx] = nodes;
+            completedDepth[idx] = depth;
+        }
+    }
+
     public void SetNewFen(string fen)
     {
+        Clear();
         p = new(fen);
     }
 

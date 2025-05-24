@@ -1,11 +1,11 @@
 using System.Diagnostics;
+using System.Net;
 
 public static partial class UCI
 {
     public static bool IsChess960 = false;
 
     public static UciState state = UciState.Idle;
-    public static SearchThread thread = new SearchThread(0);
 
 
     public static void MainLoop()
@@ -32,42 +32,49 @@ public static partial class UCI
                 Console.WriteLine("readyok");
             }
 
+            else if (command == "stop")
+            {
+                Debug.Assert(state == UciState.Searching, "command only available, when engine is searching!");
+                ThreadPool.StopAll();
+                state = UciState.Idle;
+            }
+
             // options can be set to different values. most importantly are
             // - size (mb) of the transposition table
             // - number of threads used for search
             else if (tokens[0] == "setoption")
             {
-                if (state != UciState.Idle)
-                {
-                    Console.WriteLine("Only use setoption when Truncator is idle!");
-                    continue;
-                }
+                Debug.Assert(state == UciState.Idle, "command only available, when engine is idle!");
                 SetOption(tokens);
             }
 
             // signal to reset all heuristics that save data between moves
             else if (tokens[0] == "ucinewgame")
             {
-                UciRootPos.Clear();
+                Debug.Assert(state == UciState.Idle, "command only available, when engine is idle!");
+                rootPos.Clear();
             }
 
             // initialization of the position to start searching from.
             // comes with a list of moves most of the time
             else if (tokens[0] == "position")
             {
+                Debug.Assert(state == UciState.Idle, "command only available, when engine is idle!");
                 Position(tokens);
             }
 
             // command to start searching. comes with subcommands most of the time.
             else if (tokens[0] == "go")
             {
+                Debug.Assert(state == UciState.Idle, "command only available, when engine is idle!");
                 Go(tokens);
             }
 
             // signal to close the programm. dont forget to stop all the threads!
             else if (tokens[0] == "quit")
             {
-                thread.Join();
+                ThreadPool.StopAll();
+                ThreadPool.Join();
                 return;
             }
 
@@ -76,16 +83,21 @@ public static partial class UCI
             // print the current board to the commandline
             else if (command == "print")
             {
-                Utils.print(UciRootPos.p);
+                Utils.print(rootPos.p);
+                rootPos.Print();
             }
 
-            else if (command == "bench")
+            else if (tokens[0] == "bench")
             {
-                Bench.runBench();
+                Debug.Assert(state == UciState.Idle, "command only available, when engine is idle!");
+                int depth = tokens.Length == 2 ? int.Parse(tokens[1]) : 5;
+                Bench.runBench(depth);
             }
 
             else if (command == "perft")
             {
+                Debug.Assert(state == UciState.Idle, "command only available, when engine is idle!");
+
                 if (tokens.Length == 1)
                 {
                     Perft.RunPerft();
@@ -103,6 +115,8 @@ public static partial class UCI
                     }
                 }
             }
+
+            Console.WriteLine(state);
 
         }
     }

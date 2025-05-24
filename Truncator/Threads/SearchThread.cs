@@ -1,4 +1,6 @@
 
+using System.Diagnostics;
+
 public class SearchThread : IDisposable
 {
     private Thread myThread;
@@ -7,10 +9,12 @@ public class SearchThread : IDisposable
     public readonly int id;
     public bool IsMainThread => id == 0;
 
-    public bool search = false;
-    public bool die = false;
+    public volatile bool doSearch = false;
+    public volatile bool die = false;
 
-    public Pos p;
+
+    public long nodeCount = 0;
+    public int currIteration = 0;
 
 
     public SearchThread(int id)
@@ -26,14 +30,9 @@ public class SearchThread : IDisposable
 
         while (!die)
         {
-            // wait for go signal
-            Console.WriteLine("thread waits now");
-
-
             myResetEvent.WaitOne();
-            this.search = true;
+            this.doSearch = true;
             Console.WriteLine("thread woke up");
-
 
             if (die)
             {
@@ -43,7 +42,7 @@ public class SearchThread : IDisposable
             else
             {
                 Console.WriteLine("thread works after idle");
-                Search.GetBestMove(this);
+                Search.IterativeDeepen(this);
             }
 
 
@@ -56,31 +55,66 @@ public class SearchThread : IDisposable
 
     public void Go()
     {
-        this.search = true;
         myResetEvent.Set();
     }
 
     public void Stop()
     {
-        this.search = false;
+        this.doSearch = false;
     }
 
-    public void Die()
+    // between searches
+    public void Reset()
     {
-        myResetEvent.Set();
-        Stop();
-        this.die = true;
-        Dispose();
+        nodeCount = 0;
+    }
+
+    // between games
+    public void Clear()
+    {
+        // tt
+        // move/corr hist
+        doSearch = true;
+        nodeCount = 0;
     }
 
     public void Join()
     {
+        this.die = true;
+        Stop();
+        myResetEvent.Set();
+        Dispose();
         this.myThread.Join();
     }
 
     public void Dispose()
     {
-        
+
+    }
+
+    public void RunBench()
+    {
+        var watch = new Stopwatch();
+        long totalNodes = 0;
+
+        watch.Start();
+        foreach (var fen in Bench.Positions)
+        {
+            this.Clear();
+            TimeManager.PrepareBench(TimeManager.maxDepth);
+
+            UCI.rootPos.SetNewFen(fen);
+            UCI.rootPos.InitRootMoves();
+
+            Search.IterativeDeepen(this);
+            totalNodes += nodeCount;
+        }
+
+        watch.Stop();
+        Stop();
+
+        long nps = totalNodes * 1000 / Math.Max(watch.ElapsedMilliseconds, 1);
+        Console.WriteLine($"{totalNodes} nodes {nps} nps");
     }
 
 }

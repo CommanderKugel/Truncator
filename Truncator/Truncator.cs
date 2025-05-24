@@ -1,12 +1,19 @@
 ﻿
+
 public static class Truncator
 {
     public static void Main(string[] args)
     {
+        #if !DEBUG
         try
+        #endif
         {
             Utils.InitUtils();
             Attacks.InitAttacks();
+
+            UCI.rootPos = new RootPos();
+            UCI.rootPos.SetNewFen(Utils.startpos);
+            UCI.rootPos.InitRootMoves();
 
             if (args.Length == 0)
             {
@@ -15,7 +22,7 @@ public static class Truncator
 
             if (args.Length == 1 && args[0] == "bench")
             {
-                Bench.runBench();
+                Bench.runBench(Bench.BenchDepth);
             }
 
             if (args.Length == 1 && args[0] == "perft")
@@ -24,13 +31,15 @@ public static class Truncator
             }
         }
 
+        #if !DEBUG
         catch (Exception e)
         {
             Console.WriteLine(e.Message);
             Console.WriteLine(e.StackTrace);
         }
-
         finally
+        #endif
+        
         {
             Attacks.Dispose();
             Castling.Dispose();

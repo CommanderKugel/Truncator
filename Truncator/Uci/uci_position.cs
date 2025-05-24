@@ -3,9 +3,7 @@ using System.Diagnostics;
 
 public static partial class UCI
 {
-
-    private static RootPos UciRootPos;
-
+    public static RootPos rootPos;
 
     public static void Position(string[] tokens)
     {
@@ -18,14 +16,14 @@ public static partial class UCI
         }
 
         string fen = tokens[1] == "startpos" ? Utils.startpos : string.Join(' ', SkipPast(tokens, "fen").Take(6));
-        UciRootPos.SetNewFen(fen);
+        rootPos.SetNewFen(fen);
 
         foreach (string movestr in SkipPast(tokens, "moves"))
         {
-            UciRootPos.MakeMove(movestr);
+            rootPos.MakeMove(movestr);
         }
 
-        UciRootPos.InitRootMoves();
+        rootPos.InitRootMoves();
     }
 
 }

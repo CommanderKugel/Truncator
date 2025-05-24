@@ -72,7 +72,7 @@ public unsafe partial struct Pos
                (AttackerTo(ksq, block) & ColorBB[(int)Them] & ~(1ul << to)) == 0;
     }
 
-    public void MakeMove(Move m)
+    public void MakeMove(Move m, SearchThread thread)
     {
         int from = m.from;
         int to = m.to;
@@ -142,9 +142,11 @@ public unsafe partial struct Pos
             // for (d)frc, castling is encoded as capturing the rook.
             PieceBB[(int)PieceType.King] ^= 1ul << to;
             PieceBB[(int)PieceType.King] |= 1ul << kingEnd;
+
             // now move the rook to its destination.
             PieceBB[(int)PieceType.Rook] ^= 1ul << to;
             PieceBB[(int)PieceType.Rook] |= 1ul << rookEnd;
+
             // lastly, update out colors occupancy.
             // the rook was already 'captured', only place down both pieces.
             ColorBB[(int)Us] ^= 1ul << kingEnd | 1ul << rookEnd;
@@ -163,6 +165,8 @@ public unsafe partial struct Pos
 
         // swap the side-to-move
         Us = Them;
+
+        thread.nodeCount++;
     }
 
 }
