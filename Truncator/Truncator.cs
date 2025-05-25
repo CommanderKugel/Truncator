@@ -4,9 +4,9 @@ public static class Truncator
 {
     public static void Main(string[] args)
     {
-        #if !DEBUG
+#if !DEBUG
         try
-        #endif
+#endif
         {
 
             UCI.rootPos = new RootPos();
@@ -29,19 +29,21 @@ public static class Truncator
             }
         }
 
-        #if !DEBUG
+#if !DEBUG
         catch (Exception e)
         {
             Console.WriteLine(e.Message);
             Console.WriteLine(e.StackTrace);
         }
         finally
-        #endif
-        
+#endif
+
         {
+            UCI.rootPos.Dispose();
             Attacks.Dispose();
             Castling.Dispose();
             Utils.Dispose();
+            Zobrist.Dispose();
         }
     }
 }
