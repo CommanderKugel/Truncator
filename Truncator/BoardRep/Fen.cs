@@ -80,6 +80,7 @@ public partial struct Pos
         FiftyMoveRule = 0;
 
         Castling.UpdateNewPosition(ref this);
+        this.ZobristKey = Zobrist.ComputeFromZero(ref this);
     }
 
     private unsafe void SetPiece(Color c, PieceType pt, int sq)

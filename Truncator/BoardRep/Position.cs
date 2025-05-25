@@ -17,6 +17,10 @@ public unsafe partial struct Pos
     public Color Us;
     public readonly Color Them => 1 - Us;
 
+    public ulong ZobristKey;
+    //public fixed ulong PieceKeys[6];
+    //public fixed ulong ColorKeys[2];
+
     public readonly ulong blocker => ColorBB[0] | ColorBB[1];
 
 

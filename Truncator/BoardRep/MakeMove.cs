@@ -74,6 +74,7 @@ public unsafe partial struct Pos
 
     public void MakeMove(Move m, SearchThread thread)
     {
+        Debug.Assert(m.NotNull, "can not make null-moves the normal way!");
         int from = m.from;
         int to = m.to;
 
@@ -83,11 +84,13 @@ public unsafe partial struct Pos
 
         PieceType movingPt = PieceTypeOn(from);
         PieceType victimPt = PieceTypeOn(to);
-        Debug.Assert(movingPt != PieceType.NONE);
+        Debug.Assert(movingPt != PieceType.NONE, "there is no piece to move!");
 
         // make the quiet part of the move
         ColorBB[(int)Us] ^= FromToBB;
         PieceBB[(int)movingPt] ^= FromToBB;
+        ZobristKey ^= Zobrist.GetPieceKey(Us, movingPt, from)
+                   ^ Zobrist.GetPieceKey(Us, movingPt, to);
 
         FiftyMoveRule++;
 
@@ -96,6 +99,7 @@ public unsafe partial struct Pos
         {
             ColorBB[(int)Them] ^= toBB;
             PieceBB[(int)victimPt] ^= toBB;
+            ZobristKey ^= Zobrist.GetPieceKey(Them, victimPt, to);
 
             FiftyMoveRule = 0;
         }
@@ -103,6 +107,7 @@ public unsafe partial struct Pos
         // reset the ep-square
         if (EnPassantSquare != (int)Square.NONE)
         {
+            ZobristKey ^= Zobrist.GetEpKEy(EnPassantSquare);
             EnPassantSquare = (int)Square.NONE;
         }
 
@@ -115,6 +120,7 @@ public unsafe partial struct Pos
             if (Math.Abs(from - to) == 16)
             {
                 EnPassantSquare = to;
+                ZobristKey ^= Zobrist.GetEpKEy(to);
             }
 
             // swap the pawn with the promoted piece
@@ -123,6 +129,8 @@ public unsafe partial struct Pos
                 PieceType promoPt = m.PromoType;
                 PieceBB[(int)PieceType.Pawn] ^= toBB;
                 PieceBB[(int)promoPt] ^= toBB;
+                ZobristKey ^= Zobrist.GetPieceKey(Us, promoPt, to)
+                           ^ Zobrist.GetPieceKey(Us, PieceType.Pawn, to);
             }
 
             // capture the ep-victim, as it is not done like normal captures
@@ -131,6 +139,7 @@ public unsafe partial struct Pos
                 int victim = Us == Color.White ? to - 8 : to + 8;
                 PieceBB[(int)PieceType.Pawn] ^= 1ul << victim;
                 ColorBB[(int)Them] ^= 1ul << victim;
+                ZobristKey ^= Zobrist.GetPieceKey(Them, PieceType.Pawn, victim);
             }
         }
 
@@ -153,6 +162,11 @@ public unsafe partial struct Pos
 
             // correctly update kingsquare
             KingSquares[(int)Us] = kingEnd;
+
+            ZobristKey ^= Zobrist.GetPieceKey(Us, PieceType.King, kingEnd)
+                        ^ Zobrist.GetPieceKey(Us, PieceType.King, to)
+                        ^ Zobrist.GetPieceKey(Us, PieceType.Rook, to)
+                        ^ Zobrist.GetPieceKey(Us, PieceType.Rook, rookEnd);
         }
         else if (movingPt == PieceType.King)
         {
@@ -160,11 +174,19 @@ public unsafe partial struct Pos
         }
 
         // update castling rights
+        byte oldCastling = CastlingRights;
         CastlingRights &= Castling.modifier[from];
         CastlingRights &= Castling.modifier[to];
 
+        if (CastlingRights != oldCastling)
+        {
+            ZobristKey ^= Zobrist.GetCastlingKey(oldCastling)
+                       ^ Zobrist.GetCastlingKey(CastlingRights);
+        }
+
         // swap the side-to-move
         Us = Them;
+        ZobristKey ^= Zobrist.stmKey;
 
         thread.nodeCount++;
     }
