@@ -145,6 +145,7 @@ public class SearchThread : IDisposable
         foreach (var fen in Bench.Positions)
         {
             this.Clear();
+            ThreadPool.tt.Clear();
             TimeManager.PrepareBench(TimeManager.maxDepth);
 
             UCI.rootPos.SetNewFen(fen);

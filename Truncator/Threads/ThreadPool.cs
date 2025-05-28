@@ -92,6 +92,8 @@ public static class ThreadPool
     /// </summary>
     public static void Join()
     {
+        tt.Dispose();
+
         foreach (var thread in pool)
         {
             thread.Join();

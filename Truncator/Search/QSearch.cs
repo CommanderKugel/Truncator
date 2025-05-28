@@ -9,6 +9,10 @@ public static partial class Search
         Debug.Assert(typeof(Type) != typeof(RootNode), "QSearch can never examine root-nodes");
 
 
+        TTEntry entry = thread.tt.Probe(p.ZobristKey);
+        bool ttHit = entry.Key == p.ZobristKey;
+        Move ttMove = ttHit ? new(entry.MoveValue) : Move.NullMove;
+
         int eval = BasicPsqt.Evaluate(ref p);
 
         if (eval >= beta)
@@ -26,7 +30,7 @@ public static partial class Search
 
         Span<Move> moves = stackalloc Move[256];
         Span<int> scores = stackalloc int[256];
-        MovePicker picker = new MovePicker(ref p, Move.NullMove, ref moves, ref scores, inQS: true);
+        MovePicker picker = new MovePicker(ref p, ttMove, ref moves, ref scores, inQS: true);
 
         for (Move m = picker.Next(); m.NotNull; m = picker.Next())
         {

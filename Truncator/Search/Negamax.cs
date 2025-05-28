@@ -28,12 +28,18 @@ public static partial class Search
         }
 
 
+        TTEntry entry = thread.tt.Probe(p.ZobristKey);
+        bool ttHit = entry.Key == p.ZobristKey;
+        Move ttMove = ttHit ? new(entry.MoveValue) : Move.NullMove;
+
+
         Span<Move> moves = stackalloc Move[256];
         Span<int> scores = stackalloc int[256];
-        MovePicker picker = new MovePicker(ref p, Move.NullMove, ref moves, ref scores, false);
+        MovePicker picker = new MovePicker(ref p, ttMove, ref moves, ref scores, false);
 
 
-        int bestscore = -SCORE_MATE + thread.ply;
+        int bestscore = -SCORE_MATE;
+        int flag = NONE_BOUND;
         int movesPlayed = 0;
         Move bestmove = Move.NullMove;
 
@@ -82,13 +88,33 @@ public static partial class Search
                 {
                     alpha = score;
                     bestmove = m;
+                    flag = EXACT_BOUND;
 
                     if (score >= beta)
                     {
+                        flag = LOWER_BOUND;
                         break;
                     }
                 }
             }
+        }
+
+        if (movesPlayed == 0)
+        {
+            return p.GetCheckers() == 0 ? SCORE_DRAW : -SCORE_MATE + thread.ply;
+        }
+
+        if (!IsTerminal(bestscore))
+        {
+            thread.tt.Write(
+                p.ZobristKey,
+                bestscore,
+                bestmove,
+                depth,
+                flag,
+                isPV,
+                thread
+            );
         }
 
         return movesPlayed == 0 && p.GetCheckers() == 0 ? SCORE_DRAW : bestscore;
