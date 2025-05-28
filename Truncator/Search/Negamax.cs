@@ -13,6 +13,11 @@ public static partial class Search
         bool nonPV = typeof(Type) == typeof(NonPVNode);
 
 
+        if (isPV)
+        {
+            thread.NewPVLine();
+        }
+
         if (depth <= 0)
         {
             return QSearch<Type>(thread, p, alpha, beta);
@@ -40,9 +45,11 @@ public static partial class Search
 
             Pos next = p;
             next.MakeMove(m, thread);
+            thread.ply++;
 
             int score = -Negamax<PVNode>(thread, next, -beta, -alpha, depth - 1);
 
+            thread.ply--;
 
             if (!thread.doSearch ||
                  thread.IsMainThread && TimeManager.IsHardTimeout())
@@ -59,6 +66,11 @@ public static partial class Search
             if (score > bestscore)
             {
                 bestscore = score;
+
+                if (isPV)
+                {
+                    thread.PushToPV(m);
+                }
 
                 if (score > alpha)
                 {

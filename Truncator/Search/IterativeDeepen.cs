@@ -38,9 +38,9 @@ public static partial class Search
             }
         }
         */
-
-        Console.WriteLine($"info depth {3} score cp {rootscore}");
-        Console.WriteLine($"bestmove {UCI.rootPos.GetBestMove()}");
+        
+        Console.WriteLine($"info depth {3} score cp {rootscore} pv {thread.GetPV}");
+        Console.WriteLine($"bestmove {thread.pv_.BestMove}");
     }
 
 }

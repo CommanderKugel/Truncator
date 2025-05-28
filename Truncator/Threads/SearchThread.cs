@@ -12,14 +12,25 @@ public class SearchThread : IDisposable
     public volatile bool doSearch = false;
     public volatile bool die = false;
 
-
+    
+    // search variables
+    public volatile int ply;
     public long nodeCount = 0;
-    public int currIteration = 0;
+    public volatile int currIteration = 0;
+
+    // search objects
+    public PV pv_;
+    public string GetPV => pv_.GetPV();
+    public void NewPVLine() => pv_[ply, ply] = Move.NullMove;
+    public void PushToPV(Move m) => pv_.Push(m, ply);
+
+    public TranspositionTable tt = ThreadPool.tt;
 
 
     public SearchThread(int id)
     {
         this.id = id;
+        pv_ = new();
         myThread = new Thread(ThreadMainLoop);
         myThread.Start();
     }
@@ -86,6 +97,7 @@ public class SearchThread : IDisposable
     // between searches
     public void Reset()
     {
+        ply = 0;
         nodeCount = 0;
     }
 
@@ -96,6 +108,8 @@ public class SearchThread : IDisposable
         // move/corr hist
         doSearch = true;
         nodeCount = 0;
+        ply = 0;
+        pv_.Clear();
     }
 
     public void Join()
@@ -109,7 +123,7 @@ public class SearchThread : IDisposable
 
     public void Dispose()
     {
-
+        this.pv_.Dispose();
     }
 
     public void RunBench()
@@ -135,6 +149,9 @@ public class SearchThread : IDisposable
 
         long nps = totalNodes * 1000 / Math.Max(watch.ElapsedMilliseconds, 1);
         Console.WriteLine($"{totalNodes} nodes {nps} nps");
+
+        var oldBench = 1004443;
+        Console.WriteLine($"{oldBench} / {totalNodes} : {oldBench == totalNodes}");
     }
 
 }

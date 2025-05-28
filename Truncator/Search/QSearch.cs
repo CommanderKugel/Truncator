@@ -39,15 +39,11 @@ public static partial class Search
 
             Pos next = p;
             next.MakeMove(m, thread);
+            thread.ply++;
 
             int score = -QSearch<Type>(thread, next, -beta, -alpha);
 
-
-            if (thread.doSearch == false ||
-                thread.IsMainThread && TimeManager.IsHardTimeout())
-            {
-                return SCORE_TIMEOUT;
-            }
+            thread.ply--;
 
 
             if (score > bestscore)

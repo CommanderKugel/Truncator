@@ -134,6 +134,7 @@ public unsafe struct RootPos
             rootMoves[i] = 0;
             moveScores[i] = 0;
             moveNodes[i] = 0;
+            completedDepth[i] = 0;
         }
     }
 

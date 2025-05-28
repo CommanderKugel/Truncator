@@ -1,6 +1,5 @@
 
 using System.Diagnostics;
-using System.Resources;
 using System.Runtime.InteropServices;
 
 public static class Zobrist
