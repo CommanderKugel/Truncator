@@ -49,7 +49,7 @@ public static class Perft
     public static void SplitPerft(Pos p, int depth)
     {
         Span<Move> moves = stackalloc Move[256];
-        int moveCount = MoveGen.GeneratePseudolegalMoves(ref moves, ref p);
+        int moveCount = MoveGen.GeneratePseudolegalMoves(ref moves, ref p, false);
         Console.WriteLine("num pseudolegal moves: " + moveCount);
 
         for (int i = 0; i < moveCount; i++)
@@ -84,7 +84,7 @@ public static class Perft
         }
 
         Span<Move> moves = stackalloc Move[256];
-        int moveCount = MoveGen.GeneratePseudolegalMoves(ref moves, ref p);
+        int moveCount = MoveGen.GeneratePseudolegalMoves(ref moves, ref p, false);
 
         long nodes = 0;
         for (int i = 0; i < moveCount; i++)

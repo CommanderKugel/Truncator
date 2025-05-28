@@ -6,7 +6,7 @@ public static class MoveGen
 
     public static int GenerateLegaMoves(ref Span<Move> moves, ref Pos p)
     {
-        int moveCount = GeneratePseudolegalMoves(ref moves, ref p);
+        int moveCount = GeneratePseudolegalMoves(ref moves, ref p, false);
 
         // remove all illegal moves
         for (int i = 0; i < moveCount;)
@@ -24,27 +24,33 @@ public static class MoveGen
         return moveCount;
     }
 
-    public static unsafe int GeneratePseudolegalMoves(ref Span<Move> moves, ref Pos p)
+    public static unsafe int GeneratePseudolegalMoves(ref Span<Move> moves, ref Pos p, bool inQS)
     {
         int moveCount = 0;
+        ulong captMask = inQS ? p.ColorBB[(int)p.Them] : ~p.ColorBB[(int)p.Us];
         ulong checkMask = GenerateCheckMask(ref p);
+        ulong mask = checkMask == ulong.MaxValue ? captMask : checkMask & ~p.ColorBB[(int)p.Us];
 
-        GeneratePieceMoves(ref moves, ref moveCount, ref p, checkMask, PieceType.Knight);
-        GeneratePieceMoves(ref moves, ref moveCount, ref p, checkMask, PieceType.Bishop);
-        GeneratePieceMoves(ref moves, ref moveCount, ref p, checkMask, PieceType.Rook);
-        GeneratePieceMoves(ref moves, ref moveCount, ref p, checkMask, PieceType.Queen);
-        GeneratePieceMoves(ref moves, ref moveCount, ref p, ulong.MaxValue, PieceType.King);
+        GeneratePieceMoves(ref moves, ref moveCount, ref p, mask, PieceType.Knight);
+        GeneratePieceMoves(ref moves, ref moveCount, ref p, mask, PieceType.Bishop);
+        GeneratePieceMoves(ref moves, ref moveCount, ref p, mask, PieceType.Rook);
+        GeneratePieceMoves(ref moves, ref moveCount, ref p, mask, PieceType.Queen);
+        GeneratePieceMoves(ref moves, ref moveCount, ref p, captMask, PieceType.King);
 
-        GeneratePawnPushes(ref moves, ref moveCount, ref p, checkMask);
-        GeneratePawnCaptures(ref moves, ref moveCount, ref p, checkMask);
+        GeneratePawnCaptures(ref moves, ref moveCount, ref p, mask);
         GenerateEnPassantCapture(ref moves, ref moveCount, ref p);
 
-        if (checkMask == ulong.MaxValue)
+        if (!inQS)
         {
-            GenerateCastling(ref moves, ref moveCount, ref p);
+            GeneratePawnPushes(ref moves, ref moveCount, ref p, checkMask);
+
+            if (checkMask == ulong.MaxValue)
+            {
+                GenerateCastling(ref moves, ref moveCount, ref p);
+            }
         }
 
-        return moveCount;       
+        return moveCount;
     }
 
 
@@ -73,11 +79,10 @@ public static class MoveGen
     private static unsafe void GeneratePieceMoves(ref Span<Move> moves, ref int moveCount, ref Pos p, ulong mask, PieceType pt)
     {
         ulong pieces = p.GetPieces(p.Us, pt);
-        ulong enemyOrEmpty = ~p.ColorBB[(int)p.Us] & mask;
         while (pieces != 0)
         {
             int from = popLsb(ref pieces);
-            ulong attack = Attacks.PieceAttacks(pt, from, p.blocker) & enemyOrEmpty;
+            ulong attack = Attacks.PieceAttacks(pt, from, p.blocker) & mask;
 
             while (attack != 0)
             {
@@ -105,8 +110,8 @@ public static class MoveGen
         ulong promos = singlePush & 0xFF00_0000_0000_00FFul;
         singlePush &= ~promos;
 
-        extractPawnMoves(ref moves, ref moveCount, dir,     singlePush);        
-        extractPawnMoves(ref moves, ref moveCount, dir+dir, doublePush);
+        extractPawnMoves(ref moves, ref moveCount, dir, singlePush);
+        extractPawnMoves(ref moves, ref moveCount, dir + dir, doublePush);
         extractPawnPromotions(ref moves, ref moveCount, dir, promos);
     }
 
@@ -115,23 +120,23 @@ public static class MoveGen
         ulong pawns = p.GetPieces(p.Us, PieceType.Pawn);
         ulong enemy = p.ColorBB[(int)p.Them];
         int dirRight = p.Us == Color.White ? 9 : -7;
-        int dirLeft  = p.Us == Color.White ? 7 : -9;
+        int dirLeft = p.Us == Color.White ? 7 : -9;
 
         ulong right = Attacks.RightPawnMassAttacks(p.Us, pawns) & enemy;
-        ulong left  = Attacks.LeftPawnMassAttacks (p.Us, pawns) & enemy;
+        ulong left = Attacks.LeftPawnMassAttacks(p.Us, pawns) & enemy;
 
         right &= mask;
-        left  &= mask;
+        left &= mask;
 
         ulong rPromo = right & 0xFF00_0000_0000_00FFul;
-        ulong lPromo = left  & 0xFF00_0000_0000_00FFul;
+        ulong lPromo = left & 0xFF00_0000_0000_00FFul;
         right ^= rPromo;
-        left  ^= lPromo;
+        left ^= lPromo;
 
         extractPawnMoves(ref moves, ref moveCount, dirRight, right);
-        extractPawnMoves(ref moves, ref moveCount, dirLeft,  left );
+        extractPawnMoves(ref moves, ref moveCount, dirLeft, left);
         extractPawnPromotions(ref moves, ref moveCount, dirRight, rPromo);
-        extractPawnPromotions(ref moves, ref moveCount, dirLeft,  lPromo);
+        extractPawnPromotions(ref moves, ref moveCount, dirLeft, lPromo);
     }
 
     private static void extractPawnMoves(ref Span<Move> moves, ref int moveCount, int dir, ulong pawns)
@@ -139,7 +144,7 @@ public static class MoveGen
         while (pawns != 0)
         {
             int to = popLsb(ref pawns);
-            moves[moveCount++] = new Move(to-dir, to);
+            moves[moveCount++] = new Move(to - dir, to);
         }
     }
 
@@ -148,10 +153,10 @@ public static class MoveGen
         while (pawns != 0)
         {
             int to = popLsb(ref pawns);
-            moves[moveCount++] = new Move(to-dir, to, MoveFlag.KnightPromo);
-            moves[moveCount++] = new Move(to-dir, to, MoveFlag.BishopPromo);
-            moves[moveCount++] = new Move(to-dir, to, MoveFlag.RookPromo  );
-            moves[moveCount++] = new Move(to-dir, to, MoveFlag.QueenPromo );
+            moves[moveCount++] = new Move(to - dir, to, MoveFlag.KnightPromo);
+            moves[moveCount++] = new Move(to - dir, to, MoveFlag.BishopPromo);
+            moves[moveCount++] = new Move(to - dir, to, MoveFlag.RookPromo);
+            moves[moveCount++] = new Move(to - dir, to, MoveFlag.QueenPromo);
         }
     }
 

@@ -1,14 +1,9 @@
-using System.Security.Cryptography.X509Certificates;
 
 public ref struct MovePicker
 {
 
     private Span<Move> moves;
     private Span<int> scores;
-    /// <summary>
-    /// currently unused
-    /// </summary>
-    private Span<bool> hasPassedSEE;
 
     private Move ttMove;
 
@@ -17,24 +12,31 @@ public ref struct MovePicker
 
 
 
-    public MovePicker(ref Pos p, Move ttMove_, ref Span<Move> moves_, ref Span<int> scores_, ref Span<bool> see_)
+    public MovePicker(ref Pos p, Move ttMove_, ref Span<Move> moves_, ref Span<int> scores_, bool inQS)
     {
         this.moves = moves_;
         this.scores = scores_;
-        this.hasPassedSEE = see_;
         this.ttMove = ttMove_;
 
         this.moveIdx = 0;
-        this.moveCount = MoveGen.GeneratePseudolegalMoves(ref moves, ref p);
-        this.ScoreMoves();
+        this.moveCount = MoveGen.GeneratePseudolegalMoves(ref moves, ref p, inQS);
+        this.ScoreMoves(ref p);
     }
 
-    private void ScoreMoves()
+    private void ScoreMoves(ref Pos p)
     {
         for (int i = 0; i < moveCount; i++)
         {
             ref Move m = ref moves[i];
-            scores[i] = 0;
+
+            if (m == ttMove)
+            {
+                scores[i] = 2_000_000;
+            }
+            else if (p.IsCapture(m))
+            {
+                scores[i] = (int)p.GetCapturedPieceType(m) * 100 - (int)p.PieceTypeOn(m.from);
+            }
         }
     }
 

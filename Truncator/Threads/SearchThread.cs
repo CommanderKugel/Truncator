@@ -24,33 +24,53 @@ public class SearchThread : IDisposable
         myThread.Start();
     }
 
-    private void ThreadMainLoop()
+    private unsafe void ThreadMainLoop()
     {
-        Console.WriteLine("thread started");
+        Console.WriteLine($"thread {id} started");
 
-        while (!die)
+        //fixed (void* nullptr = &id)
         {
-            myResetEvent.WaitOne();
-            this.doSearch = true;
-            Console.WriteLine("thread woke up");
 
-            if (die)
+            try
             {
-                Console.WriteLine("thread dies after idle");
-                break;
+                while (!die)
+                {
+                    myResetEvent.WaitOne();
+                    this.doSearch = true;
+
+                    if (die)
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        Search.IterativeDeepen(this);
+                    }
+
+
+                    // go back idle
+                    myResetEvent.Reset();
+                    if (IsMainThread)
+                    {
+                        UCI.state = UciState.Idle;
+                    }
+                    
+
+                } // while (!die)
             }
-            else
+            catch (Exception e)
             {
-                Console.WriteLine("thread works after idle");
-                Search.IterativeDeepen(this);
+                Console.WriteLine($"Exception thrown in thread {id}!");
+                Console.WriteLine(e.Message);
+                Console.WriteLine(e.StackTrace);
             }
+            finally
+            {
+                Dispose();
+            }
+            Console.WriteLine("thread shutting down - main loop escaped");
 
-
-            // go back to idle
-            myResetEvent.Reset();
-        }
-
-        Console.WriteLine("thread-loop broken");
+        } // fixed
     }
 
     public void Go()

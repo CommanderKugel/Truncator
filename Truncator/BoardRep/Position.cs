@@ -69,6 +69,16 @@ public unsafe partial struct Pos
         return Color.NONE;
     }
 
+    public bool IsCapture(Move m)
+        => m.IsEnPassant || ColorOn(m.to) != Color.NONE;
+
+    public PieceType GetCapturedPieceType(Move m)
+    {
+        Debug.Assert(m.NotNull);
+        return !IsCapture(m) ? PieceType.NONE :
+            m.IsEnPassant ? PieceType.Pawn : PieceTypeOn(m.to);
+    }
+
     public bool HasCastlingRight(Color c, bool kingside)
     {
         Debug.Assert(c != Color.NONE);
