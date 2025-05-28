@@ -53,6 +53,7 @@ public static partial class UCI
             {
                 Debug.Assert(state == UciState.Idle, "command only available, when engine is idle!");
                 rootPos.Clear();
+                ThreadPool.ClearAll();
             }
 
             // initialization of the position to start searching from.

@@ -6,6 +6,7 @@ public class SearchThread : IDisposable
     private Thread myThread;
     private ManualResetEvent myResetEvent = new ManualResetEvent(false);
 
+    // thread Managing Variables
     public readonly int id;
     public bool IsMainThread => id == 0;
 
@@ -25,12 +26,14 @@ public class SearchThread : IDisposable
     public void PushToPV(Move m) => pv_.Push(m, ply);
 
     public TranspositionTable tt = ThreadPool.tt;
+    public RepetitionTable repTable;
 
 
     public SearchThread(int id)
     {
         this.id = id;
         pv_ = new();
+        repTable = new RepetitionTable();
         myThread = new Thread(ThreadMainLoop);
         myThread.Start();
     }
@@ -94,14 +97,19 @@ public class SearchThread : IDisposable
         this.doSearch = false;
     }
 
-    // between searches
+    /// <summary>
+    /// Make the thread ready inbetween searches
+    /// </summary>
     public void Reset()
     {
         ply = 0;
         nodeCount = 0;
+        repTable.Clear();
     }
 
-    // between games
+    /// <summary>
+    /// Clear the threads stored information inbetween games
+    /// </summary>
     public void Clear()
     {
         // tt
@@ -109,6 +117,7 @@ public class SearchThread : IDisposable
         doSearch = true;
         nodeCount = 0;
         ply = 0;
+        repTable.Clear();
         pv_.Clear();
     }
 
@@ -124,6 +133,7 @@ public class SearchThread : IDisposable
     public void Dispose()
     {
         this.pv_.Dispose();
+        this.repTable.Dispose();
     }
 
     public void RunBench()

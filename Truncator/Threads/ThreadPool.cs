@@ -38,6 +38,7 @@ public static class ThreadPool
 
         foreach (var thread in pool)
         {
+            thread.repTable.CopyFrom(ref UCI.rootPos.repTable);
             thread.Go();
         }
     }

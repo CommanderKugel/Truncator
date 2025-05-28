@@ -1,8 +1,7 @@
 using System.Diagnostics;
-using System.Xml.Serialization;
 
 
-public unsafe struct RootPos
+public unsafe struct RootPos : IDisposable
 {
     public fixed ushort rootMoves[256];
     public fixed int moveScores[256];
@@ -12,6 +11,7 @@ public unsafe struct RootPos
     public Pos p;
     public int moveCount;
 
+    public RepetitionTable repTable;
     public fixed long movesPlayed[100];
     public int ply;
 
@@ -22,6 +22,7 @@ public unsafe struct RootPos
 
     public RootPos()
     {
+        repTable = new RepetitionTable();
         lockobject = new object();
     }
 
@@ -42,6 +43,15 @@ public unsafe struct RootPos
         // save move in game hostory (necessary for 3-fold detection later)
         movesPlayed[ply % 100] = m.value;
         ply++;
+        
+        if (p.FiftyMoveRule == 0)
+        {
+            repTable.Clear();
+        }
+        else
+        {
+            repTable.Push(p.ZobristKey);
+        }
     }
 
     public Move GetBestMove()
@@ -49,6 +59,10 @@ public unsafe struct RootPos
         return new(rootMoves[GetBestIndex()]);
     }
 
+    /// <summary>
+    /// Falsely returns indices that are just upper bounds that match the bestscore! needs fixing!
+    /// </summary>
+    /// <returns></returns>
     public int GetBestIndex()
     {
         lock (lockobject)
@@ -136,6 +150,11 @@ public unsafe struct RootPos
             moveNodes[i] = 0;
             completedDepth[i] = 0;
         }
+    }
+
+    public void Dispose()
+    {
+        repTable.Dispose();
     }
 
 }

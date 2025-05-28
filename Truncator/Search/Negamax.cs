@@ -1,5 +1,4 @@
 
-using System.Data;
 using System.Diagnostics;
 
 public static partial class Search
@@ -18,6 +17,11 @@ public static partial class Search
             thread.NewPVLine();
         }
 
+        if (thread.repTable.IsTwofoldRepetition(ref p))
+        {
+            return SCORE_DRAW;
+        }
+
         if (depth <= 0)
         {
             return QSearch<Type>(thread, p, alpha, beta);
@@ -30,6 +34,7 @@ public static partial class Search
 
 
         int bestscore = -SCORE_MATE + thread.ply;
+        int movesPlayed = 0;
         Move bestmove = Move.NullMove;
 
         for (Move m = picker.Next(); m.NotNull; m = picker.Next())
@@ -46,6 +51,7 @@ public static partial class Search
             Pos next = p;
             next.MakeMove(m, thread);
             thread.ply++;
+            movesPlayed++;
 
             int score = -Negamax<PVNode>(thread, next, -beta, -alpha, depth - 1);
 
@@ -85,6 +91,6 @@ public static partial class Search
             }
         }
 
-        return bestscore;
+        return movesPlayed == 0 && p.GetCheckers() == 0 ? SCORE_DRAW : bestscore;
     }
 }
