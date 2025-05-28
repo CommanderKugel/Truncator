@@ -32,7 +32,7 @@ public struct RepetitionTable : IDisposable
 
     public unsafe void Push(ulong key)
     {
-        Debug.Assert(idx >= 0 && idx < SIZE - 1, "rep-table key will be out of bounds!");
+        Debug.Assert(idx >= 0 && idx < SIZE, "rep-table key will be out of bounds!");
         table[idx++] = key;
     }
 
@@ -50,9 +50,7 @@ public struct RepetitionTable : IDisposable
 
     public unsafe bool IsTwofoldRepetition(ref Pos p)
     {
-        int minply = Math.Max(idx - p.FiftyMoveRule, 0);
-        
-        for (int i = idx - 4; i >= minply; i -= 2)
+        for (int i = idx - 1; i >= 0; i--)
         {
             if (p.ZobristKey == table[i])
             {

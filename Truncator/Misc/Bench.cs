@@ -1,6 +1,7 @@
 public static class Bench
 {
-    public static int BenchDepth = 5;
+    public const int BenchDepth = 5;
+    public const long BenchNodes = 20120157;
 
     public static readonly string[] Positions = {
         "r4rk1/5pb1/3R2p1/p2Q1qBp/8/7P/1P3PP1/2R3K1 w - - 4 29",
@@ -69,7 +70,7 @@ public static class Bench
         "rn1qkbnr/ppp1pppp/4b3/3p4/P1PP4/8/1P2PPPP/RNBQKBNR w KQkq - 0 5",
     };
 
-    public static void runBench(int depth)
+    public static void runBench(int depth = BenchDepth)
     {
         TimeManager.PrepareBench(depth);
         ThreadPool.MainThread.RunBench();

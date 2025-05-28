@@ -82,6 +82,18 @@ public unsafe struct RootPos : IDisposable
         }
     }
 
+    public int? IndexOfMove(Move m)
+    {
+        for (int i = 0; i < moveCount; i++)
+        {
+            if (rootMoves[i] == m.value)
+            {
+                return i;
+            }
+        }
+        return null;
+    }
+
     public unsafe void Print()
     {
         Console.WriteLine($"moveCount: {moveCount}");

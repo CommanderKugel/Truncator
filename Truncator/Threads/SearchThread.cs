@@ -161,8 +161,7 @@ public class SearchThread : IDisposable
         long nps = totalNodes * 1000 / Math.Max(watch.ElapsedMilliseconds, 1);
         Console.WriteLine($"{totalNodes} nodes {nps} nps");
 
-        var oldBench = 1004443;
-        Console.WriteLine($"{oldBench} / {totalNodes} : {oldBench == totalNodes}");
+        Console.WriteLine($"{Bench.BenchNodes} / {totalNodes} : {Bench.BenchNodes == totalNodes}");
     }
 
 }

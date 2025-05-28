@@ -9,12 +9,9 @@ public static partial class Search
         int alpha = -SCORE_MATE;
         int beta = SCORE_MATE;
 
-        int rootscore = Negamax<RootNode>(thread, UCI.rootPos.p, alpha, beta, 3);
-
-        /*
         for (
             int depth = 1;
-            thread.doSearch && !TimeManager.IsSoftTimeout(depth) || depth <= 4;
+            thread.doSearch && !TimeManager.IsSoftTimeout(depth) && depth <= TimeManager.maxDepth || depth <= 3;
             depth++)
         {
 
@@ -24,16 +21,23 @@ public static partial class Search
             {
                 unsafe
                 {
-                    int idx = UCI.rootPos.GetBestIndex();
+                    Move currBestMove = thread.pv_.BestMove;
+                    int idx = UCI.rootPos.IndexOfMove(currBestMove) ?? 256;
 
-                    Move bestmove = new(UCI.rootPos.rootMoves[idx]);
+                    if (idx == 256) // bestmove not found (?)
+                    {
+                        continue;
+                    }
+
                     int score = UCI.rootPos.moveScores[idx];
                     long nodes = ThreadPool.GetNodes();
 
                     long time = TimeManager.ElapsedMilliseconds;
                     long nps = nodes * 1000 / time;
 
-                    Console.WriteLine($"info depth {depth} nodes {nodes} time {time} nps {nps} score cp {score} pv {bestmove}");
+                    string pv = thread.GetPV;
+
+                    Console.WriteLine($"info depth {depth} nodes {nodes} time {time} nps {nps} score cp {score} pv {pv}");
                 }
             }
         }

@@ -21,7 +21,7 @@ public static partial class UCI
             if (command == "uci")
             {
                 Console.WriteLine("uciok");
-                Console.WriteLine("id name NamelessEngine");
+                Console.WriteLine("id name Truncator 0.7");
                 Console.WriteLine("id author CommanderKugel");
             }
 
@@ -39,7 +39,7 @@ public static partial class UCI
                 state = UciState.Idle;
             }
 
-            // options can be set to different values. most importantly are
+            // options can be set to different values. most important are
             // - size (mb) of the transposition table
             // - number of threads used for search
             else if (tokens[0] == "setoption")

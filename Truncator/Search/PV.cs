@@ -35,6 +35,11 @@ public struct PV : IDisposable
     {
         Debug.Assert(ply >= 0 && ply < SIZE);
         this[ply, ply] = m;
+
+        for (int i=ply+1; i<SIZE; i++)
+        {
+            this[ply, i] = this[ply+1, i];
+        }
     }
 
     public unsafe string GetPV()

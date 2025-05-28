@@ -12,14 +12,17 @@ public static partial class Search
         bool nonPV = typeof(Type) == typeof(NonPVNode);
 
 
-        if (isPV)
+        if (!isRoot && isPV)
         {
             thread.NewPVLine();
         }
 
-        if (thread.repTable.IsTwofoldRepetition(ref p))
+        if (!isRoot)
         {
-            return SCORE_DRAW;
+            if (thread.repTable.IsTwofoldRepetition(ref p))
+            {
+                return SCORE_DRAW;
+            }
         }
 
         if (depth <= 0)
@@ -63,16 +66,16 @@ public static partial class Search
 
             thread.ply--;
 
-            if (!thread.doSearch ||
-                 thread.IsMainThread && TimeManager.IsHardTimeout())
-            {
-                return SCORE_TIMEOUT;
-            }
-
 
             if (isRoot)
             {
                 UCI.rootPos.ReportBackMove(m, score, thread.nodeCount - startnodes, depth);
+            }
+
+            if (!thread.doSearch ||
+                 thread.IsMainThread && TimeManager.IsHardTimeout())
+            {
+                return SCORE_TIMEOUT;
             }
 
             if (score > bestscore)
