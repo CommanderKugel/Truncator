@@ -20,6 +20,7 @@ public static class BasicPsqt
                     int sq = Utils.popLsb(ref pieces) ^ (us == (int)Color.White ? 56 : 0);
                     Debug.Assert(sq >= 0 && sq < 64);
 
+                    eval += Material_[pt];
                     eval += (PieceType)pt switch
                     {
                         PieceType.Pawn => PawnTable_[sq],
@@ -40,10 +41,16 @@ public static class BasicPsqt
 
                 } // piece
             } // pt
+
+            eval = -eval;
+
         } // color
 
-        return eval;
+        return p.Us == Color.White ? eval : -eval;
     }
+
+
+    private static ReadOnlySpan<int> Material_ => [ 100, 300, 300, 500, 900, 0 ];
     
 
     private static ReadOnlySpan<int> PawnTable_ => [

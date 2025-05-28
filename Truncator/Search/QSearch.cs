@@ -8,7 +8,8 @@ public static partial class Search
     {
         Debug.Assert(typeof(Type) != typeof(RootNode), "QSearch can never examine root-nodes");
 
-        int eval = SimpleEval.Evaluate(ref p);
+
+        int eval = BasicPsqt.Evaluate(ref p);
 
         if (eval >= beta)
         {
