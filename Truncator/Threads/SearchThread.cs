@@ -28,12 +28,17 @@ public class SearchThread : IDisposable
     public TranspositionTable tt = ThreadPool.tt;
     public RepetitionTable repTable;
 
+    public History history;
+
 
     public SearchThread(int id)
     {
         this.id = id;
         pv_ = new();
         repTable = new RepetitionTable();
+
+        history = new();
+
         myThread = new Thread(ThreadMainLoop);
         myThread.Start();
     }
@@ -119,6 +124,7 @@ public class SearchThread : IDisposable
         ply = 0;
         repTable.Clear();
         pv_.Clear();
+        history.Clear();
     }
 
     public void Join()
@@ -134,6 +140,7 @@ public class SearchThread : IDisposable
     {
         this.pv_.Dispose();
         this.repTable.Dispose();
+        this.history.Dispose();
     }
 
     public void RunBench()

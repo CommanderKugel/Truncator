@@ -38,7 +38,7 @@ public static partial class Search
 
         Span<Move> moves = stackalloc Move[256];
         Span<int> scores = stackalloc int[256];
-        MovePicker picker = new MovePicker(ref p, ttMove, ref moves, ref scores, false);
+        MovePicker picker = new MovePicker(thread, ref p, ttMove, ref moves, ref scores, false);
 
 
         int bestscore = -SCORE_MATE;
@@ -49,6 +49,7 @@ public static partial class Search
         for (Move m = picker.Next(); m.NotNull; m = picker.Next())
         {
             Debug.Assert(m.NotNull);
+            bool isCapture = p.IsCapture(m);
 
             long startnodes = thread.nodeCount;
 
@@ -96,6 +97,12 @@ public static partial class Search
                     if (score >= beta)
                     {
                         flag = LOWER_BOUND;
+
+                        if (!isCapture)
+                        {
+                            thread.history.Butterfly.Update((short)(depth * depth), p.Us, m);
+                        }
+
                         break;
                     }
                 }

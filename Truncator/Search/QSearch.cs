@@ -30,7 +30,7 @@ public static partial class Search
 
         Span<Move> moves = stackalloc Move[256];
         Span<int> scores = stackalloc int[256];
-        MovePicker picker = new MovePicker(ref p, ttMove, ref moves, ref scores, inQS: true);
+        MovePicker picker = new MovePicker(thread, ref p, ttMove, ref moves, ref scores, inQS: true);
 
         for (Move m = picker.Next(); m.NotNull; m = picker.Next())
         {

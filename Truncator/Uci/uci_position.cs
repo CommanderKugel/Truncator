@@ -10,6 +10,8 @@ public static partial class UCI
         Debug.Assert(state == UciState.Idle, "do not change root pos when not idle!");
         Debug.Assert(tokens[0] == "position");
 
+        rootPos.repTable.Push(rootPos.p.ZobristKey);
+
         if (tokens.Length < 2)
         {
             throw new Exception("position string does not specify any position!");

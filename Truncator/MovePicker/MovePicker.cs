@@ -12,7 +12,7 @@ public ref struct MovePicker
 
 
 
-    public MovePicker(ref Pos p, Move ttMove_, ref Span<Move> moves_, ref Span<int> scores_, bool inQS)
+    public MovePicker(SearchThread thread, ref Pos p, Move ttMove_, ref Span<Move> moves_, ref Span<int> scores_, bool inQS)
     {
         this.moves = moves_;
         this.scores = scores_;
@@ -20,10 +20,10 @@ public ref struct MovePicker
 
         this.moveIdx = 0;
         this.moveCount = MoveGen.GeneratePseudolegalMoves(ref moves, ref p, inQS);
-        this.ScoreMoves(ref p);
+        this.ScoreMoves(thread, ref p);
     }
 
-    private void ScoreMoves(ref Pos p)
+    private void ScoreMoves(SearchThread thread, ref Pos p)
     {
         for (int i = 0; i < moveCount; i++)
         {
@@ -35,7 +35,13 @@ public ref struct MovePicker
             }
             else if (p.IsCapture(m))
             {
-                scores[i] = (int)p.GetCapturedPieceType(m) * 100 - (int)p.PieceTypeOn(m.from);
+                scores[i] = 1_000_000
+                          + (int)p.GetCapturedPieceType(m) * 100
+                          - (int)p.PieceTypeOn(m.from);
+            }
+            else // quiet
+            {
+                scores[i] = thread.history.Butterfly[p.Us, m];
             }
         }
     }
