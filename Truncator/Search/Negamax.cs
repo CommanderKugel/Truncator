@@ -56,8 +56,33 @@ public static partial class Search
         }
 
 
+        bool inCheck = p.GetCheckers() != 0;
+
+        if (inCheck)
+        {
+            goto move_loop;
+        }
+
+
+        // static evaluaton
+        // although this is a noisy position and we have to distrust the static
+        // evaluation of the current node to an extend, we can draw some conclusion from it.
+        int staticEval = inCheck ? 0 : BasicPsqt.Evaluate(ref p);
+
+
+        // reverse futility pruning (RFP)
+        if (nonPV &&
+            depth <= 5 &&
+            staticEval - 75 * depth >= beta)
+        {
+            return staticEval;
+        }
+
+
+        move_loop:
+
         // movegeneration, scoring and ordering is outsourced to the move-picker
-            Span<Move> moves = stackalloc Move[256];
+        Span<Move> moves = stackalloc Move[256];
         Span<int> scores = stackalloc int[256];
         MovePicker picker = new MovePicker(thread, ref p, ttMove, ref moves, ref scores, false);
 
