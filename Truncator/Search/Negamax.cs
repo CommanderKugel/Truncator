@@ -42,6 +42,7 @@ public static partial class Search
 
 
         int bestscore = -SCORE_MATE;
+        int score = -SCORE_MATE;
         int flag = NONE_BOUND;
         int movesPlayed = 0;
         Move bestmove = Move.NullMove;
@@ -65,7 +66,25 @@ public static partial class Search
             thread.ply++;
             thread.repTable.Push(next.ZobristKey);
 
-            int score = -Negamax<PVNode>(thread, next, -beta, -alpha, depth - 1);
+            if (movesPlayed > 1 && depth >= 2 && !isCapture)
+            {
+                int R = 1 + (int)Math.Log(depth);
+                score = -Negamax<NonPVNode>(thread, next, -alpha - 1, -alpha, depth - R);
+
+                if (score > alpha && R > 1)
+                {
+                    score = -Negamax<NonPVNode>(thread, next, -alpha - 1, -alpha, depth - 1);
+                }
+            }
+            else if (nonPV || movesPlayed > 1)
+            {
+                score = -Negamax<NonPVNode>(thread, next, -alpha - 1, -alpha, depth - 1);
+            }
+
+            if (isPV && (score > alpha || movesPlayed == 1))
+            {
+                score = -Negamax<PVNode>(thread, next, -beta, -alpha, depth - 1);
+            }
 
             // UndoMove
             thread.ply--;

@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Net;
 
 public static partial class UCI
 {
@@ -21,7 +20,7 @@ public static partial class UCI
             if (command == "uci")
             {
                 Console.WriteLine("uciok");
-                Console.WriteLine("id name Truncator 0.9");
+                Console.WriteLine("id name Truncator 0.10");
                 Console.WriteLine("id author CommanderKugel");
             }
 
