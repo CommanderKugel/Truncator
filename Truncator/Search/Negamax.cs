@@ -19,7 +19,7 @@ public static partial class Search
 
         if (!isRoot)
         {
-            if (thread.repTable.IsTwofoldRepetition(ref p))
+            if (p.IsDraw(thread))
             {
                 return SCORE_DRAW;
             }

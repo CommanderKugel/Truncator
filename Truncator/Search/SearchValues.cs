@@ -13,4 +13,8 @@ public static partial class Search
                      UPPER_BOUND = 0b10,
                      EXACT_BOUND = 0b11;
 
+    private static ReadOnlySpan<byte> Log_ => [
+        1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+    ];
+
 }
