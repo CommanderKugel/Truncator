@@ -108,4 +108,15 @@ public unsafe partial struct Pos
         ulong ray = Utils.GetRay(ksq, sq) & ~(1ul << ksq | 1ul << sq);
         return (ray & blocker) == 0;
     }
+
+    private readonly bool IsFiftyMoveDraw => FiftyMoveRule >= 100;
+
+    private bool IsInsufficientMaterial => (PieceBB[(int)PieceType.Pawn] | PieceBB[(int)PieceType.Rook] | PieceBB[(int)PieceType.Queen]) == 0
+                                        && !Utils.MoreThanOne(PieceBB[(int)PieceType.Bishop] | PieceBB[(int)PieceType.Knight]);
+    
+    public bool IsDraw(SearchThread thread)
+    {
+        Debug.Assert(FiftyMoveRule >= 0 && FiftyMoveRule <= 100, "why are you still playing? This game is already drawn!");
+        return IsFiftyMoveDraw || IsInsufficientMaterial || thread.repTable.IsTwofoldRepetition(ref this);
+    }
 }

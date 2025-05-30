@@ -50,7 +50,7 @@ public struct RepetitionTable : IDisposable
 
     public unsafe bool IsTwofoldRepetition(ref Pos p)
     {
-        for (int i = idx - 1; i >= 0; i--)
+        for (int i = idx - 5; i >= 0; i -= 2)
         {
             if (p.ZobristKey == table[i])
             {

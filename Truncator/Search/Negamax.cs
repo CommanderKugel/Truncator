@@ -60,12 +60,16 @@ public static partial class Search
 
             Pos next = p;
             next.MakeMove(m, thread);
-            thread.ply++;
             movesPlayed++;
+
+            thread.ply++;
+            thread.repTable.Push(next.ZobristKey);
 
             int score = -Negamax<PVNode>(thread, next, -beta, -alpha, depth - 1);
 
+            // UndoMove
             thread.ply--;
+            thread.repTable.Pop();
 
 
             if (isRoot)
