@@ -2,7 +2,7 @@
 public static partial class Search
 {
 
-    public static void IterativeDeepen(SearchThread thread)
+    public static unsafe void IterativeDeepen(SearchThread thread)
     {
         thread.nodeCount = 0;
 
@@ -14,8 +14,9 @@ public static partial class Search
             thread.doSearch && !TimeManager.IsSoftTimeout(depth) && depth <= TimeManager.maxDepth || depth <= 3;
             depth++)
         {
-
-            Negamax<RootNode>(thread, UCI.rootPos.p, alpha, beta, depth);
+            
+            thread.currIteration = depth;
+            int rootScore = Negamax<RootNode>(thread, UCI.rootPos.p, alpha, beta, depth, &thread.nodeStack[thread.ply]);
 
             if (thread.IsMainThread)
             {

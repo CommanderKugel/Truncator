@@ -1,5 +1,6 @@
 
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 public class SearchThread : IDisposable
 {
@@ -27,6 +28,7 @@ public class SearchThread : IDisposable
 
     public TranspositionTable tt = ThreadPool.tt;
     public RepetitionTable repTable;
+    public volatile unsafe Node* nodeStack = null;
 
     public History history;
 
@@ -47,8 +49,10 @@ public class SearchThread : IDisposable
     {
         Console.WriteLine($"thread {id} started");
 
-        //fixed (void* nullptr = &id)
+        Span<Node> NodeSpan = stackalloc Node[256];
+        fixed (Node* NodePtr = NodeSpan)
         {
+            this.nodeStack = NodePtr;
 
             try
             {
@@ -73,7 +77,7 @@ public class SearchThread : IDisposable
                     {
                         UCI.state = UciState.Idle;
                     }
-                    
+
 
                 } // while (!die)
             }
@@ -92,11 +96,26 @@ public class SearchThread : IDisposable
         } // fixed
     }
 
+    public void UndoMove()
+    {
+        ply--;
+        repTable.Pop();
+    }
+
+    /// <summary>
+    /// Start searching from UCI commands
+    /// only works when already in ThreadMainLoop
+    /// not applicable to Bench
+    /// </summary>
     public void Go()
     {
         myResetEvent.Set();
     }
-
+    
+    /// <summary>
+    /// Stops searching from UCI commands
+    /// only works when already searching and in ThreadMainLoop
+    /// </summary>
     public void Stop()
     {
         this.doSearch = false;
@@ -127,6 +146,9 @@ public class SearchThread : IDisposable
         history.Clear();
     }
 
+    /// <summary>
+    /// Stops the thread and disposes of this object
+    /// </summary>
     public void Join()
     {
         this.die = true;
@@ -143,26 +165,33 @@ public class SearchThread : IDisposable
         this.history.Dispose();
     }
 
-    public void RunBench()
+    public unsafe void RunBench()
     {
         var watch = new Stopwatch();
         long totalNodes = 0;
 
-        watch.Start();
-        foreach (var fen in Bench.Positions)
+        Span<Node> NodeSpan = stackalloc Node[256];
+        fixed (Node* NodePtr = NodeSpan)
         {
-            this.Clear();
-            ThreadPool.tt.Clear();
-            TimeManager.PrepareBench(TimeManager.maxDepth);
+            this.nodeStack = NodePtr;
 
-            UCI.rootPos.SetNewFen(fen);
-            UCI.rootPos.InitRootMoves();
+            watch.Start();
+            foreach (var fen in Bench.Positions)
+            {
+                this.Clear();
+                ThreadPool.tt.Clear();
+                TimeManager.PrepareBench(TimeManager.maxDepth);
 
-            Search.IterativeDeepen(this);
-            totalNodes += nodeCount;
-        }
+                UCI.rootPos.SetNewFen(fen);
+                UCI.rootPos.InitRootMoves();
 
-        watch.Stop();
+                Search.IterativeDeepen(this);
+                totalNodes += nodeCount;
+            }
+            watch.Stop();
+
+        } // fixed
+
         Stop();
 
         long nps = totalNodes * 1000 / Math.Max(watch.ElapsedMilliseconds, 1);

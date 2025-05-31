@@ -7,7 +7,7 @@ public static partial class Search
         where Type : NodeType
     {
         Debug.Assert(typeof(Type) != typeof(RootNode), "QSearch can never examine root-nodes");
-
+        Debug.Assert(thread.ply < 256);
 
         TTEntry entry = thread.tt.Probe(p.ZobristKey);
         bool ttHit = entry.Key == p.ZobristKey;
@@ -43,7 +43,6 @@ public static partial class Search
 
             Pos next = p;
             next.MakeMove(m, thread);
-            thread.ply++;
 
             int score = -QSearch<Type>(thread, next, -beta, -alpha);
 

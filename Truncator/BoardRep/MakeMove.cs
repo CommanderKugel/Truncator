@@ -140,6 +140,7 @@ public unsafe partial struct Pos
                 PieceBB[(int)PieceType.Pawn] ^= 1ul << victim;
                 ColorBB[(int)Them] ^= 1ul << victim;
                 ZobristKey ^= Zobrist.GetPieceKey(Them, PieceType.Pawn, victim);
+                victimPt = PieceType.Pawn;
             }
         }
 
@@ -167,6 +168,8 @@ public unsafe partial struct Pos
                         ^ Zobrist.GetPieceKey(Us, PieceType.King, to)
                         ^ Zobrist.GetPieceKey(Us, PieceType.Rook, to)
                         ^ Zobrist.GetPieceKey(Us, PieceType.Rook, rookEnd);
+
+            victimPt = PieceType.NONE;
         }
         else if (movingPt == PieceType.King)
         {
@@ -188,7 +191,15 @@ public unsafe partial struct Pos
         Us = Them;
         ZobristKey ^= Zobrist.stmKey;
 
+        // update the search-stack
+        thread.nodeStack[thread.ply].MovedPieceType = movingPt;
+        thread.nodeStack[thread.ply].CapturedPieceType = victimPt;
+        thread.nodeStack[thread.ply].move = m;
+
+        // update the thread-data
         thread.nodeCount++;
+        thread.ply++;
+        // push to rep-table only in search, because qsearch cant realistically cause repetitions
     }
 
 }

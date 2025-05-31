@@ -1,14 +1,14 @@
 
 using System.Diagnostics;
-using System.Runtime.Serialization;
-using System.Threading.Channels;
 
 public static partial class Search
 {
 
-    public static int Negamax<Type>(SearchThread thread, Pos p, int alpha, int beta, int depth)
+    public static unsafe int Negamax<Type>(SearchThread thread, Pos p, int alpha, int beta, int depth, Node* ns)
         where Type : NodeType
     {
+        Debug.Assert(thread.ply < 256);
+
         bool isRoot = typeof(Type) == typeof(RootNode);
         bool isPV = isRoot || typeof(Type) == typeof(PVNode);
         bool nonPV = typeof(Type) == typeof(NonPVNode);
@@ -110,7 +110,6 @@ public static partial class Search
             Pos next = p;
             next.MakeMove(m, thread);
             movesPlayed++;
-            thread.ply++;
             thread.repTable.Push(next.ZobristKey);
 
             if (movesPlayed > 1 && depth >= 2 && !isCapture)
@@ -128,31 +127,29 @@ public static partial class Search
                 // to cause a lot more curoffs. the returned value will never be an exact score, but an upper-
                 // or lower-bound. if a move unexpectedly beats the pv, we need to re-search it at full depth,
                 // to confirm it is really better than the pv and obtain its exact value.
-                score = -Negamax<NonPVNode>(thread, next, -alpha - 1, -alpha, depth - R);
+                score = -Negamax<NonPVNode>(thread, next, -alpha - 1, -alpha, depth - R, ns++);
 
                 // re-search if LMR seems to beat the current best move
                 if (score > alpha && R > 1)
                 {
-                    score = -Negamax<NonPVNode>(thread, next, -alpha - 1, -alpha, depth - 1);
+                    score = -Negamax<NonPVNode>(thread, next, -alpha - 1, -alpha, depth - 1, ns++);
                 }
             }
 
             // ZWS for moves that are not reduced by LMR
             else if (nonPV || movesPlayed > 1)
             {
-                score = -Negamax<NonPVNode>(thread, next, -alpha - 1, -alpha, depth - 1);
+                score = -Negamax<NonPVNode>(thread, next, -alpha - 1, -alpha, depth - 1, ns++);
             }
 
             // full-window-search
             // either the pv-line is searched fully at first, or a high-failing ZWS search needs to be confirmed.
             if (isPV && (score > alpha || movesPlayed == 1))
             {
-                score = -Negamax<PVNode>(thread, next, -beta, -alpha, depth - 1);
+                score = -Negamax<PVNode>(thread, next, -beta, -alpha, depth - 1, ns++);
             }
 
-            // undo the move
-            thread.ply--;
-            thread.repTable.Pop();
+            thread.UndoMove();
 
             // save move-data for e.g. soft-timeouts and other shenanigans
             if (isRoot)
