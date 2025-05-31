@@ -78,6 +78,26 @@ public static partial class Search
             return staticEval;
         }
 
+        // null move pruning
+        if (nonPV &&
+            (ns - 1)->move.NotNull &&
+            staticEval >= beta)
+        {
+            Pos PosAfterNull = p;
+            PosAfterNull.MakeNullMove(thread);
+            thread.repTable.Push(PosAfterNull.ZobristKey);
+
+            int R = 3;
+            int ScoreAfterNull = -Negamax<NonPVNode>(thread, PosAfterNull, -beta, -alpha, depth - R, ns++);
+
+            thread.UndoMove();
+
+            if (ScoreAfterNull >= beta)
+            {
+                return ScoreAfterNull;
+            }
+        }
+
 
         move_loop:
 

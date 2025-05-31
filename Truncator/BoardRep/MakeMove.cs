@@ -1,6 +1,4 @@
 
-
-
 using System.Diagnostics;
 
 public unsafe partial struct Pos
@@ -200,6 +198,31 @@ public unsafe partial struct Pos
         thread.nodeCount++;
         thread.ply++;
         // push to rep-table only in search, because qsearch cant realistically cause repetitions
+    }
+
+    public void MakeNullMove(SearchThread thread)
+    {
+        // swap the side-to-move
+        Us = Them;
+        ZobristKey ^= Zobrist.stmKey;
+
+        // reset the ep-square
+        if (EnPassantSquare != (int)Square.NONE)
+        {
+            ZobristKey ^= Zobrist.GetEpKEy(EnPassantSquare);
+            EnPassantSquare = (int)Square.NONE;
+        }
+
+        Debug.Assert(this.ZobristKey == Zobrist.ComputeFromZero(ref this));
+
+        // update the search-stack
+        thread.nodeStack[thread.ply].MovedPieceType = PieceType.NONE;
+        thread.nodeStack[thread.ply].CapturedPieceType = PieceType.NONE;
+        thread.nodeStack[thread.ply].move = Move.NullMove;
+
+        // update the thread-data
+        thread.nodeCount++;
+        thread.ply++;
     }
 
 }
