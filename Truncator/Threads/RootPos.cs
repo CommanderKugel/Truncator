@@ -39,8 +39,9 @@ public unsafe struct RootPos : IDisposable
 
         // make move on board representation
         p.MakeMove(m, ThreadPool.MainThread);
+        ThreadPool.MainThread.ply--;
 
-        // save move in game hostory (necessary for 3-fold detection later)
+        // save move in game hostory
         movesPlayed[ply % 100] = m.value;
         ply++;
         
