@@ -78,6 +78,20 @@ public static partial class Search
             return staticEval;
         }
 
+        // razoring
+        if (nonPV &&
+            !IsTerminal(alpha) &&
+            depth <= 4 &&
+            staticEval + 300 * depth <= alpha)
+        {
+            int RazoringScore = QSearch<NonPVNode>(thread, p, alpha, beta);
+
+            if (RazoringScore <= alpha)
+            {
+                return RazoringScore;
+            }
+        }
+
         // null move pruning
         if (nonPV &&
             (ns - 1)->move.NotNull &&
