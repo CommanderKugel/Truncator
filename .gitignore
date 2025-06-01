@@ -6,3 +6,5 @@
 *.exe
 Errorfile.txt
 Furypasta.txt
+
+*.py

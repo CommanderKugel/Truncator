@@ -40,8 +40,9 @@ public struct Move
     public readonly bool IsCastling => flag == MoveFlag.Castling;
     public readonly bool IsEnPassant => flag == MoveFlag.EnPassant;
     public readonly bool IsPromotion => flag == MoveFlag.Promotion;
-
     public readonly PieceType PromoType => (PieceType)(((value >> 12) & 0b11) + 1);
+
+    public readonly int ButterflyMask => value & 0x0FFF;
 
     public static readonly Move NullMove = new((ushort)0);
 

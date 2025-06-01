@@ -28,7 +28,7 @@ public struct ButterflyHistory : IDisposable
             Debug.Assert(c == Color.White || c == Color.Black);
             Debug.Assert(from >= 0 && from < 64);
             Debug.Assert(to >= 0 && to < 64);
-            return ref table_[from * 64 + to];
+            return ref table_[(int)c * 64 * 64 + to * 64 + from];
         }
     }
 
@@ -38,7 +38,8 @@ public struct ButterflyHistory : IDisposable
         {
             Debug.Assert(c == Color.White || c == Color.Black);
             Debug.Assert(m.NotNull);
-            return ref table_[m.value & 0x0FFF];
+            Debug.Assert(m.ButterflyMask == (m.to * 64 + m.from));
+            return ref table_[(int)c * 64 * 64 + m.ButterflyMask];
         }
     }
 
