@@ -124,7 +124,11 @@ public static partial class Search
         int bestscore = -SCORE_MATE;
         int score = -SCORE_MATE;
         int flag = NONE_BOUND;
+
         int movesPlayed = 0;
+        int quitesCount = 0;
+        Span<Move> quietMoves = stackalloc Move[128];
+
         Move bestmove = Move.NullMove;
 
         // main move loop
@@ -143,8 +147,10 @@ public static partial class Search
             // make the move and update the boardstate
             Pos next = p;
             next.MakeMove(m, thread);
-            movesPlayed++;
             thread.repTable.Push(next.ZobristKey);
+
+            movesPlayed++;
+            if (!isCapture) quietMoves[quitesCount++] = m;
 
             if (movesPlayed > 1 && depth >= 2 && !isCapture)
             {
@@ -225,10 +231,19 @@ public static partial class Search
                         // play the current one and we dont need to search further down this branch
                         flag = LOWER_BOUND;
 
-                        // update the
+                        // update history
                         if (!isCapture)
                         {
-                            thread.history.Butterfly.Update((short)(depth * depth), p.Us, m);
+                            int HistDelta = depth * depth;
+
+                            for (int i = 0; i < quitesCount; i++)
+                            {
+                                ref Move mv = ref quietMoves[i];
+                                Debug.Assert(mv.NotNull);
+                                
+                                short delta = (short)(mv == m ? HistDelta : -HistDelta);
+                                thread.history.Butterfly.Update(delta, p.Us, quietMoves[i]);
+                            }
                         }
 
                         break;
