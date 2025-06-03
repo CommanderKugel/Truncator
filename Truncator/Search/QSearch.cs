@@ -60,7 +60,14 @@ public static partial class Search
         {
             Debug.Assert(m.NotNull);
 
-            // make legal moves
+            // prune all bad captures
+            if (nonPV &&
+                !SEE.SEE_threshold(m, ref p, 0))
+            {
+                continue;
+            }
+
+            // only make legal moves
             if (!p.IsLegal(m))
             {
                 continue;
