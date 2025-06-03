@@ -67,7 +67,7 @@ public static partial class Search
         // static evaluaton
         // although this is a noisy position and we have to distrust the static
         // evaluation of the current node to an extend, we can draw some conclusion from it.
-        int staticEval = inCheck ? 0 : BasicPsqt.Evaluate(ref p);
+        int staticEval = inCheck ? 0 : Pesto.Evaluate(ref p);
 
 
         // reverse futility pruning (RFP)

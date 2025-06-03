@@ -13,7 +13,7 @@ public static partial class Search
         bool ttHit = entry.Key == p.ZobristKey;
         Move ttMove = ttHit ? new(entry.MoveValue) : Move.NullMove;
 
-        int eval = BasicPsqt.Evaluate(ref p);
+        int eval = Pesto.Evaluate(ref p);
 
         if (eval >= beta)
         {
