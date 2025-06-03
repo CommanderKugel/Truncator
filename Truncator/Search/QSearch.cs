@@ -13,6 +13,18 @@ public static partial class Search
         bool ttHit = entry.Key == p.ZobristKey;
         Move ttMove = ttHit ? new(entry.MoveValue) : Move.NullMove;
 
+
+        if (typeof(Type) == typeof(NonPVNode) &&
+            ttHit && (
+                entry.Flag == EXACT_BOUND ||
+                entry.Flag == LOWER_BOUND && entry.Score >= beta ||
+                entry.Flag == UPPER_BOUND && entry.Score <= alpha
+            ))
+        {
+            return entry.Score;
+        }
+
+
         int eval = Pesto.Evaluate(ref p);
 
         if (eval >= beta)
