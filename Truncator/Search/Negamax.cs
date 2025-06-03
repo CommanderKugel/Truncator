@@ -8,6 +8,7 @@ public static partial class Search
         where Type : NodeType
     {
         Debug.Assert(thread.ply < 256);
+        Debug.Assert(ns == &thread.nodeStack[thread.ply]);
 
         bool isRoot = typeof(Type) == typeof(RootNode);
         bool isPV = isRoot || typeof(Type) == typeof(PVNode);
@@ -102,7 +103,7 @@ public static partial class Search
             thread.repTable.Push(PosAfterNull.ZobristKey);
 
             int R = 3;
-            int ScoreAfterNull = -Negamax<NonPVNode>(thread, PosAfterNull, -beta, -alpha, depth - R, ns++);
+            int ScoreAfterNull = -Negamax<NonPVNode>(thread, PosAfterNull, -beta, -alpha, depth - R, ns + 1);
 
             thread.UndoMove();
 
@@ -167,26 +168,26 @@ public static partial class Search
                 // to cause a lot more curoffs. the returned value will never be an exact score, but an upper-
                 // or lower-bound. if a move unexpectedly beats the pv, we need to re-search it at full depth,
                 // to confirm it is really better than the pv and obtain its exact value.
-                score = -Negamax<NonPVNode>(thread, next, -alpha - 1, -alpha, depth - R, ns++);
+                score = -Negamax<NonPVNode>(thread, next, -alpha - 1, -alpha, depth - R, ns + 1);
 
                 // re-search if LMR seems to beat the current best move
                 if (score > alpha && R > 1)
                 {
-                    score = -Negamax<NonPVNode>(thread, next, -alpha - 1, -alpha, depth - 1, ns++);
+                    score = -Negamax<NonPVNode>(thread, next, -alpha - 1, -alpha, depth - 1, ns + 1);
                 }
             }
 
             // ZWS for moves that are not reduced by LMR
             else if (nonPV || movesPlayed > 1)
             {
-                score = -Negamax<NonPVNode>(thread, next, -alpha - 1, -alpha, depth - 1, ns++);
+                score = -Negamax<NonPVNode>(thread, next, -alpha - 1, -alpha, depth - 1, ns + 1);
             }
 
             // full-window-search
             // either the pv-line is searched fully at first, or a high-failing ZWS search needs to be confirmed.
             if (isPV && (score > alpha || movesPlayed == 1))
             {
-                score = -Negamax<PVNode>(thread, next, -beta, -alpha, depth - 1, ns++);
+                score = -Negamax<PVNode>(thread, next, -beta, -alpha, depth - 1, ns + 1);
             }
 
             thread.UndoMove();
@@ -231,16 +232,16 @@ public static partial class Search
                         // play the current one and we dont need to search further down this branch
                         flag = LOWER_BOUND;
 
-                        // update history
                         if (!isCapture)
                         {
+                            // update history
                             int HistDelta = depth * depth;
 
                             for (int i = 0; i < quitesCount; i++)
                             {
                                 ref Move mv = ref quietMoves[i];
                                 Debug.Assert(mv.NotNull);
-                                
+
                                 short delta = (short)(mv == m ? HistDelta : -HistDelta);
                                 thread.history.Butterfly.Update(delta, p.Us, quietMoves[i]);
                             }

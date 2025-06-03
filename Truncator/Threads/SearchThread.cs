@@ -1,6 +1,6 @@
 
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 public class SearchThread : IDisposable
 {
@@ -125,11 +125,12 @@ public class SearchThread : IDisposable
     /// <summary>
     /// Make the thread ready inbetween searches
     /// </summary>
-    public void Reset()
+    public unsafe void Reset()
     {
         ply = 0;
         seldepth = 0;
         nodeCount = 0;
+        NativeMemory.Clear(nodeStack, (nuint)sizeof(Node) * 255);
         repTable.Clear();
     }
 
@@ -141,10 +142,7 @@ public class SearchThread : IDisposable
         // tt
         // move/corr hist
         doSearch = true;
-        nodeCount = 0;
-        seldepth = 0;
-        ply = 0;
-        repTable.Clear();
+        Reset();
         pv_.Clear();
         history.Clear();
     }
