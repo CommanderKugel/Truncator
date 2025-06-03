@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Security.Cryptography;
 
 public static partial class Search
 {
@@ -9,13 +10,21 @@ public static partial class Search
         Debug.Assert(typeof(Type) != typeof(RootNode), "QSearch can never examine root-nodes");
         Debug.Assert(thread.ply < 256);
 
+        bool isPV = typeof(Type) == typeof(PVNode);
+        bool nonPV = typeof(Type) == typeof(NonPVNode);
+
+        if (isPV)
+        {
+            thread.NewPVLine();
+        }
+
+        // probe the tt for a transposition
         TTEntry entry = thread.tt.Probe(p.ZobristKey);
         bool ttHit = entry.Key == p.ZobristKey;
         Move ttMove = ttHit ? new(entry.MoveValue) : Move.NullMove;
 
-
-        if (typeof(Type) == typeof(NonPVNode) &&
-            ttHit && (
+        // try for tt-cutoff if the entry is any good
+        if (nonPV && ttHit && (
                 entry.Flag == EXACT_BOUND ||
                 entry.Flag == LOWER_BOUND && entry.Score >= beta ||
                 entry.Flag == UPPER_BOUND && entry.Score <= alpha
@@ -24,7 +33,8 @@ public static partial class Search
             return entry.Score;
         }
 
-
+        // stand pat logic
+        // stop captureing pieces (& return) if it does not increase evaluation
         int eval = Pesto.Evaluate(ref p);
 
         if (eval >= beta)
@@ -40,14 +50,17 @@ public static partial class Search
         // ToDo: mate-score when in check
         int bestscore = eval;
 
+        // move generation and picking
         Span<Move> moves = stackalloc Move[256];
         Span<int> scores = stackalloc int[256];
         MovePicker picker = new MovePicker(thread, ref p, ttMove, ref moves, ref scores, inQS: true);
 
+        // main move loop
         for (Move m = picker.Next(); m.NotNull; m = picker.Next())
         {
             Debug.Assert(m.NotNull);
 
+            // make legal moves
             if (!p.IsLegal(m))
             {
                 continue;
@@ -56,25 +69,32 @@ public static partial class Search
             Pos next = p;
             next.MakeMove(m, thread);
 
+            // no re-searches, we only ever pass null-windows in nonPV nodes
             int score = -QSearch<Type>(thread, next, -beta, -alpha);
 
             thread.ply--;
 
 
             if (score > bestscore)
+            {
+                bestscore = score;
+
+                if (isPV)
                 {
-                    bestscore = score;
+                    thread.seldepth = Math.Max(thread.ply, thread.seldepth);
+                    thread.PushToPV(m);
+                }
 
-                    if (score > alpha)
+                if (score > alpha)
+                {
+                    alpha = score;
+
+                    if (score >= beta)
                     {
-                        alpha = score;
-
-                        if (score >= beta)
-                        {
-                            break;
-                        }
+                        break;
                     }
                 }
+            }
         }
 
         return bestscore;

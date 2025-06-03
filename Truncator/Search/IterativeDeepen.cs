@@ -1,4 +1,6 @@
 
+using System.Diagnostics;
+
 public static partial class Search
 {
 
@@ -16,6 +18,8 @@ public static partial class Search
         {
             
             thread.currIteration = depth;
+            thread.seldepth = depth;
+
             int rootScore = Negamax<RootNode>(thread, UCI.rootPos.p, alpha, beta, depth, &thread.nodeStack[thread.ply]);
 
             if (thread.IsMainThread)
@@ -36,13 +40,17 @@ public static partial class Search
                     long time = TimeManager.ElapsedMilliseconds;
                     long nps = nodes * 1000 / time;
 
-                    string pv = thread.GetPV;
-
-                    Console.WriteLine($"info depth {depth} nodes {nodes} time {time} nps {nps} score cp {score} pv {pv}");
+                    Console.WriteLine($"info depth {depth} seldepth {thread.seldepth} nodes {nodes} time {time} nps {nps} score cp {score} pv {thread.GetPV}");
                 }
             }
         }
-        Console.WriteLine($"bestmove {thread.pv_.BestMove}");
+
+        Move bestMove = thread.pv_.BestMove;
+        Move ponderMove = thread.pv_.PonderMove;
+        Debug.Assert(bestMove.NotNull, "bestmove cant be null! something went wrong");
+        Debug.Assert(ponderMove.NotNull, "pondermove cant be null! something went wrong");
+        
+        Console.WriteLine($"bestmove {thread.pv_.BestMove} ponder {ponderMove}");
     }
 
 }

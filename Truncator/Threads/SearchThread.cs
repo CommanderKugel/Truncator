@@ -17,6 +17,7 @@ public class SearchThread : IDisposable
     
     // search variables
     public volatile int ply;
+    public volatile int seldepth;
     public long nodeCount = 0;
     public volatile int currIteration = 0;
 
@@ -127,6 +128,7 @@ public class SearchThread : IDisposable
     public void Reset()
     {
         ply = 0;
+        seldepth = 0;
         nodeCount = 0;
         repTable.Clear();
     }
@@ -140,6 +142,7 @@ public class SearchThread : IDisposable
         // move/corr hist
         doSearch = true;
         nodeCount = 0;
+        seldepth = 0;
         ply = 0;
         repTable.Clear();
         pv_.Clear();

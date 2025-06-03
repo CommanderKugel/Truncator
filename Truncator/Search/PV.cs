@@ -53,6 +53,7 @@ public struct PV : IDisposable
     }
 
     public unsafe Move BestMove => pv[0];
+    public unsafe Move PonderMove => pv[1];
 
     public unsafe void Dispose()
     {
