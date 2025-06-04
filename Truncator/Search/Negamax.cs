@@ -201,7 +201,7 @@ public static partial class Search
             // check if we have time left
             // do this in the move-loop, to always get a correct score for the pv-line
             if (!thread.doSearch ||
-                 thread.IsMainThread && TimeManager.IsHardTimeout())
+                 thread.IsMainThread && TimeManager.IsHardTimeout(thread))
             {
                 return SCORE_TIMEOUT;
             }

@@ -56,7 +56,7 @@ public static class TimeManager
             {
                 HardTimeout = int.MaxValue;
                 SoftTimeout = int.MaxValue;
-                maxNodes = hardnodes;
+                maxNodes = softnodes = hardnodes;
                 Console.WriteLine($"nodes: max-nodes = {hardnodes}");
             }
 
@@ -116,7 +116,7 @@ public static class TimeManager
     public static bool IsHardTimeout(SearchThread thread)
     {
         Debug.Assert(!IsSelfManaging || HardTimeout != 0);
-        return IsSelfManaging && (watch.ElapsedMilliseconds > HardTimeout || thread.nodeCount >= hardnodes);
+        return IsSelfManaging && watch.ElapsedMilliseconds > HardTimeout || thread.nodeCount >= hardnodes;
     }
 
     public static bool IsSoftTimeout(SearchThread thread, int iteration)
@@ -127,7 +127,7 @@ public static class TimeManager
         // node-tm
         // score-tm
 
-        return IsSelfManaging && (watch.ElapsedMilliseconds > SoftTimeout || thread.nodeCount >= softnodes);
+        return IsSelfManaging && watch.ElapsedMilliseconds > SoftTimeout || thread.nodeCount >= softnodes;
     }
 
     public static long ElapsedMilliseconds => Math.Max(watch.ElapsedMilliseconds, 1);
