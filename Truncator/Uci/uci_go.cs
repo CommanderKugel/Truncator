@@ -18,7 +18,7 @@ public static partial class UCI
 
         if (tokens.Contains("movestogo")) TimeManager.movestogo = int.Parse(SkipPast(tokens, "movestogo").First());
         if (tokens.Contains("depth"    )) TimeManager.depth     = int.Parse(SkipPast(tokens, "depth"    ).First());
-        if (tokens.Contains("nodes"    )) TimeManager.nodes     = int.Parse(SkipPast(tokens, "nodes"    ).First());
+        if (tokens.Contains("nodes"    )) TimeManager.hardnodes = int.Parse(SkipPast(tokens, "nodes"    ).First());
         if (tokens.Contains("movetime" )) TimeManager.movetime  = int.Parse(SkipPast(tokens, "movetime" ).First());
 
         // searchmoves <move1> ... <movei>

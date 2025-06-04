@@ -6,7 +6,7 @@ public static class TimeManager
     public static int wtime, btime, winc, binc;
     public static int movestogo, movetime;
     public static int depth;
-    public static long nodes;
+    public static long softnodes, hardnodes;
 
     private static long HardTimeout = 0;
     private static long SoftTimeout = 0;
@@ -27,13 +27,14 @@ public static class TimeManager
         movestogo = -1;
         movetime = -1;
         depth = -1;
-        nodes = long.MaxValue;
+        softnodes = hardnodes = long.MaxValue;
     }
 
     public static void Start(Color Us)
     {
         IsSelfManaging = movetime == -1
-                      && nodes == long.MaxValue
+                      && hardnodes == long.MaxValue
+                      && softnodes == long.MaxValue
                       && depth == -1;
 
         maxDepth = 128;
@@ -51,12 +52,12 @@ public static class TimeManager
 
             // #1.2 searching should be completed after n nodes
             // this is very helpfull for recreating bugs and datageneration
-            else if (nodes != long.MaxValue)
+            else if (hardnodes != long.MaxValue)
             {
                 HardTimeout = int.MaxValue;
                 SoftTimeout = int.MaxValue;
-                maxNodes = nodes;
-                Console.WriteLine($"nodes: max-nodes = {nodes}");
+                maxNodes = hardnodes;
+                Console.WriteLine($"nodes: max-nodes = {hardnodes}");
             }
 
             // #1-3 search for N ID iterations
@@ -107,18 +108,18 @@ public static class TimeManager
         movestogo = -1;
         movetime = -1;
         maxDepth = depth = depth_;
-        nodes = long.MaxValue;
+        softnodes = hardnodes = long.MaxValue;
 
         IsSelfManaging = false;
     }
 
-    public static bool IsHardTimeout()
+    public static bool IsHardTimeout(SearchThread thread)
     {
         Debug.Assert(!IsSelfManaging || HardTimeout != 0);
-        return IsSelfManaging && watch.ElapsedMilliseconds > HardTimeout;
+        return IsSelfManaging && (watch.ElapsedMilliseconds > HardTimeout || thread.nodeCount >= hardnodes);
     }
 
-    public static bool IsSoftTimeout(int iteration)
+    public static bool IsSoftTimeout(SearchThread thread, int iteration)
     {
         Debug.Assert(!IsSelfManaging || SoftTimeout != 0 && iteration > 0);
 
@@ -126,7 +127,7 @@ public static class TimeManager
         // node-tm
         // score-tm
 
-        return IsSelfManaging && watch.ElapsedMilliseconds > SoftTimeout;
+        return IsSelfManaging && (watch.ElapsedMilliseconds > SoftTimeout || thread.nodeCount >= softnodes);
     }
 
     public static long ElapsedMilliseconds => Math.Max(watch.ElapsedMilliseconds, 1);
