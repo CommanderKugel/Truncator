@@ -160,7 +160,7 @@ public static partial class Search
                 // all moves after that are expected to be worse. we will validate this thesis by 
                 // searching them at a cheaper shallower depth. if a move seems to beat the current best move,
                 // we need to re-search that move at full depth to confirm its the better move.
-                int R = Log_[Math.Min(depth, 63)];
+                int R = Math.Max(Log_[Math.Min(movesPlayed, 63)] / 2, 2);
 
                 // zero-window-search (ZWS)
                 // as part of the principal-variation-search, we assume that all lines that are not the pv

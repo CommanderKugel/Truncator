@@ -20,7 +20,7 @@ public static partial class UCI
             if (command == "uci")
             {
                 Console.WriteLine("uciok");
-                Console.WriteLine("id name Truncator 0.20");
+                Console.WriteLine("id name Truncator 0.22");
                 Console.WriteLine("id author CommanderKugel");
             }
 
@@ -91,7 +91,7 @@ public static partial class UCI
             else if (tokens[0] == "bench")
             {
                 Debug.Assert(state == UciState.Idle, "command only available, when engine is idle!");
-                int depth = tokens.Length == 2 ? int.Parse(tokens[1]) : 5;
+                int depth = tokens.Length == 2 ? int.Parse(tokens[1]) : Bench.BenchDepth;
                 Bench.runBench(depth);
             }
 
