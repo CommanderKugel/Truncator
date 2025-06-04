@@ -23,8 +23,10 @@ public ref struct MovePicker
         this.ScoreMoves(thread, ref p);
     }
 
-    private void ScoreMoves(SearchThread thread, ref Pos p)
+    private unsafe void ScoreMoves(SearchThread thread, ref Pos p)
     {
+        Move killer = thread.nodeStack[thread.ply].KillerMove;
+
         for (int i = 0; i < moveCount; i++)
         {
             ref Move m = ref moves[i];
@@ -38,6 +40,10 @@ public ref struct MovePicker
                 scores[i] = 1_000_000
                           + (int)p.GetCapturedPieceType(m) * 100
                           - (int)p.PieceTypeOn(m.from);
+            }
+            else if (m == killer)
+            {
+                scores[i] = 900_000;
             }
             else // quiet
             {

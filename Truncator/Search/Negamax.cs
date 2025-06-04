@@ -56,6 +56,10 @@ public static partial class Search
             return entry.Score;
         }
 
+        // clear childrens killer-move
+        Debug.Assert(thread.ply < 256 - 1);
+        (ns + 1)->KillerMove = Move.NullMove;
+
 
         bool inCheck = p.GetCheckers() != 0;
 
@@ -245,6 +249,9 @@ public static partial class Search
                                 short delta = (short)(mv == m ? HistDelta : -HistDelta);
                                 thread.history.Butterfly.Update(delta, p.Us, quietMoves[i]);
                             }
+
+                            // update killer-move
+                            ns->KillerMove = m;
                         }
 
                         break;

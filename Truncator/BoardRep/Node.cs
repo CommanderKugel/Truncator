@@ -4,9 +4,11 @@
 /// </summary>
 public struct Node
 {
-    
+
     public PieceType MovedPieceType;
     public PieceType CapturedPieceType;
     public Move move;
+
+    public Move KillerMove;
 
 }
