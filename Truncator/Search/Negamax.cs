@@ -65,7 +65,7 @@ public static partial class Search
 
         if (inCheck)
         {
-            goto move_loop;
+            goto skip_whole_node_pruning;
         }
 
 
@@ -118,7 +118,14 @@ public static partial class Search
         }
 
 
-        move_loop:
+        skip_whole_node_pruning:
+
+
+        // check extensions
+        if (inCheck)
+        {
+            depth++;
+        }
 
         // movegeneration, scoring and ordering is outsourced to the move-picker
         Span<Move> moves = stackalloc Move[256];
