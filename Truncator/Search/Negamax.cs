@@ -60,19 +60,18 @@ public static partial class Search
         Debug.Assert(thread.ply < 256 - 1);
         (ns + 1)->KillerMove = Move.NullMove;
 
-
+        
         bool inCheck = p.GetCheckers() != 0;
-
-        if (inCheck)
-        {
-            goto skip_whole_node_pruning;
-        }
-
 
         // static evaluaton
         // although this is a noisy position and we have to distrust the static
         // evaluation of the current node to an extend, we can draw some conclusion from it.
         int staticEval = inCheck ? 0 : Pesto.Evaluate(ref p);
+
+        if (inCheck)
+        {
+            goto skip_whole_node_pruning;
+        }
 
 
         // reverse futility pruning (RFP)
@@ -147,8 +146,23 @@ public static partial class Search
         for (Move m = picker.Next(); m.NotNull; m = picker.Next())
         {
             Debug.Assert(m.NotNull);
-            bool isCapture = p.IsCapture(m);
             long startnodes = thread.nodeCount;
+
+            bool isCapture = p.IsCapture(m);
+            bool isNoisy = isCapture || m.IsPromotion; // ToDo: GivesCheck()
+
+            bool nonMatinglineExists = !IsTerminal(bestscore);
+
+            // futility pruning
+            if (nonPV &&
+                !isNoisy &&
+                nonMatinglineExists &&
+                !inCheck &&
+                depth <= 4 &&
+                staticEval + depth * 150 <= alpha)
+            {
+                continue;
+            }
 
             // skip illegal moves for obvious reasons
             if (!p.IsLegal(m))

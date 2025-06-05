@@ -20,7 +20,7 @@ public static partial class UCI
             if (command == "uci")
             {
                 Console.WriteLine("uciok");
-                Console.WriteLine("id name Truncator 0.24");
+                Console.WriteLine("id name Truncator 0.25");
                 Console.WriteLine("id author CommanderKugel");
             }
 

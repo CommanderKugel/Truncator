@@ -72,7 +72,7 @@ public unsafe partial struct Pos
     public bool IsCapture(Move m)
     {
         Debug.Assert(m.NotNull);
-        return m.IsEnPassant || ColorOn(m.to) == Them;
+        return m.IsEnPassant || ((1ul << m.to) & ColorBB[(int)Them]) != 0;
     }
 
     public PieceType GetCapturedPieceType(Move m)
