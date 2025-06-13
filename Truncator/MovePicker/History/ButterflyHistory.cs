@@ -17,8 +17,9 @@ public struct ButterflyHistory : IDisposable
 
     public unsafe void Update(short delta, Color c, Move m)
     {
-        ref short val = ref this[c, m];
-        val = (short)Math.Clamp(val + delta, -16_000, 16_000);
+        Debug.Assert(c == Color.White || c == Color.Black);
+        Debug.Assert(m.NotNull);
+        this[c, m] = (short)Math.Clamp(this[c, m] + delta, -16_000, 16_000);
     }
 
     public unsafe ref short this[Color c, int from, int to]
@@ -28,6 +29,7 @@ public struct ButterflyHistory : IDisposable
             Debug.Assert(c == Color.White || c == Color.Black);
             Debug.Assert(from >= 0 && from < 64);
             Debug.Assert(to >= 0 && to < 64);
+            Debug.Assert(from != to);
             return ref table_[(int)c * 64 * 64 + to * 64 + from];
         }
     }

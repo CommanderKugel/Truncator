@@ -1,5 +1,6 @@
 
 using System.Diagnostics;
+using System.Security.Cryptography;
 
 public static partial class Search
 {
@@ -153,15 +154,24 @@ public static partial class Search
 
             bool nonMatinglineExists = !IsTerminal(bestscore);
 
-            // futility pruning
-            if (nonPV &&
-                !isNoisy &&
-                nonMatinglineExists &&
-                !inCheck &&
-                depth <= 4 &&
-                staticEval + depth * 150 <= alpha)
+            // move loop pruning
+            if (!isNoisy &&
+                nonMatinglineExists)
             {
-                continue;
+
+                // futility pruning 
+                if (nonPV &&
+                    !inCheck &&
+                    depth <= 4 &&
+                    staticEval + depth * 150 <= alpha)
+                {
+                    continue;
+                }
+
+                // ToDo: late move pruning
+
+                // ToDo: histoy pruning
+
             }
 
             // skip illegal moves for obvious reasons

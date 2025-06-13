@@ -59,6 +59,7 @@ public ref struct MovePicker
 
         // incrementally sort the best scoring move to the front
         (moves[moveIdx], moves[idx]) = (moves[idx], moves[moveIdx]);
+        (scores[moveIdx], scores[idx]) = (scores[idx], scores[moveIdx]);
 
         // return the best scoring move
         return moves[moveIdx++];
@@ -71,7 +72,8 @@ public ref struct MovePicker
     {
         int idx = moveIdx;
         int score = scores[moveIdx];
-        for (int i = 0; i < moveCount; i++)
+
+        for (int i = moveIdx + 1; i < moveCount; i++)
         {
             if (score < scores[i])
             {
@@ -81,7 +83,5 @@ public ref struct MovePicker
         }
         return idx;
     }
-
-
     
 }
