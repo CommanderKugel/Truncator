@@ -14,22 +14,29 @@ public class TranspositionTable : IDisposable
 
     public unsafe TranspositionTable(int sizemb = DEFAULT_SIZE)
     {
-        Debug.Assert(sizemb >= MIN_SIZE && sizemb <= MAX_SIZE, "unallowed tt size!");
+        Debug.Assert(sizemb > 0, "unallowed hash size!");
+        sizemb = Math.Clamp(sizemb, MIN_SIZE, MAX_SIZE);
+
         nuint sizeByte = (nuint)sizemb * 1024 * 1024;
         nuint entryCount = sizeByte / (nuint)sizeof(TTEntry);
 
-        tt = (TTEntry*)NativeMemory.AlignedAlloc((nuint)sizeof(TTEntry) * entryCount, (nuint)sizeof(TTEntry) * 4);
+        tt = (TTEntry*)NativeMemory.Alloc((nuint)sizeof(TTEntry) * entryCount);
         this.size = entryCount;
     }
 
     public unsafe void Resize(int sizemb)
     {
-        Debug.Assert(sizemb >= MIN_SIZE && sizemb <= MAX_SIZE, "unallowed tt size!");
+        Debug.Assert(sizemb > 0, "unallowed hash size!");
+        sizemb = Math.Clamp(sizemb, MIN_SIZE, MAX_SIZE);
+
         nuint sizeByte = (nuint)sizemb * 1024 * 1024;
         nuint entryCount = sizeByte / (nuint)sizeof(TTEntry);
 
-        NativeMemory.AlignedRealloc(tt, (nuint)sizeof(TTEntry) * entryCount, (nuint)sizeof(TTEntry) * 4);
+        NativeMemory.Free(tt);
+        tt = (TTEntry*)NativeMemory.Alloc((nuint)sizeof(TTEntry) * entryCount);
         this.size = entryCount;
+
+        Console.WriteLine($"hash set to {sizemb} mb");
     }
 
     public unsafe void Clear()
