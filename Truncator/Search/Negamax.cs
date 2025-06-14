@@ -281,7 +281,7 @@ public static partial class Search
                                 Debug.Assert(mv.NotNull);
 
                                 short delta = (short)(mv == m ? HistDelta : -HistDelta);
-                                thread.history.Butterfly.Update(delta, p.Us, quietMoves[i]);
+                                thread.history.UpdateQuiet(delta, p.Us, quietMoves[i]);
                             }
 
                             // update killer-move

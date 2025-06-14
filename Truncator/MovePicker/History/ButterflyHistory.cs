@@ -6,23 +6,22 @@ public struct ButterflyHistory : IDisposable
 {
 
     public readonly nuint size;
-    private unsafe short* table_ = null;
+    private unsafe HistVal* table_ = null;
 
 
     public unsafe ButterflyHistory()
     {
-        this.size = 2 * 64 * 64;
-        table_ = (short*)NativeMemory.Alloc((nuint)sizeof(short) * this.size);
+        size = 2 * 64 * 64;
+        table_ = (HistVal*)NativeMemory.Alloc((nuint)sizeof(HistVal) * size);
     }
 
     public unsafe void Update(short delta, Color c, Move m)
     {
-        Debug.Assert(c == Color.White || c == Color.Black);
-        Debug.Assert(m.NotNull);
-        this[c, m] = (short)Math.Clamp(this[c, m] + delta, -16_000, 16_000);
+        ref HistVal val = ref this[c, m];
+        val <<= delta;
     }
 
-    public unsafe ref short this[Color c, int from, int to]
+    public unsafe ref HistVal this[Color c, int from, int to]
     {
         get
         {
@@ -34,7 +33,7 @@ public struct ButterflyHistory : IDisposable
         }
     }
 
-    public unsafe ref short this[Color c, Move m]
+    public unsafe ref HistVal this[Color c, Move m]
     {
         get
         {
@@ -47,6 +46,7 @@ public struct ButterflyHistory : IDisposable
 
     public unsafe void Clear()
     {
+        Debug.Assert(table_ != null, "cant clear an empty array!");
         NativeMemory.Clear(table_, sizeof(short) * size);
     }
 
