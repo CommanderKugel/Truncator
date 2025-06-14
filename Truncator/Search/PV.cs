@@ -7,12 +7,13 @@ public struct PV : IDisposable
 
     private unsafe Move* pv = null;
     private unsafe int* scores = null;
-
+    public object lockObject;
 
     public unsafe PV()
     {
         pv = (Move*)NativeMemory.Alloc(sizeof(ushort) * SIZE * SIZE);
         scores = (int*)NativeMemory.Alloc(sizeof(int) * SIZE);
+        lockObject = new object();
     }
 
     public unsafe Move this[int ply1, int ply2]
@@ -78,7 +79,7 @@ public struct PV : IDisposable
 
     public unsafe void Dispose()
     {
-        if (pv is not null)
+        if (pv != null)
         {
             NativeMemory.Free(pv);
             NativeMemory.Free(scores);

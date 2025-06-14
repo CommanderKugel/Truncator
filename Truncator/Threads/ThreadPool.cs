@@ -25,7 +25,21 @@ public static class ThreadPool
     /// <param name="count"></param>
     public static void Resize(int count)
     {
-        throw new NotImplementedException();
+        Debug.Assert(count > 0, "there needs to be at least one thread!");
+        count = Math.Clamp(count, MIN_THREAD_COUNT, MAX_THREAD_COUNT);
+
+        // clear all threads
+        Array.Clear(pool);
+        GC.Collect();
+
+        // fill with new threads
+        pool = new SearchThread[count];
+        for (int i = 0; i < count; i++)
+        {
+            pool[i] = new SearchThread(i);
+        }
+
+        Console.WriteLine($"resized the threadpool to {ThreadCount}");
     }
 
     /// <summary>
@@ -34,10 +48,10 @@ public static class ThreadPool
     /// </summary>
     public static void Go()
     {
-        Debug.Assert(ThreadCount == 1, "Multithreading is not implemented yet!");
-
-        for (int i = 0; i < ThreadCount; i++)
+        for (int i = 1; i < ThreadCount; i++)
         {
+            pool[i].Reset();
+            pool[i].ply = MainThread.ply;
             pool[i].rootPos = MainThread.rootPos;
             pool[i].repTable.CopyFrom(ref MainThread.repTable);
             pool[i].Go();
@@ -48,25 +62,10 @@ public static class ThreadPool
         MainThread.Go();
     }
 
-    public static unsafe void ReportToUci()
-    {
-        SearchThread bestThread = GetBestThread();
-
-        Move bestMove = bestThread.pv_.BestMove;
-        int rootIdx = bestThread.rootPos.IndexOfMove(bestMove) ?? 256;
-
-        if (rootIdx == 256)
-        {
-            throw new Exception("something went wrong checking the best move!");
-        }
-
-        
-    }
-
     /// <summary>
-    /// choose the best thread from all search threads to report the best move from
+    /// Info Printing for UCI communication inbetween ID iterations
     /// </summary>
-    public static SearchThread GetBestThread()
+    public static unsafe void ReportToUci(bool final)
     {
         SearchThread bestThread = pool[0];
         int bestDepth = bestThread.completedDepth;
@@ -96,7 +95,34 @@ public static class ThreadPool
             }
         }
 
-        return bestThread;
+        string pv;
+        Move bestMove, ponderMove;
+
+        // avoid UB by not allowing a searching thread to write to the current pv-line
+        lock (bestThread.pv_.lockObject)
+        {
+            bestMove = bestThread.pv_.BestMove;
+            ponderMove = bestThread.pv_.PonderMove;
+            pv = bestThread.GetPV;
+        }
+
+        int moveIdx = bestThread.rootPos.IndexOfMove(bestMove) ?? 256;
+        Debug.Assert(moveIdx < 256, "something went wrong looking for the best move");
+
+        // final reporting of the chosen best move before terminating the search
+        if (final)
+        {
+            Console.WriteLine($"bestmove {bestMove} ponder {ponderMove}");
+            return;
+        }
+        
+        // info printing in between iterations
+        int score_ = bestThread.rootPos.moveScore[moveIdx];
+        long nodes = GetNodes();
+        long time = TimeManager.ElapsedMilliseconds;
+        long nps = nodes * 1000 / time;
+
+        Console.WriteLine($"info depth {bestThread.completedDepth} seldepth {bestThread.seldepth} nodes {nodes} time {time} nps {nps} score cp {score_} pv {pv}");
     }
 
     public static void Clear()

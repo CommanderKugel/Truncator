@@ -1,6 +1,4 @@
 
-using System.Diagnostics;
-
 public static partial class Search
 {
 
@@ -18,40 +16,24 @@ public static partial class Search
         {
             
             thread.seldepth = depth;
-
             int rootScore = Negamax<RootNode>(thread, thread.rootPos.p, alpha, beta, depth, &thread.nodeStack[thread.ply]);
 
-            thread.completedDepth = depth;
+            if (-Math.Abs(rootScore) != SCORE_TIMEOUT)
+            {
+                thread.completedDepth = depth;
+            }
 
             if (thread.IsMainThread)
             {
-                unsafe
-                {
-                    Move currBestMove = thread.pv_.BestMove;
-                    int idx = thread.rootPos.IndexOfMove(currBestMove) ?? 256;
-
-                    if (idx == 256) // bestmove not found (?)
-                    {
-                        continue;
-                    }
-
-                    int score = thread.rootPos.moveScore[idx];
-                    long nodes = ThreadPool.GetNodes();
-
-                    long time = TimeManager.ElapsedMilliseconds;
-                    long nps = nodes * 1000 / time;
-
-                    Console.WriteLine($"info depth {depth} seldepth {thread.seldepth} nodes {nodes} time {time} nps {nps} score cp {score} pv {thread.GetPV}");
-                }
+                ThreadPool.ReportToUci(false);
             }
         }
 
-        Move bestMove = thread.pv_.BestMove;
-        Move ponderMove = thread.pv_.PonderMove;
-        Debug.Assert(bestMove.NotNull, "bestmove cant be null! something went wrong");
-        Debug.Assert(ponderMove.NotNull, "pondermove cant be null! something went wrong");
-        
-        Console.WriteLine($"bestmove {thread.pv_.BestMove} ponder {ponderMove}");
+        if (thread.IsMainThread)
+        {
+            ThreadPool.StopAll();
+            ThreadPool.ReportToUci(true);
+        }
     }
 
 }

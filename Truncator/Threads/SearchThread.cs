@@ -136,8 +136,10 @@ public class SearchThread : IDisposable
         ply = 0;
         seldepth = 0;
         nodeCount = 0;
+        completedDepth = 0;
+
+        pv_.Clear();
         NativeMemory.Clear(nodeStack, (nuint)sizeof(Node) * 255);
-        repTable.Clear();
     }
 
     /// <summary>
