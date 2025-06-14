@@ -26,18 +26,25 @@ public static class Perft
         var watch = new Stopwatch();
         watch.Reset();
         long totalNodes = 0;
+
+        var thread = ThreadPool.MainThread;
         
         foreach (var (fen, nodes, depth) in PerftPositions)
         {
             Console.WriteLine($"{fen}; depth {depth}");
             Pos p = new(fen);
 
-            watch.Start();
-            long res = Recurse(ref p, depth);
-            watch.Stop();
+            Span<Node> NodeSpan = stackalloc Node[256];
+            fixed (Node* NodePtr = NodeSpan) {
+                thread.nodeStack = NodePtr;    
 
-            totalNodes += res;
-            Console.WriteLine($"{res}/{nodes} - {res == nodes}");
+                watch.Start();
+                long res = Recurse(thread, ref p, depth);
+                watch.Stop();
+
+                totalNodes += res;
+                Console.WriteLine($"{res}/{nodes} - {res == nodes}");
+            }
         }
         watch.Stop();
 
@@ -46,26 +53,34 @@ public static class Perft
 
 
 
-    public static void SplitPerft(Pos p, int depth)
+    public static unsafe void SplitPerft(Pos p, int depth)
     {
         Span<Move> moves = stackalloc Move[256];
         int moveCount = MoveGen.GeneratePseudolegalMoves(ref moves, ref p, false);
         Console.WriteLine("num pseudolegal moves: " + moveCount);
 
-        for (int i = 0; i < moveCount; i++)
+        var thread = ThreadPool.MainThread;
+
+        Span<Node> NodeSpan = stackalloc Node[256];
+        fixed (Node* NodePtr = NodeSpan)
         {
-            Move m = moves[i];
-            if (!p.IsLegal(m))
+            thread.nodeStack = NodePtr;
+
+            for (int i = 0; i < moveCount; i++)
             {
-                //Console.WriteLine($"{m} - illegal");
-                continue;
+                Move m = moves[i];
+                if (!p.IsLegal(m))
+                {
+                    //Console.WriteLine($"{m} - illegal");
+                    continue;
+                }
+
+                Pos next = p;
+                next.MakeMove(m, ThreadPool.MainThread);
+
+                long nodes = Recurse(thread, ref next, depth - 1);
+                Console.WriteLine($"{m} - {nodes}");
             }
-
-            Pos next = p;
-            next.MakeMove(m, ThreadPool.MainThread);
-
-            long nodes = Recurse(ref next, depth - 1);
-            Console.WriteLine($"{m} - {nodes}");
         }
     }
     
@@ -76,7 +91,7 @@ public static class Perft
         => SplitPerft(new Pos(PerftPositions[idx].Item1), depth);
 
 
-    public static long Recurse(ref Pos p, int depth)
+    public static long Recurse(SearchThread thread, ref Pos p, int depth)
     {
         if (depth == 0)
         {
@@ -95,7 +110,8 @@ public static class Perft
 
             Pos next = p;
             next.MakeMove(m, ThreadPool.MainThread);
-            nodes += Recurse(ref next, depth - 1);
+            nodes += Recurse(thread, ref next, depth - 1);
+            thread.ply--;
         }
         return nodes;
     }

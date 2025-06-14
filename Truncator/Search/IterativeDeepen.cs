@@ -17,24 +17,25 @@ public static partial class Search
             depth++)
         {
             
-            thread.currIteration = depth;
             thread.seldepth = depth;
 
-            int rootScore = Negamax<RootNode>(thread, UCI.rootPos.p, alpha, beta, depth, &thread.nodeStack[thread.ply]);
+            int rootScore = Negamax<RootNode>(thread, thread.rootPos.p, alpha, beta, depth, &thread.nodeStack[thread.ply]);
+
+            thread.completedDepth = depth;
 
             if (thread.IsMainThread)
             {
                 unsafe
                 {
                     Move currBestMove = thread.pv_.BestMove;
-                    int idx = UCI.rootPos.IndexOfMove(currBestMove) ?? 256;
+                    int idx = thread.rootPos.IndexOfMove(currBestMove) ?? 256;
 
                     if (idx == 256) // bestmove not found (?)
                     {
                         continue;
                     }
 
-                    int score = UCI.rootPos.moveScores[idx];
+                    int score = thread.rootPos.moveScore[idx];
                     long nodes = ThreadPool.GetNodes();
 
                     long time = TimeManager.ElapsedMilliseconds;

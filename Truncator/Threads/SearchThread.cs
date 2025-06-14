@@ -14,16 +14,20 @@ public class SearchThread : IDisposable
     public volatile bool doSearch = false;
     public volatile bool die = false;
 
-    
+
     // search variables
+    public RootPos rootPos;
+
     public volatile int ply;
     public volatile int seldepth;
     public long nodeCount = 0;
-    public volatile int currIteration = 0;
+
+    public int completedDepth = 0;
 
     // search objects
     public PV pv_;
     public string GetPV => pv_.GetPV();
+    public int RootScore => pv_[completedDepth];
     public void NewPVLine() => pv_[ply, ply] = Move.NullMove;
     public void PushToPV(Move m) => pv_.Push(m, ply);
 
@@ -39,10 +43,12 @@ public class SearchThread : IDisposable
         this.id = id;
         pv_ = new();
         repTable = new RepetitionTable();
+        rootPos = new RootPos();
 
         history = new();
 
         myThread = new Thread(ThreadMainLoop);
+        myThread.Name = $"SearchThread_{id}";
         myThread.Start();
     }
 
@@ -139,10 +145,9 @@ public class SearchThread : IDisposable
     /// </summary>
     public void Clear()
     {
-        // tt
-        // move/corr hist
         doSearch = true;
         Reset();
+
         pv_.Clear();
         history.Clear();
     }
@@ -183,8 +188,8 @@ public class SearchThread : IDisposable
                 ThreadPool.tt.Clear();
                 TimeManager.PrepareBench(TimeManager.maxDepth);
 
-                UCI.rootPos.SetNewFen(fen);
-                UCI.rootPos.InitRootMoves();
+                rootPos.SetNewFen(fen);
+                rootPos.InitRootMoves();
 
                 Search.IterativeDeepen(this);
                 totalNodes += nodeCount;

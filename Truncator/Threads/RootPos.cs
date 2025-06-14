@@ -1,85 +1,39 @@
 using System.Diagnostics;
 
 
-public unsafe struct RootPos : IDisposable
+public unsafe struct RootPos
 {
     public fixed ushort rootMoves[256];
-    public fixed int moveScores[256];
+    public fixed int moveScore[256];
     public fixed long moveNodes[256];
-    public fixed int completedDepth[256];
 
     public Pos p;
     public int moveCount;
 
-    public RepetitionTable repTable;
-    public fixed long movesPlayed[100];
-    public int ply;
 
-    /// <summary>
-    /// lock this object when changing values, to avoid racing conditions between threads
-    /// </summary>
-    public object lockobject;
-
-    public RootPos()
-    {
-        repTable = new RepetitionTable();
-        lockobject = new object();
-    }
+    public RootPos() { }
 
     public RootPos(string fen)
     {
         SetNewFen(fen);
-        lockobject = new object();
     }
 
-    public void MakeMove(string movestr)
+    public void MakeMove(string movestr, SearchThread thread)
     {
         Move m = new(movestr, ref p);
         Debug.Assert(m.NotNull);
 
         // make move on board representation
         p.MakeMove(m, ThreadPool.MainThread);
-        ThreadPool.MainThread.ply--;
-
-        // save move in game hostory
-        movesPlayed[ply % 100] = m.value;
-        ply++;
+        thread.ply--;
         
         if (p.FiftyMoveRule == 0)
         {
-            repTable.Clear();
+            thread.repTable.Clear();
         }
         else
         {
-            repTable.Push(p.ZobristKey);
-        }
-    }
-
-    public Move GetBestMove()
-    {
-        return new(rootMoves[GetBestIndex()]);
-    }
-
-    /// <summary>
-    /// Falsely returns indices that are just upper bounds that match the bestscore! needs fixing!
-    /// </summary>
-    /// <returns></returns>
-    public int GetBestIndex()
-    {
-        lock (lockobject)
-        {
-            int bestIdx = 0;
-
-            for (int i = 0; i < moveCount; i++)
-            {
-                if (moveScores[i] > moveScores[bestIdx] &&
-                    completedDepth[i] >= completedDepth[bestIdx])
-                {
-                    bestIdx = i;
-                }
-            }
-
-            return bestIdx;
+            thread.repTable.Push(p.ZobristKey);
         }
     }
 
@@ -100,7 +54,7 @@ public unsafe struct RootPos : IDisposable
         Console.WriteLine($"moveCount: {moveCount}");
         for (int i = 0; i < moveCount; i++)
         {
-            Console.WriteLine($"move {new Move(rootMoves[i])} score {moveScores[i]} nodes {moveNodes[i]} depth {completedDepth[i]}");
+            Console.WriteLine($"move {new Move(rootMoves[i])} score {moveScore[i]} nodes {moveNodes[i]}");
         }
     }
 
@@ -111,24 +65,11 @@ public unsafe struct RootPos : IDisposable
         Debug.Assert(nodes > 0, "did you even search?");
         Debug.Assert(depth >= 1, "depth needs to '1' or greater!");
 
-        lock (lockobject)
-        {
-            int idx = 0;
-            for (int i = 0; i < moveCount; i++)
-            {
-                if (rootMoves[i] == m.value)
-                {
-                    idx = i;
-                    break;
-                }
-            }
+        int idx = IndexOfMove(m) ?? 256;
+        Debug.Assert(idx <= moveCount, "no move found to report back to!");
 
-            Debug.Assert(idx < moveCount, "no move found to report back to!");
-
-            moveScores[idx] = score;
-            moveNodes[idx] = nodes;
-            completedDepth[idx] = depth;
-        }
+        moveScore[idx] = score;
+        moveNodes[idx] = nodes;
     }
 
     public void SetNewFen(string fen)
@@ -146,7 +87,7 @@ public unsafe struct RootPos : IDisposable
         for (int i = 0; i < moveCount && i < 256; i++)
         {
             rootMoves[i] = moves[i].value;
-            moveScores[i] = 0;
+            moveScore[i] = 0;
             moveNodes[i] = 0;
         }
     }
@@ -159,15 +100,9 @@ public unsafe struct RootPos : IDisposable
         for (int i = 0; i < 256; i++)
         {
             rootMoves[i] = 0;
-            moveScores[i] = 0;
+            moveScore[i] = 0;
             moveNodes[i] = 0;
-            completedDepth[i] = 0;
         }
-    }
-
-    public void Dispose()
-    {
-        repTable.Dispose();
     }
 
 }

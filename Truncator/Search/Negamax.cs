@@ -230,15 +230,7 @@ public static partial class Search
             // save move-data for e.g. soft-timeouts and other shenanigans
             if (isRoot)
             {
-                UCI.rootPos.ReportBackMove(m, score, thread.nodeCount - startnodes, depth);
-            }
-
-            // check if we have time left
-            // do this in the move-loop, to always get a correct score for the pv-line
-            if (!thread.doSearch ||
-                 thread.IsMainThread && TimeManager.IsHardTimeout(thread))
-            {
-                return SCORE_TIMEOUT;
+                thread.rootPos.ReportBackMove(m, score, thread.nodeCount - startnodes, depth);
             }
 
             if (score > bestscore)
@@ -251,6 +243,11 @@ public static partial class Search
                 if (isPV)
                 {
                     thread.PushToPV(m);
+                }
+
+                if (isRoot)
+                {
+                    thread.pv_[depth] = bestscore;
                 }
 
                 if (score > alpha)
@@ -290,6 +287,15 @@ public static partial class Search
                     } // beta beaten
                 } // alpha beaten
             } // best-score update
+
+            // check if we have time left
+            // do this in the move-loop & after updaing the pv
+            // otherwise we could end up without a best move
+            if (!thread.doSearch ||
+                 thread.IsMainThread && TimeManager.IsHardTimeout(thread))
+            {
+                return SCORE_TIMEOUT;
+            }
             
         } // move-loop
 

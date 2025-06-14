@@ -9,10 +9,6 @@ public static class Truncator
 #endif
         {
 
-            UCI.rootPos = new RootPos();
-            UCI.rootPos.SetNewFen(Utils.startpos);
-            UCI.rootPos.InitRootMoves();
-
             if (args.Length == 0)
             {
                 UCI.MainLoop();
@@ -39,7 +35,6 @@ public static class Truncator
 #endif
 
         {
-            UCI.rootPos.Dispose();
             Attacks.Dispose();
             Castling.Dispose();
             Utils.Dispose();

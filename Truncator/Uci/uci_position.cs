@@ -3,14 +3,12 @@ using System.Diagnostics;
 
 public static partial class UCI
 {
-    public static RootPos rootPos;
-
     public static void Position(string[] tokens)
     {
         Debug.Assert(state == UciState.Idle, "do not change root pos when not idle!");
         Debug.Assert(tokens[0] == "position");
 
-        rootPos.repTable.Push(rootPos.p.ZobristKey);
+        var thread = ThreadPool.MainThread;
 
         if (tokens.Length < 2)
         {
@@ -18,14 +16,14 @@ public static partial class UCI
         }
 
         string fen = tokens[1] == "startpos" ? Utils.startpos : string.Join(' ', SkipPast(tokens, "fen").Take(6));
-        rootPos.SetNewFen(fen);
+        thread.rootPos.SetNewFen(fen);
 
         foreach (string movestr in SkipPast(tokens, "moves"))
         {
-            rootPos.MakeMove(movestr);
+            thread.rootPos.MakeMove(movestr, thread);
         }
 
-        rootPos.InitRootMoves();
+        thread.rootPos.InitRootMoves();
     }
 
 }

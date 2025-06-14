@@ -20,7 +20,7 @@ public static partial class UCI
             if (command == "uci")
             {
                 Console.WriteLine("uciok");
-                Console.WriteLine("id name Truncator 0.26");
+                Console.WriteLine("id name Truncator 0.27");
                 Console.WriteLine("id author CommanderKugel");
             }
 
@@ -51,9 +51,7 @@ public static partial class UCI
             else if (tokens[0] == "ucinewgame")
             {
                 Debug.Assert(state == UciState.Idle, "command only available, when engine is idle!");
-                rootPos.Clear();
-                ThreadPool.tt.Clear();
-                ThreadPool.ClearAll();
+                ThreadPool.Clear();
             }
 
             // initialization of the position to start searching from.
@@ -84,8 +82,8 @@ public static partial class UCI
             // print the current board to the commandline
             else if (command == "print")
             {
-                Utils.print(rootPos.p);
-                rootPos.Print();
+                Utils.print(ThreadPool.MainThread.rootPos.p);
+                ThreadPool.MainThread.rootPos.Print();
             }
 
             else if (tokens[0] == "bench")

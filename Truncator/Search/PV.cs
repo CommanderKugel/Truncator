@@ -6,11 +6,13 @@ public struct PV : IDisposable
     public const int SIZE = 128;
 
     private unsafe Move* pv = null;
+    private unsafe int* scores = null;
 
 
     public unsafe PV()
     {
         pv = (Move*)NativeMemory.Alloc(sizeof(ushort) * SIZE * SIZE);
+        scores = (int*)NativeMemory.Alloc(sizeof(int) * SIZE);
     }
 
     public unsafe Move this[int ply1, int ply2]
@@ -29,16 +31,35 @@ public struct PV : IDisposable
         }
     }
 
-    public unsafe void Clear() => NativeMemory.Clear(pv, sizeof(ushort) * SIZE * SIZE);
+    public unsafe int this[int iteration]
+    {
+        get
+        {
+            Debug.Assert(iteration >= 0 && iteration <= SIZE);
+            return scores[iteration];
+        }
+        set
+        {
+            Debug.Assert(iteration >= 0 && iteration <= SIZE);
+            scores[iteration] = value;
+        }
+    }
+
+    public unsafe void Clear()
+    {
+        Debug.Assert(pv != null && scores != null, "cant clear a disposed or uninitialized pv!");
+        NativeMemory.Clear(pv, sizeof(ushort) * SIZE * SIZE);
+        NativeMemory.Clear(scores, sizeof(int) * SIZE);
+    }
 
     public unsafe void Push(Move m, int ply)
     {
         Debug.Assert(ply >= 0 && ply < SIZE);
         this[ply, ply] = m;
 
-        for (int i=ply+1; i<SIZE; i++)
+        for (int i = ply + 1; i < SIZE; i++)
         {
-            this[ply, i] = this[ply+1, i];
+            this[ply, i] = this[ply + 1, i];
         }
     }
 
@@ -60,7 +81,9 @@ public struct PV : IDisposable
         if (pv is not null)
         {
             NativeMemory.Free(pv);
+            NativeMemory.Free(scores);
             pv = null;
+            scores = null;
         }
     }
 
