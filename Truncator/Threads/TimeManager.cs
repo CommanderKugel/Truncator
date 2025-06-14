@@ -19,7 +19,7 @@ public static class TimeManager
 
     private static Stopwatch watch = new Stopwatch();
 
-    public static void Restart()
+    public static void Reset()
     {
         watch.Restart();
         wtime = btime = int.MaxValue;
@@ -32,8 +32,7 @@ public static class TimeManager
 
     public static void Start(Color Us)
     {
-        IsSelfManaging = movetime == -1
-                      && hardnodes == long.MaxValue
+        IsSelfManaging = hardnodes == long.MaxValue
                       && softnodes == long.MaxValue
                       && depth == -1;
 
@@ -42,17 +41,10 @@ public static class TimeManager
         // #1 we do not manage time ourselves
         if (!IsSelfManaging)
         {
-            // #1.1 searching should take exactly the given time
-            if (movetime != -1)
-            {
-                HardTimeout = movetime;
-                SoftTimeout = movetime;
-                Console.WriteLine($"movetime: hard- & softlimit = {HardTimeout}");
-            }
 
-            // #1.2 searching should be completed after n nodes
+            // #1.1 searching should be completed after n nodes
             // this is very helpfull for recreating bugs and datageneration
-            else if (hardnodes != long.MaxValue)
+            if (hardnodes != long.MaxValue)
             {
                 HardTimeout = int.MaxValue;
                 SoftTimeout = int.MaxValue;
@@ -60,7 +52,7 @@ public static class TimeManager
                 Console.WriteLine($"nodes: max-nodes = {hardnodes}");
             }
 
-            // #1-3 search for N ID iterations
+            // #1.2 search for N ID iterations
             // mostly used for bench
             else if (depth != -1)
             {
@@ -81,15 +73,25 @@ public static class TimeManager
         {
             int time = Math.Max((Us == Color.White ? wtime : btime) - MoveOverhead, 1);
 
-            // #2.1 Play N moves in M time + o per move, then get time bonus for next N moves
-            if (movestogo != -1)
+            // #2.1 searching should take exactly the given time
+            //      technically this is not self-managing, but we need to enable the 
+            //      soft- and hard-timeout checks
+            if (movetime != -1)
+            {
+                HardTimeout = movetime;
+                SoftTimeout = movetime;
+                Console.WriteLine($"movetime: hard- & softlimit = {HardTimeout}");
+            }
+
+            // #2.2 Play N moves in M time + o per move, then get time bonus for next N moves
+            else if (movestogo != -1)
             {
                 HardTimeout = time / Math.Min(movestogo, 2);
                 SoftTimeout = time / movestogo;
                 Console.WriteLine($"movestogo: mtg = {movestogo}, hardlimit = {HardTimeout}, softlimit = {SoftTimeout}");
             }
 
-            // #2.2 Play while game in M 
+            // #2.3 Play whole game in M time
             else
             {
                 HardTimeout = time / 5;

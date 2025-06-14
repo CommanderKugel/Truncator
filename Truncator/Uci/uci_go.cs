@@ -9,7 +9,7 @@ public static partial class UCI
         Debug.Assert(state == UciState.Idle, "cant start going when not previously idle!");
         state = UciState.Searching;
 
-        TimeManager.Restart();
+        TimeManager.Reset();
 
         if (tokens.Contains("wtime")) TimeManager.wtime = int.Parse(SkipPast(tokens, "wtime").First());
         if (tokens.Contains("btime")) TimeManager.btime = int.Parse(SkipPast(tokens, "btime").First());
