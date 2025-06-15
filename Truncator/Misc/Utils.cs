@@ -139,6 +139,19 @@ public static class Utils
     public static Color ColorOf(Piece p)
         => (Color)((int)p >> 3); // even accepts Piece.NONE
 
+    public static char PieceChar(Piece p)
+    {
+        Debug.Assert(p != Piece.NONE);
+        return "PNBRQKpnbrqk"[(int)ColorOf(p) * 6 + (int)PieceTypeOf(p)];
+    }
+
+    public static char PieceChar(Color c, PieceType pt)
+    {
+        Debug.Assert(pt != PieceType.NONE);
+        Debug.Assert(c != Color.NONE);
+        return "PNBRQKpnbrqk"[(int)c * 6 + (int)pt];
+    }
+
 
     public static void print(Pos p)
     {
@@ -159,6 +172,7 @@ public static class Utils
             Console.WriteLine(str);
         }
         Console.WriteLine("--+-----------------+");
+        Console.WriteLine(p.get_fen());
     }
 
     public static void print(ulong bb)

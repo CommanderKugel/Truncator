@@ -113,4 +113,73 @@ public partial struct Pos
         // optional for (d)frc here: save rook and king start squares
     }
 
+    public override string ToString() => get_fen();
+    
+    public string get_fen()
+    {
+        string fen = "";
+
+        // Piece Representation
+        for (int rank = 7; rank >= 0; rank--)
+        {
+            // count squares between pieces on a rank
+            int cnt = 0;
+
+            for (int file = 0; file < 8; file++)
+            {
+                int sq = 8 * rank + file;
+                PieceType pt = PieceTypeOn(sq);
+
+                if (pt != PieceType.NONE)
+                {
+                    if (cnt > 0)
+                    {
+                        fen += (char)(cnt + '0');
+                    }
+                    fen += PieceChar(ColorOn(sq), pt);
+                    cnt = 0;
+                }
+                else
+                {
+                    cnt++;
+                }
+            }
+
+            if (cnt > 0)
+            {
+                fen += (char)(cnt + '0');
+            }
+
+            fen += rank == 0 ? ' ' : '/';
+        }
+
+        // stm
+        fen += "wb"[(int)Us] + " ";
+
+        // castling rights 
+        Debug.Assert(!UCI.IsChess960, "computing fisher random fens is not supportet yet!");
+        if (HasCastlingRight(Color.White, true)) fen += 'K';
+        if (HasCastlingRight(Color.White, false)) fen += 'Q';
+        if (HasCastlingRight(Color.Black, true )) fen += 'k';
+        if (HasCastlingRight(Color.Black, false)) fen += 'q';
+        if (fen[^1] == ' ') fen += "-";
+
+        fen += " ";
+
+        if (EnPassantSquare != (int)Square.NONE)
+        {
+            int epsq = EnPassantSquare + (Us == Color.White ? 8 : -8);
+            fen += SquareToString(epsq);
+        }
+        else
+        {
+            fen += '-';
+        }
+
+        // approximation for full-move-counter and half-move-counter
+        fen += $" {FiftyMoveRule / 2} {FiftyMoveRule}";
+
+        return fen;
+    }
+
 }

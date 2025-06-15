@@ -85,7 +85,6 @@ public static partial class UCI
             else if (command == "print")
             {
                 Utils.print(ThreadPool.MainThread.rootPos.p);
-                ThreadPool.MainThread.rootPos.Print();
             }
 
             else if (tokens[0] == "bench")
