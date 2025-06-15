@@ -1,6 +1,5 @@
 
 using System.Diagnostics;
-using System.Security.Cryptography;
 
 public static partial class Search
 {
@@ -16,10 +15,7 @@ public static partial class Search
         bool nonPV = typeof(Type) == typeof(NonPVNode);
 
         // overwrite previous pv line
-        if (!isRoot && isPV)
-        {
-            thread.NewPVLine();
-        }
+        thread.NewPVLine();
 
         // Draw Detection
         // - twofold repetition
