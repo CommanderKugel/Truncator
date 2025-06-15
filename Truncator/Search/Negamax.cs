@@ -245,6 +245,7 @@ public static partial class Search
                 // all scores below alpha are upper bounds and we do not know what score it really is
                 // thus we dont know for sure what the best move is
                 bestscore = score;
+                flag = UPPER_BOUND;
 
                 // lock pv-updates at root to avoid it being read for uci info printing and
                 // written to by the searching thread at the same time. this is only relevant
@@ -306,7 +307,7 @@ public static partial class Search
             if (!thread.doSearch ||
                  thread.IsMainThread && TimeManager.IsHardTimeout(thread))
             {
-                return SCORE_TIMEOUT;
+                break;
             }
             
         } // move-loop
@@ -324,7 +325,7 @@ public static partial class Search
             thread.tt.Write(
                 p.ZobristKey,
                 bestscore,
-                bestmove,
+                flag == UPPER_BOUND ? ttMove : bestmove,
                 depth,
                 flag,
                 isPV,

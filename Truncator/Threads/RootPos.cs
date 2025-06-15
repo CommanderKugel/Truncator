@@ -61,7 +61,6 @@ public unsafe struct RootPos
     public void ReportBackMove(Move m, int score, long nodes, int depth)
     {
         Debug.Assert(m.NotNull, "cant report on null moves for root pos!");
-        Debug.Assert(Math.Abs(score) != Search.SCORE_TIMEOUT, "tiemout scores are always wrong!");
         Debug.Assert(nodes > 0, "did you even search?");
         Debug.Assert(depth >= 1, "depth needs to '1' or greater!");
 
