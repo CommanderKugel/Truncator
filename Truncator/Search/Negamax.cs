@@ -176,6 +176,14 @@ public static partial class Search
 
             }
 
+            if (!isRoot &&
+                nonMatinglineExists &&
+                !SEE.SEE_threshold(m, ref p, isCapture ? -150 * depth : -25 * depth * depth))
+            {
+                continue;
+            }
+            
+
             // skip illegal moves for obvious reasons
             if (!p.IsLegal(m))
             {
