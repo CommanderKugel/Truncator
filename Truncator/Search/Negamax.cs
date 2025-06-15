@@ -155,7 +155,8 @@ public static partial class Search
             bool nonMatinglineExists = !IsTerminal(bestscore);
 
             // move loop pruning
-            if (!isNoisy &&
+            if (!isRoot &&
+                !isNoisy &&
                 nonMatinglineExists)
             {
 
@@ -168,7 +169,12 @@ public static partial class Search
                     continue;
                 }
 
-                // ToDo: late move pruning
+                // late move pruning
+                if (depth <= 4 &&
+                    movesPlayed >= 2 + depth * depth)
+                {
+                    continue;
+                }
 
                 // ToDo: histoy pruning
 
