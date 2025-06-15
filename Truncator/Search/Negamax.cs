@@ -277,15 +277,7 @@ public static partial class Search
                         {
                             // update history
                             int HistDelta = depth * depth;
-
-                            for (int i = 0; i < quitesCount; i++)
-                            {
-                                ref Move mv = ref quietMoves[i];
-                                Debug.Assert(mv.NotNull);
-
-                                short delta = (short)(mv == m ? HistDelta : -HistDelta);
-                                thread.history.UpdateQuiet(delta, p.Us, quietMoves[i]);
-                            }
+                            thread.history.UpdateQuietMoves((short)HistDelta, (short)-HistDelta, thread, ns, ref p, ref quietMoves, quitesCount);
 
                             // update killer-move
                             ns->KillerMove = m;
