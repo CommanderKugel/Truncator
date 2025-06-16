@@ -10,5 +10,6 @@ public struct Node
     public Move move;
 
     public Move KillerMove;
+    public Move ExcludedMove;
 
 }

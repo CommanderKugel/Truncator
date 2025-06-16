@@ -13,6 +13,7 @@ public static partial class Search
         bool isRoot = typeof(Type) == typeof(RootNode);
         bool isPV = isRoot || typeof(Type) == typeof(PVNode);
         bool nonPV = typeof(Type) == typeof(NonPVNode);
+        bool inSingularity = ns->ExcludedMove.NotNull;
 
         // overwrite previous pv line
         thread.NewPVLine();
@@ -33,7 +34,7 @@ public static partial class Search
         // static evaluation should only be returned from quiet positions.
         // because material is by far the most important evaluation term
         // by playing out all good captures, qsearch eliminates possible material-swings
-        if (depth <= 0)
+        if (depth <= 0 || thread.ply >= 128)
         {
             return QSearch<Type>(thread, p, alpha, beta);
         }
@@ -44,7 +45,7 @@ public static partial class Search
         Move ttMove = ttHit ? new(entry.MoveValue) : Move.NullMove;
 
         // return the tt-score if the entry is any good
-        if (nonPV && ttHit && entry.Depth >= depth && (
+        if (nonPV && ttHit && entry.Depth >= depth && !inSingularity && (
             entry.Flag == LOWER_BOUND && entry.Score >= beta ||
             entry.Flag == UPPER_BOUND && entry.Score <= alpha ||
             entry.Flag == EXACT_BOUND
@@ -54,7 +55,6 @@ public static partial class Search
         }
 
         // clear childrens killer-move
-        Debug.Assert(thread.ply < 256 - 1);
         (ns + 1)->KillerMove = Move.NullMove;
 
         
@@ -65,7 +65,8 @@ public static partial class Search
         // evaluation of the current node to an extend, we can draw some conclusion from it.
         int staticEval = inCheck ? 0 : Pesto.Evaluate(ref p);
 
-        if (inCheck || isPV)
+        // sometimes whole-node-pruning can be skippedentirely
+        if (inCheck || isPV || inSingularity)
         {
             goto skip_whole_node_pruning;
         }
@@ -115,7 +116,7 @@ public static partial class Search
 
 
         // check extensions
-        if (inCheck)
+        if (inCheck && !inSingularity)
         {
             depth++;
         }
@@ -140,6 +141,13 @@ public static partial class Search
         for (Move m = picker.Next(); m.NotNull; m = picker.Next())
         {
             Debug.Assert(m.NotNull);
+
+            // skip the first move in singular confirmation search
+            if (m == ns->ExcludedMove)
+            {
+                continue;
+            }
+
             long startnodes = thread.nodeCount;
             bool nonMatinglineExists = !IsTerminal(bestscore);
 
@@ -151,6 +159,7 @@ public static partial class Search
 
             // move loop pruning
             if (!isRoot &&
+                !inSingularity &&
                 !isNoisy &&
                 nonMatinglineExists)
             {
@@ -187,6 +196,31 @@ public static partial class Search
                 !SEE.SEE_threshold(m, ref p, isCapture ? -150 * depth : -25 * depth * depth))
             {
                 continue;
+            }
+
+
+            // singular extensions
+            int extension = 0;
+
+            if (m == ttMove &&
+                !inSingularity &&
+                !isRoot &&
+                depth >= 8 &&
+                entry.Depth >= depth - 3 &&
+                entry.Flag > UPPER_BOUND)
+            {
+
+                int singularBeta = Math.Max(-SCORE_MATE + 1, entry.Score - depth * 2);
+                int singularDepth = (depth - 1) / 2;
+
+                ns->ExcludedMove = m;
+                int singularScore = Negamax<NonPVNode>(thread, p, singularBeta - 1, singularBeta, singularDepth, ns);
+                ns->ExcludedMove = Move.NullMove;
+
+                if (singularScore < singularBeta)
+                {
+                    extension = 1;
+                }
             }
             
 
@@ -235,14 +269,14 @@ public static partial class Search
             // ZWS for moves that are not reduced by LMR
             else if (nonPV || movesPlayed > 1)
             {
-                score = -Negamax<NonPVNode>(thread, next, -alpha - 1, -alpha, depth - 1, ns + 1);
+                score = -Negamax<NonPVNode>(thread, next, -alpha - 1, -alpha, depth + extension - 1, ns + 1);
             }
 
             // full-window-search
             // either the pv-line is searched fully at first, or a high-failing ZWS search needs to be confirmed.
             if (isPV && (score > alpha || movesPlayed == 1))
             {
-                score = -Negamax<PVNode>(thread, next, -beta, -alpha, depth - 1, ns + 1);
+                score = -Negamax<PVNode>(thread, next, -beta, -alpha, depth + extension - 1, ns + 1);
             }
 
             thread.UndoMove();

@@ -7,8 +7,8 @@ public static partial class Search
     public static bool IsTerminal(int score) => Math.Abs(score) >= SCORE_MATE;
 
     public const int NONE_BOUND = 0b00,
-                     LOWER_BOUND = 0b01,
-                     UPPER_BOUND = 0b10,
+                     UPPER_BOUND = 0b01,
+                     LOWER_BOUND = 0b10,
                      EXACT_BOUND = 0b11;
 
     private static ReadOnlySpan<byte> Log_ => [
