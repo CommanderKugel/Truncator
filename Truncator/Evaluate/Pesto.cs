@@ -24,9 +24,12 @@ public static class Pesto
 
             eval = -eval;
         }
-        
+
         phase = Math.Min(phase, 24);
-        return (phase * (short)(eval >> 16) + (24 - phase) * (short)eval) / (p.Us == Color.White ? 24 : -24);
+        eval = (phase * (short)(eval >> 16) + (24 - phase) * (short)eval) / (p.Us == Color.White ? 24 : -24);
+        
+        eval = Scaling.MaterialScaling(ref p, eval);
+        return eval;
     }
 
 

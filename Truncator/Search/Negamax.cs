@@ -65,23 +65,21 @@ public static partial class Search
         // evaluation of the current node to an extend, we can draw some conclusion from it.
         int staticEval = inCheck ? 0 : Pesto.Evaluate(ref p);
 
-        if (inCheck)
+        if (inCheck || isPV)
         {
             goto skip_whole_node_pruning;
         }
 
 
         // reverse futility pruning (RFP)
-        if (nonPV &&
-            depth <= 5 &&
+        if (depth <= 5 &&
             staticEval - 75 * depth >= beta)
         {
             return staticEval;
         }
 
         // razoring
-        if (nonPV &&
-            !IsTerminal(alpha) &&
+        if (!IsTerminal(alpha) &&
             depth <= 4 &&
             staticEval + 300 * depth <= alpha)
         {
@@ -94,8 +92,7 @@ public static partial class Search
         }
 
         // null move pruning
-        if (nonPV &&
-            (ns - 1)->move.NotNull &&
+        if ((ns - 1)->move.NotNull &&
             staticEval >= beta)
         {
             Pos PosAfterNull = p;
