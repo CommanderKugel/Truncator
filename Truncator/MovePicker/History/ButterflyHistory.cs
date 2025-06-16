@@ -14,12 +14,6 @@ public struct ButterflyHistory : IDisposable
         table_ = (HistVal*)NativeMemory.Alloc((nuint)sizeof(HistVal) * SIZE);
     }
 
-    public unsafe void Update(short delta, Color c, Move m)
-    {
-        ref HistVal val = ref this[c, m];
-        val <<= delta;
-    }
-
     public unsafe ref HistVal this[Color c, Move m]
     {
         get
