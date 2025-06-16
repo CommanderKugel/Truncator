@@ -204,6 +204,10 @@ public static partial class Search
                 // we need to re-search that move at full depth to confirm its the better move.
                 int R = Math.Max(Log_[Math.Min(movesPlayed, 63)] / 2, 2);
 
+                // reduce more for bad history values
+                // divisor = HIST_VAL_MAX / 3
+                R += Math.Max(0, -thread.history.Butterfly[p.Us, m] / 341);
+
                 // zero-window-search (ZWS)
                 // as part of the principal-variation-search, we assume that all lines that are not the pv
                 // are worse than the pv. therefore, we search the nonPv lines with a zero-window around alpha
