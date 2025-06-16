@@ -141,11 +141,13 @@ public static partial class Search
         {
             Debug.Assert(m.NotNull);
             long startnodes = thread.nodeCount;
+            bool nonMatinglineExists = !IsTerminal(bestscore);
 
             bool isCapture = p.IsCapture(m);
             bool isNoisy = isCapture || m.IsPromotion; // ToDo: GivesCheck()
 
-            bool nonMatinglineExists = !IsTerminal(bestscore);
+            int histScore = isCapture ? 0 :
+                thread.history.Butterfly[p.Us, m];
 
             // move loop pruning
             if (!isRoot &&
@@ -169,10 +171,17 @@ public static partial class Search
                     continue;
                 }
 
-                // ToDo: histoy pruning
+                // history pruning
+                if (depth <= 5 &&
+                    histScore < -(15 * depth + 9 * depth * depth))
+                {
+                    continue;
+                }
 
             }
 
+            // pvs SEE pruning
+            // ToDo: margin -= histScore / 8
             if (!isRoot &&
                 nonMatinglineExists &&
                 !SEE.SEE_threshold(m, ref p, isCapture ? -150 * depth : -25 * depth * depth))
@@ -206,7 +215,7 @@ public static partial class Search
 
                 // reduce more for bad history values
                 // divisor = HIST_VAL_MAX / 3
-                R += Math.Max(0, -thread.history.Butterfly[p.Us, m] / 341);
+                R += Math.Max(0, -histScore / 341);
 
                 // zero-window-search (ZWS)
                 // as part of the principal-variation-search, we assume that all lines that are not the pv
