@@ -43,7 +43,7 @@ public ref struct MovePicker
             }
             else if (m == killer)
             {
-                scores[i] = 900_000;
+                scores[i] = HistVal.HIST_VAL_MAX + 1;
             }
             else // quiet
             {

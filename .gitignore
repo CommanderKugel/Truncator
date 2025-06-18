@@ -1,10 +1,10 @@
 */bin
 */obj
 *.sln
-*.txt
 */Versions
-*.exe
-Errorfile.txt
-Furypasta.txt
 
+*.txt
 *.py
+*.exe
+*.7z
+*.pgn

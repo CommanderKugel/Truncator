@@ -72,6 +72,7 @@ public static class TimeManager
         else
         {
             int time = Math.Max((Us == Color.White ? wtime : btime) - MoveOverhead, 1);
+            int inc = Math.Max(Us == Color.White ? winc : binc, 0);
 
             // #2.1 searching should take exactly the given time
             //      technically this is not self-managing, but we need to enable the 
@@ -86,16 +87,25 @@ public static class TimeManager
             // #2.2 Play N moves in M time + o per move, then get time bonus for next N moves
             else if (movestogo != -1)
             {
-                HardTimeout = time / Math.Min(movestogo, 2);
-                SoftTimeout = time / movestogo;
+                /*--------------------------------------------------
+                Results of dev vs main (20+0.2, 1t, 64MB, UHO_2024_8mvs_big_+105_+124.pgn):
+                Elo: 18.53 +/- 8.74, nElo: 26.91 +/- 12.67
+                LOS: 100.00 %, DrawRatio: 41.18 %, PairsRatio: 1.35
+                Games: 2890, Wins: 923, Losses: 769, Draws: 1198, Points: 1522.0 (52.66 %)
+                Ptnml(0-2): [76, 285, 595, 387, 102], WL/DD Ratio: 1.26
+                LLR: 2.89 (-2.25, 2.89) [0.00, 5.00]
+                --------------------------------------------------
+                */
+                HardTimeout = time / Math.Min(movestogo, 2) + inc / 2;
+                SoftTimeout = time / movestogo + inc / 2;
                 Console.WriteLine($"movestogo: mtg = {movestogo}, hardlimit = {HardTimeout}, softlimit = {SoftTimeout}");
             }
 
             // #2.3 Play whole game in M time
             else
             {
-                HardTimeout = time / 5;
-                SoftTimeout = time / 30;
+                HardTimeout = time / 5 + inc / 2;
+                SoftTimeout = time / 30 + inc / 2;
                 Console.WriteLine($"normal: hardlimit = {HardTimeout}, softlimit = {SoftTimeout}");
             }
         }
