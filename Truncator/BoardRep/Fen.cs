@@ -112,8 +112,6 @@ public partial struct Pos
 
         // optional for (d)frc here: save rook and king start squares
     }
-
-    public override string ToString() => get_fen();
     
     public string get_fen()
     {
