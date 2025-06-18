@@ -80,6 +80,10 @@ public partial struct Pos
         FiftyMoveRule = 0;
 
         Castling.UpdateNewPosition(ref this);
+        for (PieceType pt = PieceType.Pawn; pt <= PieceType.King; pt++)
+        {
+            this.PieceKeys[(int)pt] = Zobrist.ComputePieceKey(pt, ref this);
+        }
         this.ZobristKey = Zobrist.ComputeFromZero(ref this);
     }
 

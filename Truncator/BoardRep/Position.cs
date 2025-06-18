@@ -7,6 +7,7 @@ public unsafe partial struct Pos
 {
     public fixed ulong PieceBB[6];
     public fixed ulong ColorBB[2];
+    public readonly ulong blocker => ColorBB[0] | ColorBB[1];
 
     public fixed int KingSquares[2];
 
@@ -18,10 +19,11 @@ public unsafe partial struct Pos
     public readonly Color Them => 1 - Us;
 
     public ulong ZobristKey;
-    //public fixed ulong PieceKeys[6];
+    public fixed ulong PieceKeys[6];
     //public fixed ulong ColorKeys[2];
-
-    public readonly ulong blocker => ColorBB[0] | ColorBB[1];
+    public readonly ulong PawnKey => PieceKeys[(int)PieceType.Pawn];
+    public readonly ulong MinorKey => PieceKeys[(int)PieceType.Knight] ^ PieceKeys[(int)PieceType.Bishop] ^ PieceKeys[(int)PieceType.King];
+    public readonly ulong MajorKey => PieceKeys[(int)PieceType.Rook] ^ PieceKeys[(int)PieceType.Queen] ^ PieceKeys[(int)PieceType.King];
 
 
     public ulong GetPieces(Color c, PieceType pt)

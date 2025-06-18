@@ -47,7 +47,8 @@ public ref struct MovePicker
             }
             else // quiet
             {
-                scores[i] = thread.history.Butterfly[p.Us, m];
+                scores[i] = thread.history.Butterfly[p.Us, m]
+                          + thread.history.PawnHist[p.Us, p.PieceTypeOn(m.from), m.to, p.PawnKey];
             }
         }
     }

@@ -62,6 +62,21 @@ public static class Zobrist
         return EpKeys[Utils.FileOf(sq)];
     }
 
+    public static unsafe ulong ComputePieceKey(PieceType pt, ref Pos p)
+    {
+        ulong key = 0;
+        for (Color c = Color.White; c <= Color.Black; c++)
+        {
+            ulong pieces = p.GetPieces(c, pt);
+            while (pieces != 0)
+            {
+                int sq = Utils.popLsb(ref pieces);
+                key ^= GetPieceKey(c, pt, sq);
+            }
+        }
+        return key;
+    }
+
     public static unsafe ulong ComputeFromZero(ref Pos p)
     {
         ulong key = p.Us == Color.White ? 0 : stmKey;
