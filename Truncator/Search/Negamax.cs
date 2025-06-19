@@ -329,7 +329,7 @@ public static partial class Search
                         {
                             // update history
                             int HistDelta = depth * depth;
-                            thread.history.UpdateQuietMoves((short)HistDelta, (short)-HistDelta, thread, ns, ref p, ref quietMoves, quitesCount);
+                            thread.history.UpdateQuietMoves((short)HistDelta, (short)-HistDelta, thread, ref p, ref quietMoves, quitesCount);
 
                             // update killer-move
                             ns->KillerMove = m;
