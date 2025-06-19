@@ -245,7 +245,7 @@ public static partial class Search
                 // all moves after that are expected to be worse. we will validate this thesis by 
                 // searching them at a cheaper shallower depth. if a move seems to beat the current best move,
                 // we need to re-search that move at full depth to confirm its the better move.
-                int R = Math.Max(Log_[Math.Min(movesPlayed, 63)] / 2, 2);
+                int R = Math.Max(Log_[Math.Min(movesPlayed, 63)] * Log_[Math.Min(depth, 63)] / 4, 2);
 
                 // reduce more for bad history values
                 // divisor = HIST_VAL_MAX / 3
