@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 public static partial class Search
 {
@@ -32,32 +33,43 @@ public static partial class Search
             return entry.Score;
         }
 
+        bool inCheck = p.GetCheckers() != 0;
+
         // stand pat logic
         // stop captureing pieces (& return) if it does not increase evaluation
-        int eval = Pesto.Evaluate(ref p);
-
-        if (eval >= beta)
-        {
-            return eval;
-        }
-
-        if (eval > alpha)
-        {
-            alpha = eval;
-        }
-
-        // ToDo: mate-score when in check
+        int eval = inCheck ? -SCORE_MATE + thread.ply : Pesto.Evaluate(ref p);
         int bestscore = eval;
+
+        if (!inCheck)
+        {
+            if (eval >= beta)
+            {
+                return eval;
+            }
+
+            if (eval > alpha)
+            {
+                alpha = eval;
+            }
+        }        
 
         // move generation and picking
         Span<Move> moves = stackalloc Move[256];
         Span<int> scores = stackalloc int[256];
-        MovePicker picker = new MovePicker(thread, ref p, ttMove, ref moves, ref scores, inQS: true);
+        MovePicker picker = new MovePicker(thread, ref p, ttMove, ref moves, ref scores, inQS: !inCheck);
 
         // main move loop
         for (Move m = picker.Next(); m.NotNull; m = picker.Next())
         {
             Debug.Assert(m.NotNull);
+
+            // skip quiets if there is a non-loosing line already
+            if (inCheck &&
+                !p.IsCapture(m) &&
+                bestscore > -Scaling.EVAL_MAX)
+            {
+                continue;
+            }
 
             // prune all bad captures
             if (nonPV &&
