@@ -37,9 +37,12 @@ public ref struct MovePicker
             }
             else if (p.IsCapture(m))
             {
+                PieceType victim = p.GetCapturedPieceType(m);
+                PieceType attacker = p.PieceTypeOn(m.from);
+
                 scores[i] = (SEE.SEE_threshold(m, ref p, 0) ? 1_000_000 : -1_000_000)
-                          + (int)p.GetCapturedPieceType(m) * 100
-                          - (int)p.PieceTypeOn(m.from);
+                          + SEE.SEEMaterial[(int)victim]
+                          + thread.history.CaptHist[p.Us, victim, attacker, m];
             }
             else if (m == killer)
             {

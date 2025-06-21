@@ -133,7 +133,9 @@ public static partial class Search
 
         int movesPlayed = 0;
         int quitesCount = 0;
+        int capturesCount = 0;
         Span<Move> quietMoves = stackalloc Move[128];
+        Span<Move> captureMoves = stackalloc Move[128];
 
         Move bestmove = Move.NullMove;
 
@@ -237,6 +239,7 @@ public static partial class Search
 
             movesPlayed++;
             if (!isCapture) quietMoves[quitesCount++] = m;
+            else captureMoves[capturesCount++] = m;
 
             if (movesPlayed > 1 && depth >= 2 && !isCapture)
             {
@@ -325,15 +328,20 @@ public static partial class Search
                         // play the current one and we dont need to search further down this branch
                         flag = LOWER_BOUND;
 
+                        int HistDelta = depth * depth;
+
                         if (!isCapture)
                         {
                             // update history
-                            int HistDelta = depth * depth;
                             thread.history.UpdateQuietMoves((short)HistDelta, (short)-HistDelta, thread, ns, ref p, ref quietMoves, quitesCount);
 
                             // update killer-move
                             ns->KillerMove = m;
                         }
+
+                        // always penalize captures that didnt cause a cutoff
+                        // does not matter if the bestmove was quiet or not
+                        thread.history.UpdateCatureMoves((short)HistDelta, (short)-HistDelta, ref p, ref captureMoves, capturesCount, m);
 
                         break;
 
