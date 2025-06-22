@@ -40,18 +40,18 @@ public static partial class Search
         }
 
         // probe the transposition table for already visited positions
-        TTEntry entry = thread.tt.Probe(p.ZobristKey);
-        bool ttHit = entry.Key == p.ZobristKey;
-        Move ttMove = ttHit ? new(entry.MoveValue) : Move.NullMove;
+        TTEntry ttEntry = thread.tt.Probe(p.ZobristKey);
+        bool ttHit = ttEntry.Key == p.ZobristKey;
+        Move ttMove = ttHit ? new(ttEntry.MoveValue) : Move.NullMove;
 
         // return the tt-score if the entry is any good
-        if (nonPV && ttHit && entry.Depth >= depth && !inSingularity && (
-            entry.Flag == LOWER_BOUND && entry.Score >= beta ||
-            entry.Flag == UPPER_BOUND && entry.Score <= alpha ||
-            entry.Flag == EXACT_BOUND
+        if (nonPV && ttHit && ttEntry.Depth >= depth && !inSingularity && (
+            ttEntry.Flag == LOWER_BOUND && ttEntry.Score >= beta ||
+            ttEntry.Flag == UPPER_BOUND && ttEntry.Score <= alpha ||
+            ttEntry.Flag == EXACT_BOUND
         ))
         {
-            return entry.Score;
+            return ttEntry.Score;
         }
 
         // clear childrens killer-move
@@ -206,11 +206,11 @@ public static partial class Search
                 !inSingularity &&
                 !isRoot &&
                 depth >= 8 &&
-                entry.Depth >= depth - 3 &&
-                entry.Flag > UPPER_BOUND)
+                ttEntry.Depth >= depth - 3 &&
+                ttEntry.Flag > UPPER_BOUND)
             {
 
-                int singularBeta = Math.Max(-SCORE_MATE + 1, entry.Score - depth * 2);
+                int singularBeta = Math.Max(-SCORE_MATE + 1, ttEntry.Score - depth * 2);
                 int singularDepth = (depth - 1) / 2;
 
                 ns->ExcludedMove = m;

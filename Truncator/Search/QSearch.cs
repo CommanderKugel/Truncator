@@ -19,18 +19,18 @@ public static partial class Search
         }
 
         // probe the tt for a transposition
-        TTEntry entry = thread.tt.Probe(p.ZobristKey);
-        bool ttHit = entry.Key == p.ZobristKey;
-        Move ttMove = ttHit ? new(entry.MoveValue) : Move.NullMove;
+        TTEntry ttEntry = thread.tt.Probe(p.ZobristKey);
+        bool ttHit = ttEntry.Key == p.ZobristKey;
+        Move ttMove = ttHit ? new(ttEntry.MoveValue) : Move.NullMove;
 
         // try for tt-cutoff if the entry is any good
         if (nonPV && ttHit && (
-                entry.Flag == EXACT_BOUND ||
-                entry.Flag == LOWER_BOUND && entry.Score >= beta ||
-                entry.Flag == UPPER_BOUND && entry.Score <= alpha
+                ttEntry.Flag == EXACT_BOUND ||
+                ttEntry.Flag == LOWER_BOUND && ttEntry.Score >= beta ||
+                ttEntry.Flag == UPPER_BOUND && ttEntry.Score <= alpha
             ))
         {
-            return entry.Score;
+            return ttEntry.Score;
         }
 
         bool inCheck = p.GetCheckers() != 0;
