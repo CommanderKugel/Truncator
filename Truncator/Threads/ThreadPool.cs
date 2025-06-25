@@ -117,12 +117,22 @@ public static class ThreadPool
         }
         
         // info printing in between iterations
-        int score_ = bestThread.rootPos.moveScore[moveIdx];
+        int dirty_score = bestThread.rootPos.moveScore[moveIdx];
         long nodes = GetNodes();
         long time = TimeManager.ElapsedMilliseconds;
         long nps = nodes * 1000 / time;
 
-        Console.WriteLine($"info depth {bestThread.completedDepth} seldepth {bestThread.seldepth} nodes {nodes} time {time} nps {nps} score cp {score_} pv {pv}");
+        var (w, d, l) = WDL.GetWDL(dirty_score);
+        int norm_score = WDL.NormalizedScoreFromWDL(w, d, l);
+
+        string s = $"info depth {bestThread.completedDepth} seldepth {bestThread.seldepth} nodes {nodes} time {time} nps {nps} score cp {norm_score}";
+
+        if (WDL.UCI_showWDL)
+        {
+            s += $" wdl {(int)(w * 1000)} {(int)(d * 1000)} {(int)(l * 1000)}";
+        }
+
+        Console.WriteLine(s + $" pv {pv}");
     }
 
     public static void Clear()

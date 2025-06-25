@@ -40,18 +40,18 @@ public static partial class Search
         }
 
         // probe the transposition table for already visited positions
-        TTEntry entry = thread.tt.Probe(p.ZobristKey);
-        bool ttHit = entry.Key == p.ZobristKey;
-        Move ttMove = ttHit ? new(entry.MoveValue) : Move.NullMove;
+        TTEntry ttEntry = thread.tt.Probe(p.ZobristKey);
+        bool ttHit = ttEntry.Key == p.ZobristKey;
+        Move ttMove = ttHit ? new(ttEntry.MoveValue) : Move.NullMove;
 
         // return the tt-score if the entry is any good
-        if (nonPV && ttHit && entry.Depth >= depth && !inSingularity && (
-            entry.Flag == LOWER_BOUND && entry.Score >= beta ||
-            entry.Flag == UPPER_BOUND && entry.Score <= alpha ||
-            entry.Flag == EXACT_BOUND
+        if (nonPV && ttHit && ttEntry.Depth >= depth && !inSingularity && (
+            ttEntry.Flag == LOWER_BOUND && ttEntry.Score >= beta ||
+            ttEntry.Flag == UPPER_BOUND && ttEntry.Score <= alpha ||
+            ttEntry.Flag == EXACT_BOUND
         ))
         {
-            return entry.Score;
+            return ttEntry.Score;
         }
 
         // clear childrens killer-move
@@ -63,7 +63,10 @@ public static partial class Search
         // static evaluaton
         // although this is a noisy position and we have to distrust the static
         // evaluation of the current node to an extend, we can draw some conclusion from it.
-        int staticEval = inCheck ? 0 : Pesto.Evaluate(ref p);
+        ns->StaticEval = inCheck ? -SCORE_MATE : Pesto.Evaluate(ref p);
+
+        bool improving = thread.ply > 1 && !inCheck &&
+                        ns->StaticEval >= (ns - 2)->StaticEval && (ns - 2)->StaticEval != -SCORE_MATE;
 
         // sometimes whole-node-pruning can be skippedentirely
         if (inCheck || isPV || inSingularity)
@@ -74,15 +77,15 @@ public static partial class Search
 
         // reverse futility pruning (RFP)
         if (depth <= 5 &&
-            staticEval - 75 * depth >= beta)
+            ns->StaticEval - 75 * depth >= beta)
         {
-            return staticEval;
+            return ns->StaticEval;
         }
 
         // razoring
         if (!IsTerminal(alpha) &&
             depth <= 4 &&
-            staticEval + 300 * depth <= alpha)
+            ns->StaticEval + 300 * depth <= alpha)
         {
             int RazoringScore = QSearch<NonPVNode>(thread, p, alpha, beta);
 
@@ -94,7 +97,7 @@ public static partial class Search
 
         // null move pruning
         if ((ns - 1)->move.NotNull &&
-            staticEval >= beta)
+            ns->StaticEval >= beta)
         {
             Pos PosAfterNull = p;
             PosAfterNull.MakeNullMove(thread);
@@ -149,7 +152,7 @@ public static partial class Search
             }
 
             long startnodes = thread.nodeCount;
-            bool nonMatinglineExists = !IsTerminal(bestscore);
+            bool notMate = !inCheck && bestscore != -SCORE_MATE;
 
             bool isCapture = p.IsCapture(m);
             bool isNoisy = isCapture || m.IsPromotion; // ToDo: GivesCheck()
@@ -161,14 +164,14 @@ public static partial class Search
             if (!isRoot &&
                 !inSingularity &&
                 !isNoisy &&
-                nonMatinglineExists)
+                notMate)
             {
 
                 // futility pruning 
                 if (nonPV &&
                     !inCheck &&
                     depth <= 4 &&
-                    staticEval + depth * 150 <= alpha)
+                    ns->StaticEval + depth * 150 <= alpha)
                 {
                     continue;
                 }
@@ -192,7 +195,7 @@ public static partial class Search
             // pvs SEE pruning
             // ToDo: margin -= histScore / 8
             if (!isRoot &&
-                nonMatinglineExists &&
+                notMate &&
                 !SEE.SEE_threshold(m, ref p, isCapture ? -150 * depth : -25 * depth * depth))
             {
                 continue;
@@ -206,11 +209,11 @@ public static partial class Search
                 !inSingularity &&
                 !isRoot &&
                 depth >= 8 &&
-                entry.Depth >= depth - 3 &&
-                entry.Flag > UPPER_BOUND)
+                ttEntry.Depth >= depth - 3 &&
+                ttEntry.Flag > UPPER_BOUND)
             {
 
-                int singularBeta = Math.Max(-SCORE_MATE + 1, entry.Score - depth * 2);
+                int singularBeta = Math.Max(-SCORE_MATE + 1, ttEntry.Score - depth * 2);
                 int singularDepth = (depth - 1) / 2;
 
                 ns->ExcludedMove = m;
@@ -250,6 +253,8 @@ public static partial class Search
                 // reduce more for bad history values
                 // divisor = HIST_VAL_MAX / 3
                 R += Math.Max(0, -histScore / 341);
+
+                if (thread.ply > 1 && !improving) R++;
 
                 // zero-window-search (ZWS)
                 // as part of the principal-variation-search, we assume that all lines that are not the pv
