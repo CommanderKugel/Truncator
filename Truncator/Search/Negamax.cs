@@ -63,7 +63,10 @@ public static partial class Search
         // static evaluaton
         // although this is a noisy position and we have to distrust the static
         // evaluation of the current node to an extend, we can draw some conclusion from it.
-        int staticEval = inCheck ? 0 : Pesto.Evaluate(ref p);
+        ns->StaticEval = inCheck ? -SCORE_MATE : Pesto.Evaluate(ref p);
+
+        bool improving = thread.ply > 1 && !inCheck &&
+                        ns->StaticEval >= (ns - 2)->StaticEval && (ns - 2)->StaticEval != -SCORE_MATE;
 
         // sometimes whole-node-pruning can be skippedentirely
         if (inCheck || isPV || inSingularity)
@@ -74,15 +77,15 @@ public static partial class Search
 
         // reverse futility pruning (RFP)
         if (depth <= 5 &&
-            staticEval - 75 * depth >= beta)
+            ns->StaticEval - 75 * depth >= beta)
         {
-            return staticEval;
+            return ns->StaticEval;
         }
 
         // razoring
         if (!IsTerminal(alpha) &&
             depth <= 4 &&
-            staticEval + 300 * depth <= alpha)
+            ns->StaticEval + 300 * depth <= alpha)
         {
             int RazoringScore = QSearch<NonPVNode>(thread, p, alpha, beta);
 
@@ -94,7 +97,7 @@ public static partial class Search
 
         // null move pruning
         if ((ns - 1)->move.NotNull &&
-            staticEval >= beta)
+            ns->StaticEval >= beta)
         {
             Pos PosAfterNull = p;
             PosAfterNull.MakeNullMove(thread);
@@ -168,7 +171,7 @@ public static partial class Search
                 if (nonPV &&
                     !inCheck &&
                     depth <= 4 &&
-                    staticEval + depth * 150 <= alpha)
+                    ns->StaticEval + depth * 150 <= alpha)
                 {
                     continue;
                 }
@@ -250,6 +253,8 @@ public static partial class Search
                 // reduce more for bad history values
                 // divisor = HIST_VAL_MAX / 3
                 R += Math.Max(0, -histScore / 341);
+
+                if (thread.ply > 1 && !improving) R++;
 
                 // zero-window-search (ZWS)
                 // as part of the principal-variation-search, we assume that all lines that are not the pv
