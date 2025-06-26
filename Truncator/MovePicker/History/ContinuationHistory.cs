@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 public struct ContinuationHistory : IDisposable
 {
 
-    public const int SIZE = 2 * 6 * 64;
+    public const int SIZE = 6 * 64;
 
     private unsafe PieceToHistory* table = null;
 
@@ -16,28 +16,34 @@ public struct ContinuationHistory : IDisposable
     /// </summary>
     public unsafe PieceToHistory* NullHist;
 
+    /// <summary>
+    /// Update this table instead of the NullHist, so that NullHist is always empty
+    /// </summary>
+    public unsafe PieceToHistory* RubbishHist;
+
     public unsafe ContinuationHistory()
     {
         table = (PieceToHistory*)NativeMemory.Alloc((nuint)sizeof(PieceToHistory) * SIZE);
-        NullHist = (PieceToHistory*)NativeMemory.Alloc((nuint)sizeof(PieceToHistory) * SIZE);
+        NullHist = (PieceToHistory*)NativeMemory.Alloc((nuint)sizeof(PieceToHistory));
+        RubbishHist = (PieceToHistory*)NativeMemory.Alloc((nuint)sizeof(PieceToHistory));
 
         for (int i = 0; i < SIZE; i++)
         {
             table[i] = new();
         }
 
-        NullHist[0] = new();
+        *NullHist = new();
+        *RubbishHist = new();
     }
 
-    public unsafe PieceToHistory* this[Color c, PieceType pt, int sq]
+    public unsafe PieceToHistory* this[PieceType pt, int sq]
     {
         get
         {
             Debug.Assert(table != null);
-            Debug.Assert(c != Color.NONE);
+            Debug.Assert(pt != PieceType.NONE);
             Debug.Assert(sq >= 0 && sq < 64);
-            return pt == PieceType.NONE ? NullHist
-                : &table[(int)c * 6 * 64 + (int)pt * 64 + sq];
+            return &table[(int)pt * 64 + sq];
         }
     }
 
@@ -49,7 +55,9 @@ public struct ContinuationHistory : IDisposable
         {
             table[i].Clear();
         }
-        NullHist[0].Clear();
+
+        (*NullHist).Clear();
+        (*RubbishHist).Clear();
     }
 
     public unsafe void Dispose()
@@ -61,12 +69,13 @@ public struct ContinuationHistory : IDisposable
                 table[i].Dispose();
             }
 
-            NullHist[0].Dispose();
+            (*NullHist).Dispose();
+            (*RubbishHist).Dispose();
 
             NativeMemory.Free(table);
             NativeMemory.Free(NullHist);
-            table = null;
-            NullHist = null;
+            NativeMemory.Free(RubbishHist);
+            table = NullHist = RubbishHist = null;
         }
     }
 
