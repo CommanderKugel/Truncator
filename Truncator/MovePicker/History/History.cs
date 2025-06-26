@@ -18,7 +18,7 @@ public struct History : IDisposable
     public unsafe void UpdateQuietMoves(short bonus, short penalty, SearchThread thread, ref Pos p, ref Span<Move> quiets, int count)
     {
         Node* n = &thread.nodeStack[thread.ply];
-        PieceToHistory* ContHist = thread.ply <= 0 ? thread.history.ContHist.RubbishHist
+        PieceToHistory* ContHist = (thread.ply <= 0 || thread.nodeStack[thread.ply - 1].ContHist == thread.history.ContHist.NullHist) ? thread.history.ContHist.RubbishHist
             : (n - 1)->ContHist;
 
         for (int i = 0; i < count - 1; i++)
