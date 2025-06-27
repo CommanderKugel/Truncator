@@ -18,16 +18,19 @@ public static partial class Search
         // overwrite previous pv line
         thread.NewPVLine();
 
-        // Draw Detection
-        // - twofold repetition
-        // - insufficient mating material
-        // - fiftx move rule
         if (!isRoot)
         {
+            // Draw Detection
+            // - twofold repetition
+            // - insufficient mating material
+            // - fiftx move rule
             if (p.IsDraw(thread))
             {
                 return SCORE_DRAW;
             }
+
+            // ToDo: return eval at max-ply
+            // ToDo: mate distance pruning (elo neutral & nice to have)
         }
 
         // if leaf-node: drop into QSearch
@@ -48,8 +51,7 @@ public static partial class Search
         if (nonPV && ttHit && ttEntry.Depth >= depth && !inSingularity && (
             ttEntry.Flag == LOWER_BOUND && ttEntry.Score >= beta ||
             ttEntry.Flag == UPPER_BOUND && ttEntry.Score <= alpha ||
-            ttEntry.Flag == EXACT_BOUND
-        ))
+            ttEntry.Flag == EXACT_BOUND))
         {
             return ttEntry.Score;
         }
@@ -66,7 +68,8 @@ public static partial class Search
         ns->StaticEval = inCheck ? -SCORE_MATE : Pesto.Evaluate(ref p);
 
         bool improving = thread.ply > 1 && !inCheck &&
-                        ns->StaticEval >= (ns - 2)->StaticEval && (ns - 2)->StaticEval != -SCORE_MATE;
+                        (ns - 2)->StaticEval != -SCORE_MATE && 
+                        ns->StaticEval >= (ns - 2)->StaticEval;
 
         // sometimes whole-node-pruning can be skippedentirely
         if (inCheck || isPV || inSingularity)
@@ -123,6 +126,9 @@ public static partial class Search
         {
             depth++;
         }
+
+        // ToDo: Internal Iterative Reductions
+        // if (depth >= 4 && isPV && !ttHit) depth--;
 
         // movegeneration, scoring and ordering is outsourced to the move-picker
         Span<Move> moves = stackalloc Move[256];
@@ -333,6 +339,7 @@ public static partial class Search
                         if (!isCapture)
                         {
                             // update history
+                            // ToDo: increase Bonus for ttmoves -> (depth + 1) * depth
                             int HistDelta = depth * depth;
                             thread.history.UpdateQuietMoves((short)HistDelta, (short)-HistDelta, thread, ns, ref p, ref quietMoves, quitesCount);
 
