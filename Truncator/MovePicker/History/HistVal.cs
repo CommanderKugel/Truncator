@@ -8,8 +8,7 @@ public struct HistVal
     /// <summary>
     /// Apply history gravity formula, then clamp to min and max values
     /// </summary>
-    public static short operator <<(HistVal histVal, int delta)
-        => histVal.value += (short)(delta - histVal.value * Math.Abs(delta) / HIST_VAL_MAX);
+    public void Update(int delta) => value += (short)(delta - value * Math.Abs(delta) / HIST_VAL_MAX);
 
     public static implicit operator short(HistVal val) => val.value;
     public static implicit operator int(HistVal val) => val.value;

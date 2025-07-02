@@ -32,22 +32,32 @@ public class TranspositionTable : IDisposable
         nuint sizeByte = (nuint)sizemb * 1024 * 1024;
         nuint entryCount = sizeByte / (nuint)sizeof(TTEntry);
 
-        NativeMemory.Free(tt);
+        if (tt != null)
+        {
+            NativeMemory.Free(tt);
+        }
         tt = (TTEntry*)NativeMemory.Alloc((nuint)sizeof(TTEntry) * entryCount);
-        this.size = entryCount;
+        size = entryCount;
 
         Console.WriteLine($"hash set to {sizemb} mb");
     }
 
     public unsafe void Clear()
     {
+        Debug.Assert(tt != null);
         NativeMemory.Clear(tt, (nuint)sizeof(TTEntry) * (nuint)size);
     }
 
-    public unsafe TTEntry Probe(ulong key) => tt[key % size];
+    public unsafe TTEntry Probe(ulong key)
+    {
+        Debug.Assert(tt != null);
+        return tt[key % size];
+    }
 
     public unsafe void Write(ulong key, int score, Move move, int depth, int flag, bool pv, SearchThread thread)
     {
+        Debug.Assert(tt != null);
+        
         // current policy: always replace
         ref var entry = ref tt[key % size];
 
@@ -56,6 +66,22 @@ public class TranspositionTable : IDisposable
         entry.MoveValue = move.value;
         entry.Depth = (byte)depth;
         entry.PackPVAgeFlag(pv, 0, flag);
+    }
+
+    public unsafe int GetHashfull()
+    {
+        Debug.Assert(tt != null);
+        Debug.Assert(size >= MIN_SIZE);
+
+        int hashfull = 0;
+        for (int i = 0; i < 1000; i++)
+        {
+            if (tt[i].Key != 0)
+            {
+                hashfull++;
+            }
+        }
+        return hashfull;
     }
 
     public unsafe void Dispose()

@@ -7,9 +7,9 @@ public static class WDL
     Sigmoid with a and b approx. poly2(s) = c0 + s * (c1 + s * c2)
     for -300 < s < 300
 
-    const double c0 = 217.27325121630592;  -> ~ 217
-    const double c1 = 1.6805903050754072;  -> ~ * 42 / 25
-    const double c2 = 0.03211224307882097; -> ~ * 4 / 125
+    const double c0 = 217.27325121630592;   ~ 217
+    const double c1 = 1.6805903050754072;   ~ 42 / 25
+    const double c2 = 0.03211224307882097;  ~ 4 / 125
     */
 
     /// <summary>
@@ -32,29 +32,23 @@ public static class WDL
         return (w, d, l);
     }
 
-
-    const double a = 105.25220935229856;
-    const double b = 95.9031373937154;
-
     /// <summary>
-    /// Sigmoid fitted to match observed WDL data
-    /// sigmoid(x) = 1.0 / (1.0 + exp(-(x-a)/b))
+    /// Computes the predicted Win/Draw/Loss probabilities
+    /// fitte to datagenerated through self-ply
     /// </summary>
-    private static double WeightedSigmoid(double x) => 1.0 / (1.0 + Math.Exp(-(x - a) / b));
-
-    public static (double, double, double) GetWDL(int score)
+    public static (int, double, double, double) GetWDL(int score)
     {
+        const double a = 105.25220935229856;
+        const double b = 95.9031373937154;
+        double WeightedSigmoid(double x) => 1.0 / (1.0 + Math.Exp(-(x - a) / b));
+
         double w = WeightedSigmoid(score);
         double l = WeightedSigmoid(-score);
         double d = 1.0 - w - l;
-        return (w, d, l);
-    }
 
-    public static int NormalizedScoreFromWDL(double w, double d, double l)
-    {
-        double score = w + d / 2.0;
-        int ret = (int)(400 * Math.Log10(score / (1.0 - score)));
-        return ret;
+        int normalizedScore = (int)(score * 100 / a);
+
+        return (normalizedScore, w, d, l);
     }
 
 }

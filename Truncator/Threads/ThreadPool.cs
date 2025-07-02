@@ -121,11 +121,12 @@ public static class ThreadPool
         long nodes = GetNodes();
         long time = TimeManager.ElapsedMilliseconds;
         long nps = nodes * 1000 / time;
+        int hashfull = tt.GetHashfull();
 
-        var (w, d, l) = WDL.GetWDL(dirty_score);
-        int norm_score = WDL.NormalizedScoreFromWDL(w, d, l);
+        // normalize score to +100 cp ~ 50% chance of winning
+        var (norm_score, w, d, l) = WDL.GetWDL(dirty_score);
 
-        string s = $"info depth {bestThread.completedDepth} seldepth {bestThread.seldepth} nodes {nodes} time {time} nps {nps} score cp {norm_score}";
+        string s = $"info depth {bestThread.completedDepth} seldepth {bestThread.seldepth} nodes {nodes} time {time} nps {nps} score cp {norm_score} hashfull {hashfull}";
 
         if (WDL.UCI_showWDL)
         {

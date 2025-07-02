@@ -13,21 +13,13 @@ public struct History : IDisposable
         Butterfly = new();
     }
 
-    public unsafe void UpdateQuietMoves(short bonus, short penalty, SearchThread thread, Node* n, ref Pos p, ref Span<Move> quiets, int count)
+    public unsafe void UpdateQuietMoves(short bonus, short penalty, ref Pos p, ref Span<Move> quiets, int count, Move bestmove)
     {
-        for (int i = 0; i < count - 1; i++)
+        for (int i = 0; i < count; i++)
         {
-            UpdateSingleQuiet(penalty, p.Us, quiets[i], thread.ply, n, p.PieceTypeOn(quiets[i].from));
+            var delta = (quiets[i] == bestmove) ? bonus : penalty;
+            Butterfly[p.Us, quiets[i]].Update(delta);
         }
-
-        UpdateSingleQuiet(bonus, p.Us, quiets[count - 1], thread.ply, n, p.PieceTypeOn(quiets[count - 1].from));
-    }
-
-    private unsafe void UpdateSingleQuiet(short delta, Color c, Move m, int ply, Node* n, PieceType pt)
-    {
-        Debug.Assert(c != Color.NONE);
-        Debug.Assert(m.NotNull);
-        Butterfly[c, m] <<= delta;
     }
 
     public void Clear()
