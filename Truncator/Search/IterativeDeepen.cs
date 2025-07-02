@@ -34,7 +34,7 @@ public static partial class Search
         // dont do aspiration windows at low depth where scores fluctuate a lot
         if (depth <= 4)
         {
-            return Negamax<RootNode>(thread, thread.rootPos.p, -SCORE_MATE, SCORE_MATE, depth, &thread.nodeStack[thread.ply]);
+            return Negamax<RootNode>(thread, thread.rootPos.p, -SCORE_MATE, SCORE_MATE, depth, &thread.nodeStack[thread.ply], false);
         }
 
         int delta = 30;
@@ -43,7 +43,7 @@ public static partial class Search
 
         while (true)
         {
-            int score = Negamax<RootNode>(thread, thread.rootPos.p, alpha, beta, depth, &thread.nodeStack[thread.ply]);
+            int score = Negamax<RootNode>(thread, thread.rootPos.p, alpha, beta, depth, &thread.nodeStack[thread.ply], false);
 
             // dont retry if the search already timed out
             if (!thread.doSearch || thread.IsMainThread && TimeManager.IsSoftTimeout(thread, depth))

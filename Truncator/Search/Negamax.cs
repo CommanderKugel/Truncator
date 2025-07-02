@@ -4,7 +4,7 @@ using System.Diagnostics;
 public static partial class Search
 {
 
-    public static unsafe int Negamax<Type>(SearchThread thread, Pos p, int alpha, int beta, int depth, Node* ns)
+    public static unsafe int Negamax<Type>(SearchThread thread, Pos p, int alpha, int beta, int depth, Node* ns, bool cutnode)
         where Type : NodeType
     {
         Debug.Assert(thread.ply < 256);
@@ -107,7 +107,7 @@ public static partial class Search
             thread.repTable.Push(PosAfterNull.ZobristKey);
 
             int R = 3;
-            int ScoreAfterNull = -Negamax<NonPVNode>(thread, PosAfterNull, -beta, -alpha, depth - R, ns + 1);
+            int ScoreAfterNull = -Negamax<NonPVNode>(thread, PosAfterNull, -beta, -alpha, depth - R, ns + 1, !cutnode);
 
             thread.UndoMove();
 
@@ -196,6 +196,8 @@ public static partial class Search
                     continue;
                 }
 
+                // ToDo: Continuation Pruning
+
             }
 
             // pvs SEE pruning
@@ -223,7 +225,7 @@ public static partial class Search
                 int singularDepth = (depth - 1) / 2;
 
                 ns->ExcludedMove = m;
-                int singularScore = Negamax<NonPVNode>(thread, p, singularBeta - 1, singularBeta, singularDepth, ns);
+                int singularScore = Negamax<NonPVNode>(thread, p, singularBeta - 1, singularBeta, singularDepth, ns, cutnode);
                 ns->ExcludedMove = Move.NullMove;
 
                 if (singularScore < singularBeta)
@@ -268,26 +270,26 @@ public static partial class Search
                 // to cause a lot more curoffs. the returned value will never be an exact score, but an upper-
                 // or lower-bound. if a move unexpectedly beats the pv, we need to re-search it at full depth,
                 // to confirm it is really better than the pv and obtain its exact value.
-                score = -Negamax<NonPVNode>(thread, next, -alpha - 1, -alpha, depth - R, ns + 1);
+                score = -Negamax<NonPVNode>(thread, next, -alpha - 1, -alpha, depth - R, ns + 1, true);
 
                 // re-search if LMR seems to beat the current best move
                 if (score > alpha && R > 1)
                 {
-                    score = -Negamax<NonPVNode>(thread, next, -alpha - 1, -alpha, depth - 1, ns + 1);
+                    score = -Negamax<NonPVNode>(thread, next, -alpha - 1, -alpha, depth - 1, ns + 1, !cutnode);
                 }
             }
 
             // ZWS for moves that are not reduced by LMR
             else if (nonPV || movesPlayed > 1)
             {
-                score = -Negamax<NonPVNode>(thread, next, -alpha - 1, -alpha, depth + extension - 1, ns + 1);
+                score = -Negamax<NonPVNode>(thread, next, -alpha - 1, -alpha, depth + extension - 1, ns + 1, !cutnode);
             }
 
             // full-window-search
             // either the pv-line is searched fully at first, or a high-failing ZWS search needs to be confirmed.
             if (isPV && (score > alpha || movesPlayed == 1))
             {
-                score = -Negamax<PVNode>(thread, next, -beta, -alpha, depth + extension - 1, ns + 1);
+                score = -Negamax<PVNode>(thread, next, -beta, -alpha, depth + extension - 1, ns + 1, false);
             }
 
             thread.UndoMove();
