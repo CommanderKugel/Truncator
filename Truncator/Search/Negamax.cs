@@ -16,6 +16,10 @@ public static partial class Search
         bool inSingularity = ns->ExcludedMove.NotNull;
 
         // overwrite previous pv line
+        if (isRoot)
+        {
+            thread.pv_.PrepareNewIteration();
+        }
         thread.NewPVLine();
 
         if (!isRoot)
