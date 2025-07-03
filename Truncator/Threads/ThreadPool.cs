@@ -125,15 +125,17 @@ public static class ThreadPool
 
         // normalize score to +100 cp ~ 50% chance of winning
         var (norm_score, w, d, l) = WDL.GetWDL(dirty_score);
+        string scoreString = Search.IsTerminal(dirty_score) ? $"mate {(dirty_score - Search.SCORE_MATE) / 2}" : $"cp {norm_score}";
 
-        string s = $"info depth {bestThread.completedDepth} seldepth {bestThread.seldepth} nodes {nodes} time {time} nps {nps} score cp {norm_score} hashfull {hashfull}";
+        string info = $"info depth {bestThread.completedDepth} seldepth {bestThread.seldepth} nodes {nodes} time {time} nps {nps} score {scoreString} hashfull {hashfull}";
 
         if (WDL.UCI_showWDL)
         {
-            s += $" wdl {(int)(w * 1000)} {(int)(d * 1000)} {(int)(l * 1000)}";
+            info += $" wdl {(int)(w * 1000)} {(int)(d * 1000)} {(int)(l * 1000)}";
         }
 
-        Console.WriteLine(s + $" pv {pv}");
+        info += $" pv {pv}";
+        Console.WriteLine(info);
     }
 
     public static void Clear()

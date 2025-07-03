@@ -6,6 +6,10 @@ public struct PV : IDisposable
     public const int SIZE = 128;
 
     private unsafe Move* pv = null;
+
+    private Move lastBestMove, lastPonderMove;
+    private string lastPv;
+
     private unsafe int* scores = null;
     public object lockObject;
 
