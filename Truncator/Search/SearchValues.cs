@@ -1,10 +1,12 @@
 public static partial class Search
 {
 
-    public const int SCORE_MATE = 30_000;
+    public const int SCORE_MATE = 32_000;
     public const int SCORE_DRAW = 0;
+    public const int SCORE_EVAL_MAX = 30_000;
 
-    public static bool IsTerminal(int score) => Math.Abs(score) >= SCORE_MATE;
+    public static bool IsTerminal(int score) => Math.Abs(score) > SCORE_EVAL_MAX;
+    public static bool IsLoss(int score) => score < -SCORE_EVAL_MAX;
 
     public const int NONE_BOUND = 0b00,
                      UPPER_BOUND = 0b01,

@@ -162,7 +162,7 @@ public static partial class Search
             }
 
             long startnodes = thread.nodeCount;
-            bool notMate = !inCheck && bestscore != -SCORE_MATE;
+            bool notLoosing = !IsLoss(bestscore);
 
             bool isCapture = p.IsCapture(m);
             bool isNoisy = isCapture || m.IsPromotion; // ToDo: GivesCheck()
@@ -174,7 +174,7 @@ public static partial class Search
             if (!isRoot &&
                 !inSingularity &&
                 !isNoisy &&
-                notMate)
+                notLoosing)
             {
 
                 // futility pruning 
@@ -207,7 +207,7 @@ public static partial class Search
             // pvs SEE pruning
             // ToDo: margin -= histScore / 8
             if (!isRoot &&
-                notMate &&
+                notLoosing &&
                 !SEE.SEE_threshold(m, ref p, isCapture ? -150 * depth : -25 * depth * depth))
             {
                 continue;

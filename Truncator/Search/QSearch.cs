@@ -66,7 +66,7 @@ public static partial class Search
             // skip quiets if there is a non-loosing line already
             if (inCheck &&
                 !p.IsCapture(m) &&
-                bestscore > -Scaling.EVAL_MAX)
+                !IsLoss(bestscore))
             {
                 continue;
             }
