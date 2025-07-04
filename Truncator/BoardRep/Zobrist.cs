@@ -16,30 +16,20 @@ public static class Zobrist
         CastlingKeys = (ulong*)NativeMemory.AlignedAlloc(sizeof(ulong) * 16, sizeof(ulong) * 16);
         EpKeys = (ulong*)NativeMemory.AlignedAlloc(sizeof(ulong) * 8, sizeof(ulong) * 8);
 
-        var rng = new Random(3398300);
-
         for (int i = 0; i < 2 * 6 * 64; i++)
         {
-            PieceKeys[i] = NextRandomUlong(rng);
+            PieceKeys[i] = Rng.XoShiRoNext();
         }
 
         for (int i = 0; i < 16; i++)
         {
-            CastlingKeys[i] = NextRandomUlong(rng);
+            CastlingKeys[i] = Rng.XoShiRoNext();
         }
 
         for (int f = 0; f < 8; f++)
         {
-            EpKeys[f] = NextRandomUlong(rng);
+            EpKeys[f] = Rng.XoShiRoNext();
         }
-
-        unsafe ulong NextRandomUlong(Random rng)
-        {
-            var buffer = new byte[sizeof(ulong)];
-            rng.NextBytes(buffer);
-            return BitConverter.ToUInt64(buffer) & ~1ul;
-        }
-
     }
 
     public static unsafe ulong GetPieceKey(Color c, PieceType pt, int sq)
