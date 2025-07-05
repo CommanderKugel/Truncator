@@ -89,6 +89,20 @@ public static class Zobrist
         return key;
     }
 
+    public static unsafe ulong GetWholePieceKey(PieceType pt, ref Pos p)
+    {
+        ulong key = 0;
+        for (Color c = Color.White; c <= Color.Black; c++)
+        {
+            for (ulong pieces = p.GetPieces(c, pt); pieces != 0; )
+            {
+                int sq = Utils.popLsb(ref pieces);
+                key ^= GetPieceKey(c, pt, sq);
+            }
+        }
+        return key;
+    }
+
     public static unsafe void Dispose()
     {
         if (PieceKeys != null)

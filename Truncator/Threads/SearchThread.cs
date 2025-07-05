@@ -36,6 +36,7 @@ public class SearchThread : IDisposable
     public volatile unsafe Node* nodeStack = null;
 
     public History history;
+    public CorrectionHistory CorrHist;
 
 
     public SearchThread(int id)
@@ -46,6 +47,7 @@ public class SearchThread : IDisposable
         rootPos = new RootPos();
 
         history = new();
+        CorrHist = new();
 
         myThread = new Thread(ThreadMainLoop);
         myThread.Name = $"SearchThread_{id}";
@@ -152,6 +154,7 @@ public class SearchThread : IDisposable
 
         pv_.Clear();
         history.Clear();
+        CorrHist.Clear();
     }
 
     /// <summary>
@@ -171,6 +174,7 @@ public class SearchThread : IDisposable
         this.pv_.Dispose();
         this.repTable.Dispose();
         this.history.Dispose();
+        this.CorrHist.Dispose();
     }
 
     public unsafe void RunBench()

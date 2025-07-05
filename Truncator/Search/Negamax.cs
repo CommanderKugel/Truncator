@@ -69,7 +69,16 @@ public static partial class Search
         // static evaluaton
         // although this is a noisy position and we have to distrust the static
         // evaluation of the current node to an extend, we can draw some conclusion from it.
-        ns->StaticEval = inCheck ? -SCORE_MATE : Pesto.Evaluate(ref p);
+        if (inCheck)
+        {
+            ns->StaticEval = ns->UncorrectedStaticEval = -SCORE_MATE;
+        }
+        else
+        {
+            ns->UncorrectedStaticEval = Pesto.Evaluate(ref p);
+            thread.CorrHist.Correct(ref p, ns);
+        }
+
 
         bool improving = thread.ply > 1 && !inCheck &&
                         (ns - 2)->StaticEval != -SCORE_MATE && 
@@ -389,6 +398,17 @@ public static partial class Search
                 isPV,
                 thread
             );
+        }
+
+        if (!inSingularity &&
+            !inCheck &&
+            !IsTerminal(bestscore) &&
+            (bestmove.IsNull || !p.IsCapture(bestmove) && !bestmove.IsPromotion) &&
+            (flag == EXACT_BOUND ||
+             flag == UPPER_BOUND && bestscore < ns->StaticEval ||
+             flag == LOWER_BOUND && bestscore > ns->StaticEval))
+        {
+            thread.CorrHist.Update(ref p, bestscore, ns->StaticEval, depth);
         }
 
         return bestscore;
