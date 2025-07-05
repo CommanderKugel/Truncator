@@ -9,8 +9,6 @@ public static partial class UCI
 
     public static void MainLoop()
     {
-        // wake up main thread
-        ThreadPool.MainThread.ply = 0;
 
         while (true)
         {
