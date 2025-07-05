@@ -43,7 +43,7 @@ public static partial class Search
         // by playing out all good captures, qsearch eliminates possible material-swings
         if (depth <= 0 || thread.ply >= 128)
         {
-            return QSearch<Type>(thread, p, alpha, beta);
+            return QSearch<Type>(thread, p, alpha, beta, ns);
         }
 
         // probe the transposition table for already visited positions
@@ -103,7 +103,7 @@ public static partial class Search
             depth <= 4 &&
             ns->StaticEval + 300 * depth <= alpha)
         {
-            int RazoringScore = QSearch<NonPVNode>(thread, p, alpha, beta);
+            int RazoringScore = QSearch<NonPVNode>(thread, p, alpha, beta, ns);
 
             if (RazoringScore <= alpha)
             {
