@@ -1,6 +1,8 @@
 
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 
+[StructLayout(LayoutKind.Sequential, Size = 2)]
 public struct Move
 {
 

@@ -1,4 +1,7 @@
 
+using System.Runtime.InteropServices;
+
+[StructLayout(LayoutKind.Sequential, Size = 2)]
 public struct HistVal
 {
     public const short HIST_VAL_MAX = 1024;
