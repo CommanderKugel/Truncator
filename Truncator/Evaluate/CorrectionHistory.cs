@@ -16,7 +16,7 @@ public struct CorrectionHistory : IDisposable
 
     public unsafe int Correct(ref Pos p, Node* n)
     {
-        int PawnVal = 16 * PawnTable[(int)p.Us, Zobrist.GetWholePieceKey(PieceType.Pawn, ref p) % SIZE];
+        int PawnVal = 16 * PawnTable[(int)p.Us, p.PieceKeys[(int)PieceType.Pawn] % SIZE];
         int CorrectionValue = PawnVal;
 
         CorrectionValue /= HistVal.HIST_VAL_MAX;
@@ -32,7 +32,7 @@ public struct CorrectionHistory : IDisposable
     {
         var delta = Math.Clamp((score - eval) * depth / 8, MIN_BONUS, MAX_BONUS);
 
-        PawnTable[(int)p.Us, Zobrist.GetWholePieceKey(PieceType.Pawn, ref p) % SIZE].Update(delta);
+        PawnTable[(int)p.Us, p.PieceKeys[(int)PieceType.Pawn] % SIZE].Update(delta);
     }
 
 

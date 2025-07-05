@@ -42,7 +42,7 @@ public static class Zobrist
 
     }
 
-    public static unsafe ulong GetPieceKey(Color c, PieceType pt, int sq)
+    public static unsafe ulong GetSinglePieceKey(Color c, PieceType pt, int sq)
     {
         Debug.Assert(c == Color.White || c == Color.Black);
         Debug.Assert(pt <= PieceType.King);
@@ -74,7 +74,7 @@ public static class Zobrist
                 while (pieces != 0)
                 {
                     int sq = Utils.popLsb(ref pieces);
-                    key ^= GetPieceKey(c, pt, sq);
+                    key ^= GetSinglePieceKey(c, pt, sq);
                 }
             }
         }
@@ -89,7 +89,7 @@ public static class Zobrist
         return key;
     }
 
-    public static unsafe ulong GetWholePieceKey(PieceType pt, ref Pos p)
+    public static unsafe ulong GetPieceKey(PieceType pt, ref Pos p)
     {
         ulong key = 0;
         for (Color c = Color.White; c <= Color.Black; c++)
@@ -97,7 +97,7 @@ public static class Zobrist
             for (ulong pieces = p.GetPieces(c, pt); pieces != 0; )
             {
                 int sq = Utils.popLsb(ref pieces);
-                key ^= GetPieceKey(c, pt, sq);
+                key ^= GetSinglePieceKey(c, pt, sq);
             }
         }
         return key;

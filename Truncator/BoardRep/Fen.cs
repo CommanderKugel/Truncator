@@ -81,6 +81,11 @@ public partial struct Pos
 
         Castling.UpdateNewPosition(ref this);
         this.ZobristKey = Zobrist.ComputeFromZero(ref this);
+
+        for (PieceType pt = PieceType.Pawn; pt <= PieceType.King; pt++)
+        {
+            this.PieceKeys[(int)pt] = Zobrist.GetPieceKey(pt, ref this);
+        }
     }
 
     private unsafe void SetPiece(Color c, PieceType pt, int sq)
