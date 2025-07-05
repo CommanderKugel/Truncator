@@ -1,22 +1,23 @@
 
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 public struct CorrectionHistory : IDisposable
 {
 
     private const int SIZE = 16_384;
 
-    private HistVal[,] PawnTable;
+    private unsafe HistVal* PawnTable;
 
 
     public unsafe CorrectionHistory()
     {
-        PawnTable = new HistVal[2, SIZE];
+        PawnTable = (HistVal*)NativeMemory.AllocZeroed((nuint)sizeof(HistVal) * SIZE * 2);
     }
 
     public unsafe int Correct(ref Pos p, Node* n)
     {
-        int PawnVal = 16 * PawnTable[(int)p.Us, p.PieceKeys[(int)PieceType.Pawn] % SIZE];
+        int PawnVal = 16 * PawnTable[(ulong)p.Us * SIZE + p.PieceKeys[(int)PieceType.Pawn] % SIZE];
         int CorrectionValue = PawnVal;
 
         CorrectionValue /= HistVal.HIST_VAL_MAX;
@@ -32,18 +33,22 @@ public struct CorrectionHistory : IDisposable
     {
         var delta = Math.Clamp((score - eval) * depth / 8, MIN_BONUS, MAX_BONUS);
 
-        PawnTable[(int)p.Us, p.PieceKeys[(int)PieceType.Pawn] % SIZE].Update(delta);
+        PawnTable[(ulong)p.Us * SIZE + p.PieceKeys[(int)PieceType.Pawn] % SIZE].Update(delta);
     }
 
 
     public unsafe void Clear()
     {
         Debug.Assert(PawnTable != null);
-        Array.Clear(PawnTable);
+        NativeMemory.Clear(PawnTable, (nuint)sizeof(HistVal) * SIZE * 2);
     }
 
     public unsafe void Dispose()
     {
-        // make this future-proof
+        if (PawnTable != null)
+        {
+            NativeMemory.Free(PawnTable);
+            PawnTable = null;
+        }
     }
 }
