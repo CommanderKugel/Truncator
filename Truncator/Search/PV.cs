@@ -7,9 +7,6 @@ public struct PV : IDisposable
 
     private unsafe Move* pv = null;
 
-    private Move lastBestMove, lastPonderMove;
-    private string lastPv;
-
     private unsafe int* scores = null;
     public object lockObject;
 

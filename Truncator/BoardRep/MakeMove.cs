@@ -1,6 +1,5 @@
 
 using System.Diagnostics;
-using System.Net.Http.Headers;
 
 public unsafe partial struct Pos
 {
@@ -217,6 +216,8 @@ public unsafe partial struct Pos
         //for (PieceType pt = PieceType.Pawn; pt <= PieceType.King; pt++)
         //    Debug.Assert(PieceKeys[(int)pt] == Zobrist.GetPieceKey(pt, ref this));
         //Debug.Assert(ZobristKey == Zobrist.ComputeFromZero(ref this));
+
+        Debug.Assert(Utils.MoreThanOne(PieceBB[(int)PieceType.King]));
     }
 
     public void MakeNullMove(SearchThread thread)
