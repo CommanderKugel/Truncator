@@ -38,7 +38,7 @@ public static partial class Search
         // stop captureing pieces (& return) if it does not increase evaluation
         if (inCheck)
         {
-            ns->StaticEval = ns->UncorrectedStaticEval = -SCORE_MATE;
+            ns->StaticEval = ns->UncorrectedStaticEval = -SCORE_MATE + thread.ply;
         }
         else
         {
