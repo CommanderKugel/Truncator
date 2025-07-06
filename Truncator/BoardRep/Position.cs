@@ -21,6 +21,8 @@ public unsafe partial struct Pos
     public fixed ulong PieceKeys[6];
     //public fixed ulong ColorKeys[2];
 
+    public readonly ulong PawnKey => (ulong)Us * CorrectionHistory.SIZE + PieceKeys[(int)PieceType.Pawn] % CorrectionHistory.SIZE;
+
     public readonly ulong blocker => ColorBB[0] | ColorBB[1];
 
 

@@ -5,7 +5,10 @@ using System.Runtime.InteropServices;
 public struct CorrectionHistory : IDisposable
 {
 
-    private const int SIZE = 16_384;
+    public const int SIZE = 16_384;
+
+    private const int MAX_BONUS = HistVal.HIST_VAL_MAX / 4;
+    private const int MIN_BONUS = -HistVal.HIST_VAL_MAX / 4;
 
     private unsafe HistVal* PawnTable;
 
@@ -15,9 +18,13 @@ public struct CorrectionHistory : IDisposable
         PawnTable = (HistVal*)NativeMemory.AllocZeroed((nuint)sizeof(HistVal) * SIZE * 2);
     }
 
+    /// <summary>
+    /// Alter Static Evaluation based on past Search results
+    /// of positions with similar features
+    /// </summary>
     public unsafe int Correct(ref Pos p, Node* n)
     {
-        int PawnVal = 16 * PawnTable[(ulong)p.Us * SIZE + p.PieceKeys[(int)PieceType.Pawn] % SIZE];
+        int PawnVal = 16 * PawnTable[p.PawnKey];
         int CorrectionValue = PawnVal;
 
         CorrectionValue /= HistVal.HIST_VAL_MAX;
@@ -26,14 +33,15 @@ public struct CorrectionHistory : IDisposable
         return CorrectionValue;
     }
 
-    private const int MAX_BONUS = HistVal.HIST_VAL_MAX / 4;
-    private const int MIN_BONUS = -HistVal.HIST_VAL_MAX / 4;
-
+    /// <summary>
+    /// Update moving Average of difference between static-evaluation and search score
+    /// based on some features of the position
+    /// </summary>
     public unsafe void Update(ref Pos p, int score, int eval, int depth)
     {
         var delta = Math.Clamp((score - eval) * depth / 8, MIN_BONUS, MAX_BONUS);
 
-        PawnTable[(ulong)p.Us * SIZE + p.PieceKeys[(int)PieceType.Pawn] % SIZE].Update(delta);
+        PawnTable[p.PawnKey].Update(delta);
     }
 
 
