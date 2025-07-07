@@ -7,9 +7,6 @@ public struct PV : IDisposable
 
     private unsafe Move* pv = null;
 
-    private Move lastBestMove, lastPonderMove;
-    private string lastPv;
-
     private unsafe int* scores = null;
     public object lockObject;
 
@@ -18,10 +15,6 @@ public struct PV : IDisposable
         pv = (Move*)NativeMemory.Alloc(sizeof(ushort) * SIZE * SIZE);
         scores = (int*)NativeMemory.Alloc(sizeof(int) * SIZE);
         lockObject = new object();
-
-        lastBestMove = Move.NullMove;
-        lastPonderMove = Move.NullMove;
-        lastPv = "";
     }
 
     public unsafe Move this[int ply1, int ply2]
@@ -61,13 +54,6 @@ public struct PV : IDisposable
         NativeMemory.Clear(scores, sizeof(int) * SIZE);
     }
 
-    public unsafe void PrepareNewIteration()
-    {
-        lastBestMove = pv[0];
-        lastPonderMove = pv[1];
-        lastPv = GetPV();
-    }
-
     public unsafe void Push(Move m, int ply)
     {
         Debug.Assert(ply >= 0 && ply < SIZE);
@@ -81,11 +67,6 @@ public struct PV : IDisposable
 
     public unsafe string GetPV()
     {
-        if (this[0, 0].IsNull)
-        {
-            return lastPv;
-        }
-
         string pv = "";
         for (int i = 0; i < SIZE && this[0, i].NotNull; i++)
         {
@@ -94,8 +75,8 @@ public struct PV : IDisposable
         return pv;
     }
 
-    public unsafe Move BestMove => pv[0].NotNull ? pv[0] : lastBestMove;
-    public unsafe Move PonderMove => pv[1].NotNull ? pv[1] : lastPonderMove;
+    public unsafe Move BestMove => pv[0];
+    public unsafe Move PonderMove => pv[1];
 
     public unsafe void Dispose()
     {

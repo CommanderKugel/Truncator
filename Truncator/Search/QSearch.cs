@@ -1,10 +1,9 @@
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
 
 public static partial class Search
 {
 
-    public static int QSearch<Type>(SearchThread thread, Pos p, int alpha, int beta)
+    public unsafe static int QSearch<Type>(SearchThread thread, Pos p, int alpha, int beta, Node* ns)
         where Type : NodeType
     {
         Debug.Assert(typeof(Type) != typeof(RootNode), "QSearch can never examine root-nodes");
@@ -37,19 +36,28 @@ public static partial class Search
 
         // stand pat logic
         // stop captureing pieces (& return) if it does not increase evaluation
-        int eval = inCheck ? -SCORE_MATE + thread.ply : Pesto.Evaluate(ref p);
-        int bestscore = eval;
+        if (inCheck)
+        {
+            ns->StaticEval = ns->UncorrectedStaticEval = -SCORE_MATE + thread.ply;
+        }
+        else
+        {
+            ns->UncorrectedStaticEval = Pesto.Evaluate(ref p);
+            thread.CorrHist.Correct(ref p, ns);
+        }
+
+        int bestscore = ns->StaticEval;
 
         if (!inCheck)
         {
-            if (eval >= beta)
+            if (ns->StaticEval >= beta)
             {
-                return eval;
+                return ns->StaticEval;
             }
 
-            if (eval > alpha)
+            if (ns->StaticEval > alpha)
             {
-                alpha = eval;
+                alpha = ns->StaticEval;
             }
         }        
 
@@ -88,7 +96,7 @@ public static partial class Search
             next.MakeMove(m, thread);
 
             // no re-searches, we only ever pass null-windows in nonPV nodes
-            int score = -QSearch<Type>(thread, next, -beta, -alpha);
+            int score = -QSearch<Type>(thread, next, -beta, -alpha, ns + 1);
 
             thread.ply--;
 

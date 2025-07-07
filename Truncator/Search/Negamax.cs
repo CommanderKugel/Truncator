@@ -16,10 +16,6 @@ public static partial class Search
         bool inSingularity = ns->ExcludedMove.NotNull;
 
         // overwrite previous pv line
-        if (isRoot)
-        {
-            thread.pv_.PrepareNewIteration();
-        }
         thread.NewPVLine();
 
         if (!isRoot)
@@ -43,7 +39,7 @@ public static partial class Search
         // by playing out all good captures, qsearch eliminates possible material-swings
         if (depth <= 0 || thread.ply >= 128)
         {
-            return QSearch<Type>(thread, p, alpha, beta);
+            return QSearch<Type>(thread, p, alpha, beta, ns);
         }
 
         // probe the transposition table for already visited positions
@@ -69,7 +65,16 @@ public static partial class Search
         // static evaluaton
         // although this is a noisy position and we have to distrust the static
         // evaluation of the current node to an extend, we can draw some conclusion from it.
-        ns->StaticEval = inCheck ? -SCORE_MATE : Pesto.Evaluate(ref p);
+        if (inCheck)
+        {
+            ns->StaticEval = ns->UncorrectedStaticEval = -SCORE_MATE;
+        }
+        else
+        {
+            ns->UncorrectedStaticEval = Pesto.Evaluate(ref p);
+            thread.CorrHist.Correct(ref p, ns);
+        }
+
 
         bool improving = thread.ply > 1 && !inCheck &&
                         (ns - 2)->StaticEval != -SCORE_MATE && 
@@ -94,7 +99,7 @@ public static partial class Search
             depth <= 4 &&
             ns->StaticEval + 300 * depth <= alpha)
         {
-            int RazoringScore = QSearch<NonPVNode>(thread, p, alpha, beta);
+            int RazoringScore = QSearch<NonPVNode>(thread, p, alpha, beta, ns);
 
             if (RazoringScore <= alpha)
             {
@@ -389,6 +394,17 @@ public static partial class Search
                 isPV,
                 thread
             );
+        }
+
+        if (!inSingularity &&
+            !inCheck &&
+            !IsTerminal(bestscore) &&
+            (bestmove.IsNull || !p.IsCapture(bestmove) && !bestmove.IsPromotion) &&
+            (flag == EXACT_BOUND ||
+             flag == UPPER_BOUND && bestscore < ns->StaticEval ||
+             flag == LOWER_BOUND && bestscore > ns->StaticEval))
+        {
+            thread.CorrHist.Update(ref p, bestscore, ns->StaticEval, depth);
         }
 
         return bestscore;

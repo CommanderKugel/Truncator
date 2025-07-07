@@ -9,6 +9,7 @@ public struct Node
     public PieceType CapturedPieceType;
     public Move move;
 
+    public int UncorrectedStaticEval;
     public int StaticEval;
 
     public Move KillerMove;

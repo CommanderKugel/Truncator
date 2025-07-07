@@ -18,8 +18,19 @@ public unsafe partial struct Pos
     public readonly Color Them => 1 - Us;
 
     public ulong ZobristKey;
-    //public fixed ulong PieceKeys[6];
-    //public fixed ulong ColorKeys[2];
+    /// <summary>
+    /// Zobrist Keys representing all Pices of one type but of both colors
+    /// </summary>
+    public fixed ulong PieceKeys[6];
+    /// <summary>
+    /// Zobrist Keys representing all Pieces of one color exclding pawns
+    /// </summary>
+    public fixed ulong NonPawnKeys[2];
+
+    public readonly ulong PawnKey => PieceKeys[(int)PieceType.Pawn];
+    public readonly ulong MinorKey => PieceKeys[(int)PieceType.Knight] ^ PieceKeys[(int)PieceType.Bishop] ^ PieceKeys[(int)PieceType.King];
+    public readonly ulong MajorKey => PieceKeys[(int)PieceType.Rook] ^ PieceKeys[(int)PieceType.Queen] ^ PieceKeys[(int)PieceType.King];
+    public readonly ulong NonPawnMaterialKey(Color c) => NonPawnKeys[(int)c];
 
     public readonly ulong blocker => ColorBB[0] | ColorBB[1];
 
