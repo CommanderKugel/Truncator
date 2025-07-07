@@ -62,43 +62,55 @@ public static class Zobrist
         return EpKeys[Utils.FileOf(sq)];
     }
 
-    public static unsafe ulong ComputeFromZero(ref Pos p)
+    /// <summary>
+    /// Computes and replaces all types of zobrist keys of the given position
+    /// </summary>
+    public static unsafe void ComputeFromZero(ref Pos p)
     {
-        ulong key = p.Us == Color.White ? 0 : stmKey;
+        p.ZobristKey = p.Us == Color.White ? 0 : stmKey;
+        p.NonPawnKeys[(int)Color.White] = p.NonPawnKeys[(int)Color.Black] = 0;
+        // piece keys will simply be overwritten
 
-        for (Color c = Color.White; c <= Color.Black; c++)
+        for (PieceType pt = PieceType.Pawn; pt <= PieceType.King; pt++)
         {
-            for (PieceType pt = PieceType.Pawn; pt <= PieceType.King; pt++)
+            ulong wkey = GetColoredPieceKey(Color.White, pt, ref p);
+            ulong bkey = GetColoredPieceKey(Color.Black, pt, ref p);
+
+            p.ZobristKey ^= wkey ^ bkey;
+            p.PieceKeys[(int)pt] = wkey ^ bkey;
+
+            if (pt != PieceType.Pawn)
             {
-                ulong pieces = p.GetPieces(c, pt);
-                while (pieces != 0)
-                {
-                    int sq = Utils.popLsb(ref pieces);
-                    key ^= GetSinglePieceKey(c, pt, sq);
-                }
+                p.NonPawnKeys[(int)Color.White] ^= wkey;
+                p.NonPawnKeys[(int)Color.Black] ^= bkey;
             }
         }
 
-        key ^= GetCastlingKey(p.CastlingRights);
+        p.ZobristKey ^= GetCastlingKey(p.CastlingRights);
 
         if (p.EnPassantSquare != (int)Square.NONE)
         {
-            key ^= GetEpKEy(p.EnPassantSquare);
+            p.ZobristKey ^= GetEpKEy(p.EnPassantSquare);
         }
+    }
 
+    public static unsafe ulong GetColoredPieceKey(Color c, PieceType pt, ref Pos p)
+    {
+        ulong key = 0;
+        for (ulong pieces = p.GetPieces(c, pt); pieces != 0; )
+        {
+            int sq = Utils.popLsb(ref pieces);
+            key ^= GetSinglePieceKey(c, pt, sq);
+        }
         return key;
     }
 
-    public static unsafe ulong GetPieceKey(PieceType pt, ref Pos p)
+    public static unsafe ulong GetNonPawnKey(Color c, ref Pos p)
     {
         ulong key = 0;
-        for (Color c = Color.White; c <= Color.Black; c++)
+        for (PieceType pt = PieceType.Knight; pt <= PieceType.King; pt++)
         {
-            for (ulong pieces = p.GetPieces(c, pt); pieces != 0; )
-            {
-                int sq = Utils.popLsb(ref pieces);
-                key ^= GetSinglePieceKey(c, pt, sq);
-            }
+            key ^= GetColoredPieceKey(c, pt, ref p);
         }
         return key;
     }

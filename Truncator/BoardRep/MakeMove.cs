@@ -87,10 +87,15 @@ public unsafe partial struct Pos
         // make the quiet part of the move
         ColorBB[(int)Us] ^= FromToBB;
         PieceBB[(int)movingPt] ^= FromToBB;
-        ulong temp = Zobrist.GetSinglePieceKey(Us, movingPt, from)
-                   ^ Zobrist.GetSinglePieceKey(Us, movingPt, to);
+
+        // update Zobrist keys regarding the moves piece
+        ulong temp = Zobrist.GetSinglePieceKey(Us, movingPt, from) ^ Zobrist.GetSinglePieceKey(Us, movingPt, to);
         ZobristKey ^= temp;
         PieceKeys[(int)movingPt] ^= temp;
+        if (movingPt != PieceType.Pawn)
+        {
+            NonPawnKeys[(int)Us] ^= temp;
+        }
 
         FiftyMoveRule++;
 
@@ -99,9 +104,15 @@ public unsafe partial struct Pos
         {
             ColorBB[(int)Them] ^= toBB;
             PieceBB[(int)victimPt] ^= toBB;
+
+            // update zobrist keys regarding the captured piece
             temp = Zobrist.GetSinglePieceKey(Them, victimPt, to);
             ZobristKey ^= temp;
             PieceKeys[(int)victimPt] ^= temp;
+            if (victimPt != PieceType.Pawn)
+            {
+                NonPawnKeys[(int)Them] ^= temp;
+            }
 
             FiftyMoveRule = 0;
         }
@@ -131,12 +142,14 @@ public unsafe partial struct Pos
                 PieceType promoPt = m.PromoType;
                 PieceBB[(int)PieceType.Pawn] ^= toBB;
                 PieceBB[(int)promoPt] ^= toBB;
-                temp = Zobrist.GetSinglePieceKey(Us, promoPt, to);
-                ZobristKey ^= temp;
-                PieceKeys[(int)promoPt] ^= temp;
-                temp = Zobrist.GetSinglePieceKey(Us, PieceType.Pawn, to);
-                ZobristKey ^= temp;
-                PieceKeys[(int)PieceType.Pawn] ^= temp;
+
+                // update zobrist keys regarding the promoted pawn and piece 
+                ulong promoKey = Zobrist.GetSinglePieceKey(Us, promoPt, to);
+                ulong pawnKey = Zobrist.GetSinglePieceKey(Us, PieceType.Pawn, to);
+                ZobristKey ^= promoKey ^ pawnKey;
+                NonPawnKeys[(int)Us] ^= promoKey;
+                PieceKeys[(int)promoPt] ^= promoKey;
+                PieceKeys[(int)PieceType.Pawn] ^= pawnKey;
             }
 
             // capture the ep-victim, as it is not done like normal captures
@@ -145,6 +158,8 @@ public unsafe partial struct Pos
                 int victim = Us == Color.White ? to - 8 : to + 8;
                 PieceBB[(int)PieceType.Pawn] ^= 1ul << victim;
                 ColorBB[(int)Them] ^= 1ul << victim;
+
+                // update zobrist keys regarding the captured pawn
                 temp = Zobrist.GetSinglePieceKey(Them, PieceType.Pawn, victim);
                 ZobristKey ^= temp;
                 PieceKeys[(int)PieceType.Pawn] ^= temp;
@@ -172,14 +187,13 @@ public unsafe partial struct Pos
             // correctly update kingsquare
             KingSquares[(int)Us] = kingEnd;
 
-            temp = Zobrist.GetSinglePieceKey(Us, PieceType.King, kingEnd)
-                ^ Zobrist.GetSinglePieceKey(Us, PieceType.King, to);
-            ZobristKey ^= temp;
-            PieceKeys[(int)PieceType.King] ^= temp;
-            temp = Zobrist.GetSinglePieceKey(Us, PieceType.Rook, to)
-                ^ Zobrist.GetSinglePieceKey(Us, PieceType.Rook, rookEnd);
-            ZobristKey ^= temp;
-            PieceKeys[(int)PieceType.Rook] ^= temp;
+            // update zobrist keys regarding the king and rook
+            ulong kingKey = Zobrist.GetSinglePieceKey(Us, PieceType.King, kingEnd) ^ Zobrist.GetSinglePieceKey(Us, PieceType.King, to);
+            ulong rookKey = Zobrist.GetSinglePieceKey(Us, PieceType.Rook, to) ^ Zobrist.GetSinglePieceKey(Us, PieceType.Rook, rookEnd);
+            ZobristKey ^= kingKey ^ rookKey;
+            NonPawnKeys[(int)Us] ^= kingKey ^ rookKey;
+            PieceKeys[(int)PieceType.King] ^= kingKey;
+            PieceKeys[(int)PieceType.Rook] ^= rookKey;
 
             victimPt = PieceType.NONE;
         }
@@ -213,10 +227,8 @@ public unsafe partial struct Pos
         thread.ply++;
         // push to rep-table only in search, because qsearch cant realistically cause repetitions
 
-        //for (PieceType pt = PieceType.Pawn; pt <= PieceType.King; pt++)
-        //    Debug.Assert(PieceKeys[(int)pt] == Zobrist.GetPieceKey(pt, ref this));
-        //Debug.Assert(ZobristKey == Zobrist.ComputeFromZero(ref this));
-
+        Debug.Assert(NonPawnKeys[(int)Color.White] == Zobrist.GetNonPawnKey(Color.White, ref this));
+        Debug.Assert(NonPawnKeys[(int)Color.Black] == Zobrist.GetNonPawnKey(Color.Black, ref this));
         Debug.Assert(Utils.MoreThanOne(PieceBB[(int)PieceType.King]));
     }
 
@@ -232,8 +244,6 @@ public unsafe partial struct Pos
             ZobristKey ^= Zobrist.GetEpKEy(EnPassantSquare);
             EnPassantSquare = (int)Square.NONE;
         }
-
-        Debug.Assert(this.ZobristKey == Zobrist.ComputeFromZero(ref this));
 
         // update the search-stack
         thread.nodeStack[thread.ply].MovedPieceType = PieceType.NONE;
