@@ -30,8 +30,7 @@ public unsafe partial struct Pos
     public readonly ulong PawnKey => PieceKeys[(int)PieceType.Pawn];
     public readonly ulong MinorKey => PieceKeys[(int)PieceType.Knight] ^ PieceKeys[(int)PieceType.Bishop] ^ PieceKeys[(int)PieceType.King];
     public readonly ulong MajorKey => PieceKeys[(int)PieceType.Rook] ^ PieceKeys[(int)PieceType.Queen] ^ PieceKeys[(int)PieceType.King];
-    public readonly ulong OurNonPawnKey => NonPawnKeys[(int)Us];
-    public readonly ulong TheirNonPawnKey => NonPawnKeys[(int)Them];
+    public readonly ulong NonPawnMaterialKey(Color c) => NonPawnKeys[(int)c];
 
     public readonly ulong blocker => ColorBB[0] | ColorBB[1];
 

@@ -36,8 +36,8 @@ public struct CorrectionHistory : IDisposable
 
         int CorrectionValue = 0;
         CorrectionValue += 16 * PawnTable[MakeKey(p.Us, p.PawnKey)];
-        CorrectionValue += 12 * WhiteNonPawnTable[MakeKey(p.Us, p.NonPawnKeys[(int)Color.White])];
-        CorrectionValue += 12 * BlackNonPawnTable[MakeKey(p.Us, p.NonPawnKeys[(int)Color.Black])];
+        CorrectionValue += 12 * WhiteNonPawnTable[MakeKey(p.Us, p.NonPawnMaterialKey(Color.White))];
+        CorrectionValue += 12 * BlackNonPawnTable[MakeKey(p.Us, p.NonPawnMaterialKey(Color.Black))];
         CorrectionValue /= HistVal.HIST_VAL_MAX;
 
         n->StaticEval = Math.Clamp(n->UncorrectedStaticEval + CorrectionValue, -Search.SCORE_EVAL_MAX, Search.SCORE_EVAL_MAX);
@@ -55,8 +55,8 @@ public struct CorrectionHistory : IDisposable
         var delta = Math.Clamp((score - eval) * depth / 8, MIN_BONUS, MAX_BONUS);
 
         PawnTable[MakeKey(p.Us, p.PawnKey)].Update(delta);
-        WhiteNonPawnTable[MakeKey(p.Us, p.OurNonPawnKey)].Update(delta);
-        BlackNonPawnTable[MakeKey(p.Us, p.NonPawnKeys[(int)Color.Black])].Update(delta);
+        WhiteNonPawnTable[MakeKey(p.Us, p.NonPawnMaterialKey(Color.White))].Update(delta);
+        BlackNonPawnTable[MakeKey(p.Us, p.NonPawnMaterialKey(Color.Black))].Update(delta);
     }
 
     /// <summary>
