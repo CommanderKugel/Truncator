@@ -15,4 +15,6 @@ public struct Node
     public Move KillerMove;
     public Move ExcludedMove;
 
+    public unsafe PieceToHistory* ContHist;
+
 }

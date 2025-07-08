@@ -352,7 +352,7 @@ public static partial class Search
                             // update history
                             // ToDo: increase Bonus for ttmoves -> (depth + 1) * depth
                             int HistDelta = depth * depth;
-                            thread.history.UpdateQuietMoves((short)HistDelta, (short)-HistDelta, ref p, ref quietMoves, quitesCount, m);
+                            thread.history.UpdateQuietMoves(thread, ns, (short)HistDelta, (short)-HistDelta, ref p, ref quietMoves, quitesCount, m);
 
                             // update killer-move
                             ns->KillerMove = m;
