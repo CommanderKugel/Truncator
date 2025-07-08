@@ -1,18 +1,29 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 
 public struct PV : IDisposable
 {
-    public const int SIZE = 128;
+    /// <summary>
+    /// maximum number of moves a variation can store
+    /// </summary>
+    public const int SIZE = 256;
 
-    private unsafe Move* pv = null;
+    private unsafe Move* table_ = null;
+    private unsafe Move* lastVariation = null;
 
     private unsafe int* scores = null;
     public object lockObject;
 
+    public unsafe Move BestMove => table_[0].NotNull ? table_[0] : lastVariation[0];
+    public unsafe Move PonderMove => table_[1].NotNull ? table_[1] : lastVariation[1];
+
+
     public unsafe PV()
     {
-        pv = (Move*)NativeMemory.Alloc(sizeof(ushort) * SIZE * SIZE);
+        table_ = (Move*)NativeMemory.Alloc((nuint)sizeof(Move) * SIZE * SIZE);
+        lastVariation = (Move*)NativeMemory.Alloc((nuint)sizeof(Move) * SIZE);
+
         scores = (int*)NativeMemory.Alloc(sizeof(int) * SIZE);
         lockObject = new object();
     }
@@ -23,13 +34,13 @@ public struct PV : IDisposable
         {
             Debug.Assert(ply1 >= 0 && ply1 < SIZE);
             Debug.Assert(ply2 >= 0 && ply2 < SIZE);
-            return pv[SIZE * ply1 + ply2];
+            return table_[SIZE * ply1 + ply2];
         }
         set
         {
             Debug.Assert(ply1 >= 0 && ply1 < SIZE);
             Debug.Assert(ply2 >= 0 && ply2 < SIZE);
-            pv[SIZE * ply1 + ply2] = value;
+            table_[SIZE * ply1 + ply2] = value;
         }
     }
 
@@ -49,8 +60,9 @@ public struct PV : IDisposable
 
     public unsafe void Clear()
     {
-        Debug.Assert(pv != null && scores != null, "cant clear a disposed or uninitialized pv!");
-        NativeMemory.Clear(pv, sizeof(ushort) * SIZE * SIZE);
+        Debug.Assert(table_ != null && lastVariation != null && scores != null, "cant clear a disposed or uninitialized pv!");
+        NativeMemory.Clear(table_, (nuint)sizeof(Move) * SIZE * SIZE);
+        NativeMemory.Clear(lastVariation, (nuint)sizeof(Move) * SIZE);
         NativeMemory.Clear(scores, sizeof(int) * SIZE);
     }
 
@@ -67,24 +79,30 @@ public struct PV : IDisposable
 
     public unsafe string GetPV()
     {
+        var ptr = table_[0].NotNull ? table_ : lastVariation;
+
         string pv = "";
-        for (int i = 0; i < SIZE && this[0, i].NotNull; i++)
+        for (int i = 0; i < SIZE && (ptr + i)->NotNull; i++)
         {
-            pv += this[0, i].ToString() + " ";
+            pv += (ptr + i)->ToString() + " ";
         }
         return pv;
     }
 
-    public unsafe Move BestMove => pv[0];
-    public unsafe Move PonderMove => pv[1];
+    public unsafe void SaveLastLine()
+    {
+        Debug.Assert(table_ != null && lastVariation != null);
+        NativeMemory.Copy(table_, lastVariation, (nuint)sizeof(Move) * SIZE);
+    }
 
     public unsafe void Dispose()
     {
-        if (pv != null)
+        if (table_ != null)
         {
-            NativeMemory.Free(pv);
+            NativeMemory.Free(table_);
+            NativeMemory.Free(lastVariation);
             NativeMemory.Free(scores);
-            pv = null;
+            table_ = lastVariation = null;
             scores = null;
         }
     }
