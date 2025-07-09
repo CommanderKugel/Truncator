@@ -115,7 +115,7 @@ public static partial class Search
             PosAfterNull.MakeNullMove(thread);
             thread.repTable.Push(PosAfterNull.ZobristKey);
 
-            int R = 3;
+            int R = 3 + depth / 6;
             int ScoreAfterNull = -Negamax<NonPVNode>(thread, PosAfterNull, -beta, -alpha, depth - R, ns + 1, !cutnode);
 
             thread.UndoMove();
