@@ -172,8 +172,7 @@ public static partial class Search
             bool isCapture = p.IsCapture(m);
             bool isNoisy = isCapture || m.IsPromotion; // ToDo: GivesCheck()
 
-            int histScore = isCapture ? 0 :
-                thread.history.Butterfly[p.Us, m];
+            int ButterflyScore = isCapture ? 0 : thread.history.Butterfly[p.Us, m];
 
             // move loop pruning
             if (!isRoot &&
@@ -198,9 +197,9 @@ public static partial class Search
                     continue;
                 }
 
-                // history pruning
+                // main-history pruning
                 if (depth <= 5 &&
-                    histScore < -(15 * depth + 9 * depth * depth))
+                    ButterflyScore < -(15 * depth + 9 * depth * depth))
                 {
                     continue;
                 }
@@ -267,11 +266,12 @@ public static partial class Search
                 // we need to re-search that move at full depth to confirm its the better move.
                 int R = Math.Max(Log_[Math.Min(movesPlayed, 63)] * Log_[Math.Min(depth, 63)] / 4, 2);
 
-                // reduce more for bad history values
-                // divisor = HIST_VAL_MAX / 3
-                R += Math.Max(0, -histScore / 341);
+                // reduce more for bad history values, divisor = HIST_VAL_MAX / 3
+                R += -ButterflyScore / 341;
 
                 if (thread.ply > 1 && !improving) R++;
+
+                R = Math.Max(1, R);
 
                 // zero-window-search (ZWS)
                 // as part of the principal-variation-search, we assume that all lines that are not the pv
