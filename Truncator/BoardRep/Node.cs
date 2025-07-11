@@ -17,4 +17,6 @@ public struct Node
 
     public unsafe PieceToHistory* ContHist;
 
+    public int CutoffCount;
+
 }
