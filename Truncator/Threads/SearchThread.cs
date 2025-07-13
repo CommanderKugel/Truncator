@@ -215,9 +215,9 @@ public class SearchThread : IDisposable
         Stop();
 
         long nps = totalNodes * 1000 / Math.Max(watch.ElapsedMilliseconds, 1);
-        Console.WriteLine($"{totalNodes} nodes {nps} nps");
+        Console.WriteLine($"{Bench.BenchNodes} / {totalNodes} : changed {Bench.BenchNodes != totalNodes}");
+        Console.WriteLine($"{totalNodes} bench {nps} nps");
 
-        Console.WriteLine($"{Bench.BenchNodes} / {totalNodes} : {Bench.BenchNodes == totalNodes}");
     }
 
 }
