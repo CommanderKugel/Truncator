@@ -280,32 +280,6 @@ public static partial class Search
                 if ((ns + 1)->CutoffCount > 2) R++;
                 
 
-/*
---------------------------------------------------
-Results of dev vs main (10000 nodes, 1t, 16MB, UHO_2024_8mvs_big_+105_+124.pgn):
-Elo: 23.70 +/- 10.93, nElo: 28.21 +/- 12.96
-LOS: 100.00 %, DrawRatio: 35.65 %, PairsRatio: 1.32
-Games: 2760, Wins: 1115, Losses: 927, Draws: 718, Points: 1474.0 (53.41 %)
-Ptnml(0-2): [148, 234, 492, 294, 212], WL/DD Ratio: 4.18
-LLR: 2.91 (-2.25, 2.89) [0.00, 5.00]
---------------------------------------------------
-Results of dev vs main (5+0.05, 1t, 16MB, UHO_2024_8mvs_big_+105_+124.pgn):
-Elo: 8.05 +/- 5.51, nElo: 10.88 +/- 7.44
-LOS: 99.79 %, DrawRatio: 37.52 %, PairsRatio: 1.11
-Games: 8374, Wins: 2715, Losses: 2521, Draws: 3138, Points: 4284.0 (51.16 %)
-Ptnml(0-2): [299, 943, 1571, 1013, 361], WL/DD Ratio: 1.66
-LLR: 2.90 (-2.25, 2.89) [0.00, 5.00]
---------------------------------------------------
-Results of dev vs main (20+0.2, 1t, 64MB, UHO_2024_8mvs_big_+105_+124.pgn):
-Elo: 4.11 +/- 5.24, nElo: 5.75 +/- 7.33
-LOS: 93.79 %, DrawRatio: 38.93 %, PairsRatio: 1.05
-Games: 8620, Wins: 2600, Losses: 2498, Draws: 3522, Points: 4361.0 (50.59 %)
-Ptnml(0-2): [273, 1014, 1678, 1028, 317], WL/DD Ratio: 1.27
-LLR: 1.16 (-2.25, 2.89) [0.00, 5.00]
---------------------------------------------------
-*/
-
-
                 // ToDo: if (ttHis && ttEntry.score <= alpha) R++;
                 
                 R = Math.Max(1, R);
