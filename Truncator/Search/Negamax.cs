@@ -56,8 +56,13 @@ public static partial class Search
             return ttEntry.Score;
         }
 
-        // clear childrens killer-move
+        // clear childrens relevant node data
         (ns + 1)->KillerMove = Move.NullMove;
+        (ns + 1)->CutoffCount = 0;
+        if (isRoot)
+        {
+            ns->CutoffCount = 0;
+        }
 
         
         bool inCheck = p.GetCheckers() != 0;
@@ -271,6 +276,12 @@ public static partial class Search
 
                 if (thread.ply > 1 && !improving) R++;
 
+                // ToDo: R += nonPV && !cutnode ? 2 : 1; // +1 if allnode
+                if ((ns + 1)->CutoffCount > 2) R++;
+                
+
+                // ToDo: if (ttHis && ttEntry.score <= alpha) R++;
+                
                 R = Math.Max(1, R);
 
                 // zero-window-search (ZWS)
@@ -357,6 +368,8 @@ public static partial class Search
                             // update killer-move
                             ns->KillerMove = m;
                         }
+
+                        ns->CutoffCount++;
 
                         break;
 
