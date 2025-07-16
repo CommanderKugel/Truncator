@@ -10,6 +10,8 @@ public ref struct MovePicker
     private int moveCount;
     private int moveIdx;
 
+    public readonly int CurrentScore => scores[moveIdx - 1];
+
 
 
     public MovePicker(SearchThread thread, ref Pos p, Move ttMove_, ref Span<Move> moves_, ref Span<int> scores_, bool inQS)

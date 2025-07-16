@@ -21,7 +21,7 @@ public static partial class UCI
             // Truncator only implements uci, so uci initialization is basically skipped
             if (command == "uci")
             {
-                Console.WriteLine("id name Truncator 0.53");
+                Console.WriteLine("id name Truncator 0.54");
                 Console.WriteLine("id author CommanderKugel");
 
                 Console.WriteLine($"option name Hash type spin default {TranspositionTable.DEFAULT_SIZE} min {TranspositionTable.MIN_SIZE} max {TranspositionTable.MAX_SIZE}");

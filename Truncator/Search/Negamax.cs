@@ -262,27 +262,55 @@ public static partial class Search
             movesPlayed++;
             if (!isCapture) quietMoves[quitesCount++] = m;
 
-            if (movesPlayed > 1 && depth >= 2 && !isCapture)
+            if (movesPlayed > 1 && depth >= 2)
             {
-                // late-move-reductions (LMR)
-                // assuming our move-ordering is good, the first played move should be the best
-                // all moves after that are expected to be worse. we will validate this thesis by 
-                // searching them at a cheaper shallower depth. if a move seems to beat the current best move,
-                // we need to re-search that move at full depth to confirm its the better move.
-                int R = Math.Max(Log_[Math.Min(movesPlayed, 63)] * Log_[Math.Min(depth, 63)] / 4, 2);
+                int R = 1;
 
-                // reduce more for bad history values, divisor = HIST_VAL_MAX / 3
-                R += -ButterflyScore / 341;
+                if (!isCapture)
+                {
+                    // late-move-reductions (LMR)
+                    // assuming our move-ordering is good, the first played move should be the best
+                    // all moves after that are expected to be worse. we will validate this thesis by 
+                    // searching them at a cheaper shallower depth. if a move seems to beat the current best move,
+                    // we need to re-search that move at full depth to confirm its the better move.
+                    R = Math.Max(Log_[Math.Min(movesPlayed, 63)] * Log_[Math.Min(depth, 63)] / 4, 2);
 
-                if (thread.ply > 1 && !improving) R++;
+                    // reduce more for bad history values, divisor = HIST_VAL_MAX / 3
+                    R += -ButterflyScore / 341;
 
-                // ToDo: R += nonPV && !cutnode ? 2 : 1; // +1 if allnode
-                if ((ns + 1)->CutoffCount > 2) R++;
-                
+                    if (thread.ply > 1 && !improving) R++;
 
-                // ToDo: if (ttHis && ttEntry.score <= alpha) R++;
-                
-                R = Math.Max(1, R);
+                    // ToDo: R += nonPV && !cutnode ? 2 : 1; // +1 if allnode
+                    if ((ns + 1)->CutoffCount > 2) R++;
+
+                    R = Math.Max(1, R);
+                }
+
+                else // isCapture
+                {
+
+                    // bad captures
+                    if (picker.CurrentScore < 0) R++;
+                    
+/*
+--------------------------------------------------
+Results of dev vs main (5+0.05, 1t, 16MB, UHO_2024_8mvs_big_+105_+124.pgn):
+Elo: 4.64 +/- 3.68, nElo: 6.25 +/- 4.97
+LOS: 99.32 %, DrawRatio: 38.10 %, PairsRatio: 1.06
+Games: 18806, Wins: 5989, Losses: 5738, Draws: 7079, Points: 9528.5 (50.67 %)
+Ptnml(0-2): [714, 2112, 3583, 2197, 797], WL/DD Ratio: 1.59
+LLR: 2.92 (-2.25, 2.89) [0.00, 5.00]
+--------------------------------------------------
+Results of dev vs main (20+0.2, 1t, 64MB, UHO_2024_8mvs_big_+105_+124.pgn):
+Elo: 9.58 +/- 6.05, nElo: 13.52 +/- 8.52
+LOS: 99.91 %, DrawRatio: 38.98 %, PairsRatio: 1.12
+Games: 6382, Wins: 1920, Losses: 1744, Draws: 2718, Points: 3279.0 (51.38 %)
+Ptnml(0-2): [180, 737, 1244, 787, 243], WL/DD Ratio: 1.08
+LLR: 2.91 (-2.25, 2.89) [0.00, 5.00]
+--------------------------------------------------
+*/
+
+                }
 
                 // zero-window-search (ZWS)
                 // as part of the principal-variation-search, we assume that all lines that are not the pv
