@@ -280,6 +280,8 @@ public static partial class Search
 
                     if (thread.ply > 1 && !improving) R++;
 
+                    if (cutnode) R++;
+
                     // ToDo: R += nonPV && !cutnode ? 2 : 1; // +1 if allnode
                     if ((ns + 1)->CutoffCount > 2) R++;
 
