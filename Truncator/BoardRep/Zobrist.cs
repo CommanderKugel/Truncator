@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 
 public static class Zobrist
 {
-    public static unsafe ulong stmKey = 1;
+    public static unsafe ulong stmKey;
     private static unsafe ulong* PieceKeys;
     private static unsafe ulong* CastlingKeys;
     private static unsafe ulong* EpKeys;
@@ -15,6 +15,8 @@ public static class Zobrist
         PieceKeys = (ulong*)NativeMemory.AlignedAlloc(sizeof(ulong) * 2 * 6 * 64, sizeof(ulong) * 64);
         CastlingKeys = (ulong*)NativeMemory.AlignedAlloc(sizeof(ulong) * 16, sizeof(ulong) * 16);
         EpKeys = (ulong*)NativeMemory.AlignedAlloc(sizeof(ulong) * 8, sizeof(ulong) * 8);
+
+        stmKey = Rng.XoShiRoNext();
 
         for (int i = 0; i < 2 * 6 * 64; i++)
         {
