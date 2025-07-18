@@ -2,7 +2,7 @@
 public static partial class Search
 {
 
-    public static unsafe void IterativeDeepen(SearchThread thread)
+    public static unsafe void IterativeDeepen(SearchThread thread, bool isBench = false)
     {
         thread.nodeCount = 0;
 
@@ -16,13 +16,13 @@ public static partial class Search
             int score = AspirationWindows(thread, depth);
             thread.completedDepth = depth;
 
-            if (thread.IsMainThread)
+            if (thread.IsMainThread && !isBench)
             {
                 ThreadPool.ReportToUci(false);
             }
         }
 
-        if (thread.IsMainThread)
+        if (thread.IsMainThread && !isBench)
         {
             ThreadPool.StopAll();
             ThreadPool.ReportToUci(true);

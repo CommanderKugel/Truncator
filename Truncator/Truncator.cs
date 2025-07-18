@@ -39,6 +39,7 @@ public static class Truncator
             Castling.Dispose();
             Utils.Dispose();
             Zobrist.Dispose();
+            GC.Collect();
         }
     }
 }
