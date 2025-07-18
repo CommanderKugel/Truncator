@@ -205,7 +205,7 @@ public class SearchThread : IDisposable
                 rootPos.SetNewFen(fen);
                 rootPos.InitRootMoves();
 
-                Search.IterativeDeepen(this);
+                Search.IterativeDeepen(this, isBench: true);
                 totalNodes += nodeCount;
             }
             watch.Stop();
@@ -215,9 +215,8 @@ public class SearchThread : IDisposable
         Stop();
 
         long nps = totalNodes * 1000 / Math.Max(watch.ElapsedMilliseconds, 1);
-        Console.WriteLine($"{Bench.BenchNodes} / {totalNodes} : changed {Bench.BenchNodes != totalNodes}");
-        Console.WriteLine($"{totalNodes} bench {nps} nps");
-
+        //Console.WriteLine($"{Bench.BenchNodes} / {totalNodes} : changed {Bench.BenchNodes != totalNodes}");
+        Console.WriteLine($"{totalNodes} nodes {nps} nps");
     }
 
 }
