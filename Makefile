@@ -9,5 +9,4 @@ else
 endif
 
 all:
-	dotnet publish -c Release Truncator/ --output Truncator/bin/OpenbenchBin
-	mv Truncator/bin/OpenbenchBin/$(SRC) ./$(DEST)
+	dotnet publish -c Release Truncator/ --output . --p:DebugType=None
