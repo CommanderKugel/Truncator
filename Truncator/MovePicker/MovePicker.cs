@@ -10,6 +10,8 @@ public ref struct MovePicker
     private int moveCount;
     private int moveIdx;
 
+    public readonly int CurrentScore => scores[moveIdx - 1];
+
 
 
     public MovePicker(SearchThread thread, ref Pos p, Move ttMove_, ref Span<Move> moves_, ref Span<int> scores_, bool inQS)
@@ -26,6 +28,8 @@ public ref struct MovePicker
     private unsafe void ScoreMoves(SearchThread thread, ref Pos p)
     {
         Move killer = thread.nodeStack[thread.ply].KillerMove;
+
+        var CounterHist = thread.ply > 0 ? thread.nodeStack[thread.ply - 1].ContHist : thread.history.ContHist.NullHist;
 
         for (int i = 0; i < moveCount; i++)
         {
@@ -48,6 +52,7 @@ public ref struct MovePicker
             else // quiet
             {
                 scores[i] = thread.history.Butterfly[p.Us, m];
+                scores[i] += (*CounterHist)[p.Us, p.PieceTypeOn(m.from), m.to];
             }
         }
     }

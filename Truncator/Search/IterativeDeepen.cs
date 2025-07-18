@@ -41,6 +41,8 @@ public static partial class Search
         int alpha = thread.pv_[thread.completedDepth] - delta;
         int beta = thread.pv_[thread.completedDepth] + delta;
 
+        thread.pv_.SaveLastLine();
+
         while (true)
         {
             int score = Negamax<RootNode>(thread, thread.rootPos.p, alpha, beta, depth, &thread.nodeStack[thread.ply], false);

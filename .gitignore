@@ -6,5 +6,6 @@
 *.txt
 *.py
 *.exe
+*.pdb
 *.7z
 *.pgn

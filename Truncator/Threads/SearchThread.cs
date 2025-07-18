@@ -58,10 +58,14 @@ public class SearchThread : IDisposable
     {
         Console.WriteLine($"thread {id} started");
 
-        Span<Node> NodeSpan = stackalloc Node[256];
+        Span<Node> NodeSpan = stackalloc Node[256 + 8];
         fixed (Node* NodePtr = NodeSpan)
         {
-            this.nodeStack = NodePtr;
+            this.nodeStack = NodePtr + 8;
+            for (int i = 0; i < 8; i++)
+            {
+                (NodePtr + i)->ContHist = this.history.ContHist.NullHist;
+            }
 
             try
             {
@@ -182,10 +186,14 @@ public class SearchThread : IDisposable
         var watch = new Stopwatch();
         long totalNodes = 0;
 
-        Span<Node> NodeSpan = stackalloc Node[256];
+        Span<Node> NodeSpan = stackalloc Node[256 + 8];
         fixed (Node* NodePtr = NodeSpan)
         {
-            this.nodeStack = NodePtr;
+            this.nodeStack = NodePtr + 8;
+            for (int i = 0; i < 8; i++)
+            {
+                (NodePtr + i)->ContHist = this.history.ContHist.NullHist;
+            }
 
             watch.Start();
             foreach (var fen in Bench.Positions)
@@ -207,9 +215,9 @@ public class SearchThread : IDisposable
         Stop();
 
         long nps = totalNodes * 1000 / Math.Max(watch.ElapsedMilliseconds, 1);
-        Console.WriteLine($"{totalNodes} nodes {nps} nps");
+        Console.WriteLine($"{Bench.BenchNodes} / {totalNodes} : changed {Bench.BenchNodes != totalNodes}");
+        Console.WriteLine($"{totalNodes} bench {nps} nps");
 
-        Console.WriteLine($"{Bench.BenchNodes} / {totalNodes} : {Bench.BenchNodes == totalNodes}");
     }
 
 }

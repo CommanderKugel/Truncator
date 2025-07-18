@@ -56,8 +56,13 @@ public static partial class Search
             return ttEntry.Score;
         }
 
-        // clear childrens killer-move
+        // clear childrens relevant node data
         (ns + 1)->KillerMove = Move.NullMove;
+        (ns + 1)->CutoffCount = 0;
+        if (isRoot)
+        {
+            ns->CutoffCount = 0;
+        }
 
         
         bool inCheck = p.GetCheckers() != 0;
@@ -115,7 +120,7 @@ public static partial class Search
             PosAfterNull.MakeNullMove(thread);
             thread.repTable.Push(PosAfterNull.ZobristKey);
 
-            int R = 3;
+            int R = 3 + depth / 6;
             int ScoreAfterNull = -Negamax<NonPVNode>(thread, PosAfterNull, -beta, -alpha, depth - R, ns + 1, !cutnode);
 
             thread.UndoMove();
@@ -172,8 +177,7 @@ public static partial class Search
             bool isCapture = p.IsCapture(m);
             bool isNoisy = isCapture || m.IsPromotion; // ToDo: GivesCheck()
 
-            int histScore = isCapture ? 0 :
-                thread.history.Butterfly[p.Us, m];
+            int ButterflyScore = isCapture ? 0 : thread.history.Butterfly[p.Us, m];
 
             // move loop pruning
             if (!isRoot &&
@@ -198,9 +202,9 @@ public static partial class Search
                     continue;
                 }
 
-                // history pruning
+                // main-history pruning
                 if (depth <= 5 &&
-                    histScore < -(15 * depth + 9 * depth * depth))
+                    ButterflyScore < -(15 * depth + 9 * depth * depth))
                 {
                     continue;
                 }
@@ -258,20 +262,37 @@ public static partial class Search
             movesPlayed++;
             if (!isCapture) quietMoves[quitesCount++] = m;
 
-            if (movesPlayed > 1 && depth >= 2 && !isCapture)
+            if (movesPlayed > 1 && depth >= 2)
             {
-                // late-move-reductions (LMR)
-                // assuming our move-ordering is good, the first played move should be the best
-                // all moves after that are expected to be worse. we will validate this thesis by 
-                // searching them at a cheaper shallower depth. if a move seems to beat the current best move,
-                // we need to re-search that move at full depth to confirm its the better move.
-                int R = Math.Max(Log_[Math.Min(movesPlayed, 63)] * Log_[Math.Min(depth, 63)] / 4, 2);
+                int R = 1;
 
-                // reduce more for bad history values
-                // divisor = HIST_VAL_MAX / 3
-                R += Math.Max(0, -histScore / 341);
+                if (!isCapture)
+                {
+                    // late-move-reductions (LMR)
+                    // assuming our move-ordering is good, the first played move should be the best
+                    // all moves after that are expected to be worse. we will validate this thesis by 
+                    // searching them at a cheaper shallower depth. if a move seems to beat the current best move,
+                    // we need to re-search that move at full depth to confirm its the better move.
+                    R = Math.Max(Log_[Math.Min(movesPlayed, 63)] * Log_[Math.Min(depth, 63)] / 4, 2);
 
-                if (thread.ply > 1 && !improving) R++;
+                    // reduce more for bad history values, divisor = HIST_VAL_MAX / 3
+                    R += -ButterflyScore / 341;
+
+                    if (thread.ply > 1 && !improving) R++;
+
+                    // ToDo: R += nonPV && !cutnode ? 2 : 1; // +1 if allnode
+                    if ((ns + 1)->CutoffCount > 2) R++;
+
+                    R = Math.Max(1, R);
+                }
+
+                else // isCapture
+                {
+
+                    // bad captures
+                    if (picker.CurrentScore < 0) R++;
+
+                }
 
                 // zero-window-search (ZWS)
                 // as part of the principal-variation-search, we assume that all lines that are not the pv
@@ -352,11 +373,13 @@ public static partial class Search
                             // update history
                             // ToDo: increase Bonus for ttmoves -> (depth + 1) * depth
                             int HistDelta = depth * depth;
-                            thread.history.UpdateQuietMoves((short)HistDelta, (short)-HistDelta, ref p, ref quietMoves, quitesCount, m);
+                            thread.history.UpdateQuietMoves(thread, ns, (short)HistDelta, (short)-HistDelta, ref p, ref quietMoves, quitesCount, m);
 
                             // update killer-move
                             ns->KillerMove = m;
                         }
+
+                        ns->CutoffCount++;
 
                         break;
 
