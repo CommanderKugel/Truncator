@@ -8,30 +8,46 @@ public static class Castling
                BlackKingside  = 0b1000,
                BlackQueenside = 0b0100;
 
-    public static byte GetCastlingRightMask(Color c, bool kingside) 
+    public static byte GetCastlingRightMask(Color c, bool kingside)
     {
         Debug.Assert(c != Color.NONE);
-        return (c == Color.White) ? 
+        return (c == Color.White) ?
             (kingside ? WhiteKingside : WhiteQueenside) :
             (kingside ? BlackKingside : BlackQueenside);
     }
 
-    public static int GetKingCastlingTarget(Color c, bool kingside)
-        => GetKingCastlingTarget(c, kingside ? 1 : 0);
-
-    public static unsafe int GetKingCastlingTarget(Color c, int kingside)
+    /// <summary>
+    /// Retuns the square of the rook to 'capture'
+    /// </summary>
+    public static unsafe int GetKingCastlingTarget(Color c, bool kingside)
     {
-        Debug.Assert(kingside == 0 || kingside == 1);
         Debug.Assert(c != Color.NONE);
-        return kingTargets[kingside + ((int)c * 2)];
+        return kingTargets[(kingside ? 1 : 0) + ((int)c * 2)];
     }
 
+    /// <summary>
+    /// Returns the square the king starts from
+    /// </summary>
+    public static unsafe int GetKingStart(Color c)
+    {
+        Debug.Assert(c != Color.NONE);
+        return kingTargets[(int)c + 4];
+    }
+
+    /// <summary>
+    /// Returns the square the king actually ends up on
+    /// Will return G1, C1, G8 or C8
+    /// </summary>
     public static int GetKingDestination(Color c, bool kingside)
     {
         Debug.Assert(c != Color.NONE);
         return (kingside ? (int)Square.G1 : (int)Square.C1) ^ (56 * (int)c);
     }
 
+    /// <summary>
+    /// Returns a bitboard containing the squares that need to be empty
+    /// for the king and rook to move across
+    /// </summary>
     public static unsafe ulong GetCastlingBlocker(Color c, bool kingside)
     {
         Debug.Assert(c != Color.NONE);
@@ -39,7 +55,7 @@ public static class Castling
     }
 
     /// <summary>
-    /// Castling Moves are encoded as king captures rook.
+    /// Returns the squares the King and Rook actually end up on
     /// returns (kingEndSq, rookEndSq)
     /// </summary>
     public static (int, int) GetCastlingSquares(Color c, bool kingside)
@@ -97,7 +113,7 @@ public static class Castling
 
         if (p.HasCastlingRight(Color.White, false)) // Q
         {
-            int rook = Utils.lsb(p.GetPieces(Color.White, PieceType.Rook));
+            int rook = Utils.lsb(p.GetPieces(Color.White, PieceType.Rook) & 0xFFul);
             kingTargets[0] = rook;
             modifier[rook] &= (byte)~GetCastlingRightMask(Color.White, false);
             modifier[p.KingSquares[(int)Color.White]] &= modifier[rook];
@@ -107,7 +123,7 @@ public static class Castling
 
         if (p.HasCastlingRight(Color.White, true)) // K
         {
-            int rook = Utils.msb(p.GetPieces(Color.White, PieceType.Rook));
+            int rook = Utils.msb(p.GetPieces(Color.White, PieceType.Rook) & 0xFF);
             kingTargets[1] = rook;
             modifier[rook] &= (byte)~GetCastlingRightMask(Color.White, true);
             modifier[p.KingSquares[(int)Color.White]] &= modifier[rook];
@@ -117,7 +133,7 @@ public static class Castling
 
         if (p.HasCastlingRight(Color.Black, false)) // q
         {
-            int rook = Utils.lsb(p.GetPieces(Color.Black, PieceType.Rook));
+            int rook = Utils.lsb(p.GetPieces(Color.Black, PieceType.Rook) & 0xFF00_0000_0000_0000ul);
             kingTargets[2] = rook;
             modifier[rook] &= (byte)~GetCastlingRightMask(Color.Black, false);
             modifier[p.KingSquares[(int)Color.Black]] &= modifier[rook];
@@ -127,18 +143,41 @@ public static class Castling
 
         if (p.HasCastlingRight(Color.Black, true)) // k
         {
-            int rook = Utils.msb(p.GetPieces(Color.Black, PieceType.Rook));
+            int rook = Utils.msb(p.GetPieces(Color.Black, PieceType.Rook) & 0xFF00_0000_0000_0000ul);
             kingTargets[3] = rook;
             modifier[rook] &= (byte)~GetCastlingRightMask(Color.Black, true);
             modifier[p.KingSquares[(int)Color.Black]] &= modifier[rook];
             paths[3] = Utils.GetRay(p.KingSquares[(int)Color.Black], (int)Square.G8) | (1ul << (int)Square.G8)
                      | Utils.GetRay(rook, (int)Square.F8) | (1ul << (int)Square.F8);
         }
+
+    }
+
+    public static unsafe bool IsUCICastlingMove(int from, int to, ref Pos p)
+    {
+        // assumes the moving PieceType is PieceType.King
+        Debug.Assert(p.HasCastlingRight(p.Us, from < to));
+
+        int KingEnd = !UCI.IsChess960 ? GetKingDestination(p.Us, from < to) : GetKingCastlingTarget(p.Us, from < to);
+        int KingStart = GetKingStart(p.Us);
+        return KingStart == from && KingEnd == to;
+    }
+
+    public static unsafe Move MakeCastingMove(Color c, bool kingside)
+    {
+        Debug.Assert(c != Color.NONE);
+        int from = GetKingStart(c);
+        int to = GetKingCastlingTarget(c, kingside);
+        Console.WriteLine((Square)to);
+
+        Debug.Assert(from >= 0 && from < 64);
+        Debug.Assert(to >= 0 && to < 64);
+        return new Move(from, to, MoveFlag.Castling);
     }
 
     public unsafe static void Dispose()
     {
-        if (modifier is not null)
+        if (modifier != null)
         {
             NativeMemory.Free(modifier);
             NativeMemory.Free(paths);

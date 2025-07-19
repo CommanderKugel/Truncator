@@ -184,7 +184,7 @@ public static class MoveGen
         {
             moves[moveCount++] = new Move(
                 p.KingSquares[(int)p.Us],
-                Castling.GetKingCastlingTarget(p.Us, 1),
+                Castling.GetKingCastlingTarget(p.Us, true),
                 MoveFlag.Castling
             );
         }
@@ -194,7 +194,7 @@ public static class MoveGen
         {
             moves[moveCount++] = new Move(
                 p.KingSquares[(int)p.Us],
-                Castling.GetKingCastlingTarget(p.Us, 0),
+                Castling.GetKingCastlingTarget(p.Us, false),
                 MoveFlag.Castling
             );
         }
