@@ -3,7 +3,11 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 [StructLayout(LayoutKind.Sequential, Size = 2)]
-public struct Move
+#pragma warning disable CS0660 // Type defines operator == or operator != but does not override Object.Equals(object o)
+#pragma warning disable CS0661 // Type defines operator == or operator != but does not override Object.GetHashCode()
+public readonly struct Move
+#pragma warning restore CS0661 // Type defines operator == or operator != but does not override Object.GetHashCode()
+#pragma warning restore CS0660 // Type defines operator == or operator != but does not override Object.Equals(object o)
 {
 
     public readonly ushort value = 0;
@@ -82,12 +86,11 @@ public struct Move
         }
 
         else if (pt == PieceType.King &&
+                p.HasCastlingRight(p.Us, from < to) &&
                 (UCI.IsChess960 ?
-                    (to == Castling.kingTargets[2 * (int)p.Us] || to == Castling.kingTargets[1 + 2 * (int)p.Us]) :
-                    (to == ((int)Square.G1 ^ 56 * (int)p.Us) || to == ((int)Square.C1 ^ 56 * (int)p.Us))
-                ) && (
-                   from == Castling.kingTargets[4 + (int)p.Us]
-                ))
+                    (to == Castling.GetKingCastlingTarget(p.Us, true) || to == Castling.GetKingCastlingTarget(p.Us, false)) :
+                    (to == ((int)Square.G1 ^ 56 * (int)p.Us) || to == ((int)Square.C1 ^ 56 * (int)p.Us))) &&
+                from == Castling.kingTargets[4 + (int)p.Us])
         {
             myFlag = MoveFlag.Castling;
             to = Castling.GetKingCastlingTarget(p.Us, from < to);

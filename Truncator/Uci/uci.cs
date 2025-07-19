@@ -92,6 +92,17 @@ public static partial class UCI
                 Utils.print(ThreadPool.MainThread.rootPos.p);
             }
 
+            else if (tokens[0] == "move")
+            {
+                Debug.Assert(tokens.Length >= 2, "forgot to write the move?");
+                string mvstr = tokens[1];
+                Move m = new(mvstr, ref ThreadPool.MainThread.rootPos.p);
+                Console.WriteLine(m);
+                Console.WriteLine($"castling - {m.IsCastling}");
+                Console.WriteLine($"ep       - {m.IsEnPassant}");
+                Console.WriteLine($"promo    - {m.IsPromotion} ({m.PromoType})");
+            }
+
             else if (tokens[0] == "bench")
             {
                 Debug.Assert(state == UciState.Idle, "command only available, when engine is idle!");

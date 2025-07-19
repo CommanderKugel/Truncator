@@ -173,6 +173,13 @@ public static class Utils
         }
         Console.WriteLine("--+-----------------+");
         Console.WriteLine(p.get_fen());
+
+        string CastlingRights = "";
+        if (p.HasCastlingRight(Color.White, true )) CastlingRights += 'K';
+        if (p.HasCastlingRight(Color.White, false)) CastlingRights += 'Q';
+        if (p.HasCastlingRight(Color.Black, true )) CastlingRights += 'k';
+        if (p.HasCastlingRight(Color.Black, false)) CastlingRights += 'q';
+        Console.WriteLine("Castling Rights: " + (CastlingRights == "" ? "-" : CastlingRights));
     }
 
     public static void print(ulong bb)

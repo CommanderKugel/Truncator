@@ -34,7 +34,9 @@ public static class Perft
             Console.WriteLine($"{fen}; depth {depth}");
             Pos p = new(fen);
 
+#pragma warning disable CA2014 // Do not use stackalloc in loops
             Span<Node> NodeSpan = stackalloc Node[256];
+#pragma warning restore CA2014 // Do not use stackalloc in loops
             fixed (Node* NodePtr = NodeSpan) {
                 thread.nodeStack = NodePtr;    
 
