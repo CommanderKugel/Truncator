@@ -86,17 +86,16 @@ public readonly struct Move
         }
 
         else if (pt == PieceType.King &&
-                p.HasCastlingRight(p.Us, from < to) &&
-                (UCI.IsChess960 ?
-                    (to == Castling.GetKingCastlingTarget(p.Us, true) || to == Castling.GetKingCastlingTarget(p.Us, false)) :
-                    (to == ((int)Square.G1 ^ 56 * (int)p.Us) || to == ((int)Square.C1 ^ 56 * (int)p.Us))) &&
-                from == Castling.kingTargets[4 + (int)p.Us])
+            p.HasCastlingRight(p.Us, from < to) &&
+            Castling.IsUCICastlingMove(from, to, ref p))
         {
-            myFlag = MoveFlag.Castling;
-            to = Castling.GetKingCastlingTarget(p.Us, from < to);
+            this = Castling.MakeCastingMove(p.Us, from < to);
+            return;
         }
 
-        else if (pt == PieceType.Pawn && p.EnPassantSquare != (int)Square.NONE && to == (p.EnPassantSquare + (p.Us == Color.White ? 8 : -8)))
+        else if (pt == PieceType.Pawn &&
+            p.EnPassantSquare != (int)Square.NONE &&
+            to == (p.EnPassantSquare + (p.Us == Color.White ? 8 : -8)))
         {
             myFlag = MoveFlag.EnPassant;
         }
