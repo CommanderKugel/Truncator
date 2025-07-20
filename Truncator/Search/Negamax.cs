@@ -231,7 +231,8 @@ public static partial class Search
                 !isRoot &&
                 depth >= 8 &&
                 ttEntry.Depth >= depth - 3 &&
-                ttEntry.Flag > UPPER_BOUND)
+                ttEntry.Flag > UPPER_BOUND &&
+                thread.ply < thread.completedDepth * 2)
             {
 
                 int singularBeta = Math.Max(-SCORE_MATE + 1, ttEntry.Score - depth * 2);
@@ -243,7 +244,14 @@ public static partial class Search
 
                 if (singularScore < singularBeta)
                 {
-                    extension = 1;
+                    if (!isPV && singularScore < singularBeta - 12)
+                    {
+                        extension = 2;
+                    }
+                    else
+                    {
+                        extension = 1;
+                    }
                 }
             }
             
