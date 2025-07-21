@@ -255,7 +255,6 @@ public static partial class Search
                 }
             }
             
-
             // skip illegal moves for obvious reasons
             if (!p.IsLegal(m))
             {
