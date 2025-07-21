@@ -332,6 +332,14 @@ public static partial class Search
 
             thread.UndoMove();
 
+            // check if we have time left
+            // dont update persistant data like tt and histories, since this score now is irreliable.
+            if (!thread.doSearch || thread.IsMainThread && TimeManager.IsHardTimeout(thread))
+            {
+                thread.doSearch = false;
+                return 0;
+            }
+
             // save move-data for e.g. soft-timeouts and other shenanigans
             if (isRoot)
             {
@@ -394,15 +402,6 @@ public static partial class Search
                     } // beta beaten
                 } // alpha beaten
             } // best-score update
-
-            // check if we have time left
-            // do this in the move-loop & after updaing the pv
-            // otherwise we could end up without a best move
-            if (!thread.doSearch ||
-                 thread.IsMainThread && TimeManager.IsHardTimeout(thread))
-            {
-                break;
-            }
             
         } // move-loop
 
