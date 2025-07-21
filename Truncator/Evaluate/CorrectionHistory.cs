@@ -37,7 +37,7 @@ public struct CorrectionHistory : IDisposable
         Debug.Assert(PawnTable != null && WhiteNonPawnTable != null && BlackNonPawnTable != null && MinorTable != null);
 
         int CorrectionValue = 0;
-        CorrectionValue += 12 * PawnTable[MakeKey(p.Us, p.PawnKey)];
+        CorrectionValue += 16 * PawnTable[MakeKey(p.Us, p.PawnKey)];
         CorrectionValue += 12 * WhiteNonPawnTable[MakeKey(p.Us, p.NonPawnMaterialKey(Color.White))];
         CorrectionValue += 12 * BlackNonPawnTable[MakeKey(p.Us, p.NonPawnMaterialKey(Color.Black))];
         CorrectionValue += 12 * MinorTable[MakeKey(p.Us, p.MinorKey)];
@@ -60,7 +60,7 @@ public struct CorrectionHistory : IDisposable
         PawnTable[MakeKey(p.Us, p.PawnKey)].Update(delta);
         WhiteNonPawnTable[MakeKey(p.Us, p.NonPawnMaterialKey(Color.White))].Update(delta);
         BlackNonPawnTable[MakeKey(p.Us, p.NonPawnMaterialKey(Color.Black))].Update(delta);
-        MinorTable[MakeKey(p.Us, p.PawnKey)].Update(delta);
+        MinorTable[MakeKey(p.Us, p.MinorKey)].Update(delta);
     }
 
     /// <summary>
