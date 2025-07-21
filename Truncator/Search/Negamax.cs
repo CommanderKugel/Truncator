@@ -65,12 +65,12 @@ public static partial class Search
         }
 
         
-        bool inCheck = p.GetCheckers() != 0;
+        ns->InCheck = p.GetCheckers() != 0;
 
         // static evaluaton
         // although this is a noisy position and we have to distrust the static
         // evaluation of the current node to an extend, we can draw some conclusion from it.
-        if (inCheck)
+        if (ns->InCheck)
         {
             ns->StaticEval = ns->UncorrectedStaticEval = -SCORE_MATE;
         }
@@ -81,22 +81,36 @@ public static partial class Search
         }
 
 
-        bool improving = thread.ply > 1 && !inCheck &&
-                        (ns - 2)->StaticEval != -SCORE_MATE && 
-                        ns->StaticEval >= (ns - 2)->StaticEval;
+        // improving
+        // did static evaluation improve over the last 2/4 plies?
+        bool improving = false;
+        if (thread.ply > 1 && !ns->InCheck && !(ns - 2)->InCheck)
+        {
+            improving = ns->StaticEval >= (ns - 2)->StaticEval;
+        }
+        else if (thread.ply > 3 && !ns->InCheck && !(ns - 4)->InCheck)
+        {
+            improving = ns->StaticEval >= (ns - 4)->StaticEval;
+        }
+
 
         // sometimes whole-node-pruning can be skippedentirely
-        if (inCheck || isPV || inSingularity)
+        if (ns->InCheck || isPV || inSingularity)
         {
             goto skip_whole_node_pruning;
         }
 
 
         // reverse futility pruning (RFP)
-        if (depth <= 5 &&
-            ns->StaticEval - 75 * depth >= beta)
         {
-            return ns->StaticEval;
+            int mult = improving ? depth - 1 : depth;
+            int margin = 75;
+
+            if (depth <= 5 &&
+                ns->StaticEval - margin * mult >= beta)
+            {
+                return ns->StaticEval;
+            }
         }
 
         // razoring
@@ -136,7 +150,7 @@ public static partial class Search
 
 
         // check extensions
-        if (inCheck && !inSingularity)
+        if (ns->InCheck && !inSingularity)
         {
             depth++;
         }
@@ -188,7 +202,7 @@ public static partial class Search
 
                 // futility pruning 
                 if (nonPV &&
-                    !inCheck &&
+                    !ns->InCheck &&
                     depth <= 4 &&
                     ns->StaticEval + depth * 150 <= alpha)
                 {
@@ -409,7 +423,7 @@ public static partial class Search
         // and dont save to the tt if this is a terminal node
         if (movesPlayed == 0)
         {
-            return p.GetCheckers() == 0 ? SCORE_DRAW : -SCORE_MATE + thread.ply;
+            return !ns->InCheck ? SCORE_DRAW : -SCORE_MATE + thread.ply;
         }
         
         // dont save matin-scores to the tt, it cant handle them at the moment
@@ -427,7 +441,7 @@ public static partial class Search
         }
 
         if (!inSingularity &&
-            !inCheck &&
+            !ns->InCheck &&
             !IsTerminal(bestscore) &&
             (bestmove.IsNull || !p.IsCapture(bestmove) && !bestmove.IsPromotion) &&
             (flag == EXACT_BOUND ||

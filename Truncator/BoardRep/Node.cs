@@ -4,6 +4,7 @@
 /// </summary>
 public struct Node
 {
+    public bool InCheck;
 
     public PieceType MovedPieceType;
     public PieceType CapturedPieceType;
