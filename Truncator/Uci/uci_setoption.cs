@@ -15,6 +15,7 @@ public static partial class UCI
             Debug.Assert(tokens.Length == 5);
             int value = int.Parse(tokens[4]);
             ThreadPool.Resize(value);
+            Console.WriteLine($"info string 'set Threadcount to {ThreadPool.ThreadCount}'");
         }
 
         if (tokens[2] == "Hash")
@@ -22,18 +23,21 @@ public static partial class UCI
             Debug.Assert(tokens.Length == 5);
             int sizemb = int.Parse(tokens[4]);
             ThreadPool.tt.Resize(sizemb);
+            Console.WriteLine($"info string 'set tt Hash Size to {ThreadPool.tt.SizeMB}'");
         }
 
         if (tokens[2] == "Move" && tokens[3] == "Overhead")
         {
             Debug.Assert(tokens.Length == 6);
             int overhead = int.Parse(tokens[5]);
-            throw new NotImplementedException("setting move overhead is not impleented yet");
+            TimeManager.MoveOverhead = Math.Clamp(overhead, TimeManager.OVERHEAD_MIN, TimeManager.OVERHEAD_MAX);
+            Console.WriteLine($"info string 'set Overhead to {TimeManager.MoveOverhead}'");
         }
 
         if (tokens[2] == "UCI_ShowWDL" && tokens.Length >= 5)
         {
             WDL.UCI_showWDL = tokens[4] == "true";
+            Console.WriteLine($"info string 'set UCI_ShowWDL to {WDL.UCI_showWDL}'");
         }
 
     }

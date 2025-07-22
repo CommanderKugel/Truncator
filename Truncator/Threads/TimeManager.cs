@@ -14,7 +14,11 @@ public static class TimeManager
     public  static int  maxDepth = 128;
     public  static long maxNodes = long.MaxValue;
 
+
     public static int MoveOverhead = 10;
+    public const int OVERHEAD_MIN = 0;
+    public const int OVERHEAD_DEFAULT = 10;
+    public const int OVERHEAD_MAX = 1024;
 
 
     private static Stopwatch watch = new Stopwatch();
@@ -71,8 +75,12 @@ public static class TimeManager
         // #2 we manage time ourselves
         else
         {
-            int time = Math.Max((Us == Color.White ? wtime : btime) - MoveOverhead, 1);
-            int inc = Math.Max(Us == Color.White ? winc : binc, 0);
+            int time = Us == Color.White ? wtime : btime;
+            int inc = Us == Color.White ? winc : binc;
+
+            // UCI might send us negative time especially when uing CuteChess-cli
+            // also always respect overhead
+            time = Math.Max(time - MoveOverhead, 1);
 
             // #2.1 searching should take exactly the given time
             //      technically this is not self-managing, but we need to enable the 
@@ -82,6 +90,7 @@ public static class TimeManager
                 HardTimeout = movetime;
                 SoftTimeout = movetime;
                 Console.WriteLine($"movetime: hard- & softlimit = {HardTimeout}");
+                return;
             }
 
             // #2.2 Play N moves in M time + o per move, then get time bonus for next N moves
@@ -99,6 +108,10 @@ public static class TimeManager
                 SoftTimeout = time / 30 + inc / 2;
                 Console.WriteLine($"normal: hardlimit = {HardTimeout}, softlimit = {SoftTimeout}");
             }
+
+            // always respect the overhead
+            HardTimeout = Math.Min(HardTimeout, time - MoveOverhead);
+            SoftTimeout = Math.Min(SoftTimeout, time - MoveOverhead);
         }
     }
 

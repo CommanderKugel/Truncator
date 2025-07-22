@@ -11,6 +11,7 @@ public class TranspositionTable : IDisposable
 
     private unsafe TTEntry* tt = null;
     private ulong size = 0;
+    public unsafe int SizeMB => (int)size * sizeof(TTEntry);
 
     public unsafe TranspositionTable(int sizemb = DEFAULT_SIZE)
     {
