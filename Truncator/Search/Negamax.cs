@@ -82,19 +82,12 @@ public static partial class Search
 
 
         // improving
-        // did static evaluation improve over the last 2/4 plies?
-        bool improving = false;
-        if (thread.ply > 1 && !ns->InCheck && !(ns - 2)->InCheck)
-        {
-            improving = ns->StaticEval >= (ns - 2)->StaticEval;
-        }
-        else if (thread.ply > 3 && !ns->InCheck && !(ns - 4)->InCheck)
-        {
-            improving = ns->StaticEval >= (ns - 4)->StaticEval;
-        }
+        bool improving = thread.ply > 1 
+            && !ns->InCheck && (ns - 2)->StaticEval != -SCORE_MATE // cant evaluate when in check
+            && ns->StaticEval >= (ns - 2)->StaticEval;
 
 
-        // sometimes whole-node-pruning can be skippedentirely
+        // sometimes whole-node-pruning can be skipped entirely
         if (ns->InCheck || isPV || inSingularity)
         {
             goto skip_whole_node_pruning;
