@@ -43,7 +43,7 @@ public static partial class Search
         else
         {
             ns->UncorrectedStaticEval = Pesto.Evaluate(ref p);
-            thread.CorrHist.Correct(ref p, ns);
+            thread.CorrHist.Correct(thread, ref p, ns);
         }
 
         int bestscore = ns->StaticEval;
