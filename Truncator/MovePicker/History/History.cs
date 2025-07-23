@@ -23,12 +23,18 @@ public struct History : IDisposable
         {
             ref Move m = ref quiets[i];
             var delta = (m == bestmove) ? bonus : penalty;
+            PieceType pt = p.PieceTypeOn(m.from);
 
             Butterfly[p.Us, m].Update(delta);
 
             if ((n - 1)->ContHist != NullHist)
             {
-                (*(n - 1)->ContHist)[p.Us, p.PieceTypeOn(m.from), m.to].Update(delta);
+                (*(n - 1)->ContHist)[p.Us, pt, m.to].Update(delta);
+            }
+
+            if ((n - 2)->ContHist != NullHist)
+            {
+                (*(n - 2)->ContHist)[p.Them, pt, m.to].Update(delta);
             }
         }
     }

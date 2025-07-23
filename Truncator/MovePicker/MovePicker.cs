@@ -29,7 +29,8 @@ public ref struct MovePicker
     {
         Move killer = thread.nodeStack[thread.ply].KillerMove;
 
-        var CounterHist = thread.ply > 0 ? thread.nodeStack[thread.ply - 1].ContHist : thread.history.ContHist.NullHist;
+        var ContHist1ply = thread.nodeStack[thread.ply - 1].ContHist;
+        var ContHist2ply = thread.nodeStack[thread.ply - 2].ContHist;
 
         for (int i = 0; i < moveCount; i++)
         {
@@ -51,8 +52,11 @@ public ref struct MovePicker
             }
             else // quiet
             {
+                PieceType pt = p.PieceTypeOn(m.from);
+
                 scores[i] = thread.history.Butterfly[p.Us, m];
-                scores[i] += (*CounterHist)[p.Us, p.PieceTypeOn(m.from), m.to];
+                scores[i] += (*ContHist1ply)[p.Us, pt, m.to];
+                scores[i] += (*ContHist2ply)[p.Them, pt, m.to];
             }
         }
     }
