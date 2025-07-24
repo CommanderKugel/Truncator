@@ -113,7 +113,8 @@ public static partial class Search
         }
 
         // null move pruning
-        if ((ns - 1)->move.NotNull &&
+        if (cutnode &&
+            (ns - 1)->move.NotNull &&
             ns->StaticEval >= beta)
         {
             Pos PosAfterNull = p;
@@ -121,7 +122,7 @@ public static partial class Search
             thread.repTable.Push(PosAfterNull.ZobristKey);
 
             int R = 3 + depth / 6;
-            int ScoreAfterNull = -Negamax<NonPVNode>(thread, PosAfterNull, -beta, -alpha, depth - R, ns + 1, !cutnode);
+            int ScoreAfterNull = -Negamax<NonPVNode>(thread, PosAfterNull, -beta, -alpha, depth - R, ns + 1, false);
 
             thread.UndoMove();
 
