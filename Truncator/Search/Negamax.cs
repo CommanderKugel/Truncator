@@ -93,10 +93,15 @@ public static partial class Search
 
 
         // reverse futility pruning (RFP)
-        if (depth <= 5 &&
-            ns->StaticEval - 75 * depth >= beta)
         {
-            return ns->StaticEval;
+            int margin = (!ttHit && cutnode) ? 60 : 75;
+            int mult = depth;
+            
+            if (depth <= 5 &&
+                ns->StaticEval - margin * mult >= beta)
+            {
+                return ns->StaticEval;
+            }
         }
 
         // razoring
