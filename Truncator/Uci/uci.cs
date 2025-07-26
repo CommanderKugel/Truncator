@@ -11,6 +11,7 @@ public static partial class UCI
     {
         // wake up main thread
         ThreadPool.MainThread.ply = 0;
+        Fathom.Init(@"C:\Users\nikol\Desktop\3-4-5_pieces_Syzygy\3-4-5\");
 
         while (true)
         {

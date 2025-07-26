@@ -10,7 +10,10 @@
     <PublishSingleFile>true</PublishSingleFile>
 
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <Optimize>true</Optimize>
   </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Fathom/fathomDll.dll"/>
+  </ItemGroup>
 
 </Project>

@@ -153,7 +153,6 @@ public static partial class Fathom
 
     public static void Init(string path)
     {
-        SyzygyPath = path;
 
         if (status == Status.Initialized)
         {
@@ -171,9 +170,16 @@ public static partial class Fathom
             return;
         }
 
+        SyzygyPath = path;
+        
+        if (!BindingUnpacker.Unpack())
+        {
+            Console.WriteLine("Could not load Fathom Bindings");
+            return;
+        }
+        
         try
         {
-            SyzygyPath = path;
             int res = tb_init_(path);
             Console.WriteLine($"tb initialized with returncode {res}");
 
