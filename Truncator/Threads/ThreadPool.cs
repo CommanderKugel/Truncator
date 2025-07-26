@@ -119,15 +119,21 @@ public static class ThreadPool
         // info printing in between iterations
         int dirty_score = bestThread.rootPos.moveScore[moveIdx];
         long nodes = GetNodes();
+        long tbHits = GetTbHits();
         long time = TimeManager.ElapsedMilliseconds;
         long nps = nodes * 1000 / time;
         int hashfull = tt.GetHashfull();
 
         // normalize score to +100 cp ~ 50% chance of winning
         var (norm_score, w, d, l) = WDL.GetWDL(dirty_score);
-        string scoreString = Search.IsTerminal(dirty_score) ? $"mate {(dirty_score - Search.SCORE_MATE) / 2}" : $"cp {norm_score}";
 
-        string info = $"info depth {bestThread.completedDepth} seldepth {bestThread.seldepth} nodes {nodes} time {time} nps {nps} score {scoreString} hashfull {hashfull}";
+        int info_score = dirty_score >= Search.SCORE_MATE_IN_MAX ? (Search.SCORE_MATE - dirty_score + 1) / 2
+            : dirty_score <= -Search.SCORE_MATE_IN_MAX ? -(Search.SCORE_MATE + dirty_score) / 2
+            : norm_score;
+
+        string scoreString = $"{(Search.IsTerminal(dirty_score) ? "mate" : "cp")} {info_score}";
+
+        string info = $"info depth {bestThread.completedDepth} seldepth {bestThread.seldepth} nodes {nodes} tbhits {tbHits} time {time} nps {nps} score {scoreString} hashfull {hashfull}";
 
         if (WDL.UCI_showWDL)
         {
@@ -164,6 +170,16 @@ public static class ThreadPool
             nodes += thread.nodeCount;
         }
         return nodes;
+    }
+
+    public static long GetTbHits()
+    {
+        long tbHits = 0;
+        foreach (var thread in pool)
+        {
+            tbHits += thread.tbHits;
+        }
+        return tbHits;
     }
 
     /// <summary>
