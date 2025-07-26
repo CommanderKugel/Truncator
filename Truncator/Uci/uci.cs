@@ -155,10 +155,7 @@ public static partial class UCI
 
             else if (command == "tbproberoot")
             {
-                var (wdl, tbmove, dtz) = FathomDll.ProbeRoot(ref ThreadPool.MainThread.rootPos.p);
-                Console.WriteLine($"wdl    {(TbResult)wdl}");
-                Console.WriteLine($"tbmove {tbmove}");
-                Console.WriteLine($"dtz    {dtz}");
+                ThreadPool.TbProbeRoot();
             }
 
         }

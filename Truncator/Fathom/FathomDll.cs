@@ -18,6 +18,7 @@ public static partial class FathomDll
     }
 
     private static Status status = Status.Uninitialized;
+    public static bool IsInitialized => status == Status.Initialized;
 
 
     [DllImport(@"fathomDll.dll", CallingConvention = CallingConvention.Cdecl)]
@@ -44,7 +45,7 @@ public static partial class FathomDll
     /// </summary>
     public static unsafe int ProbeWdl(ref Pos p)
     {
-        Debug.Assert(status == Status.Initialized, "tb is not initialized");
+        Debug.Assert(IsInitialized);
         Debug.Assert(p.CastlingRights == 0);
         Debug.Assert(p.FiftyMoveRule == 0);
         Debug.Assert(Utils.popcnt(p.blocker) <= TbLargest);
@@ -89,7 +90,7 @@ public static partial class FathomDll
     /// </summary>
     public static unsafe (int, Move, int) ProbeRoot(ref Pos p)
     {
-        Debug.Assert(status == Status.Initialized);
+        Debug.Assert(IsInitialized);
         Debug.Assert(p.CastlingRights == 0);
         Debug.Assert(Utils.popcnt(p.blocker) <= TbLargest);
 
@@ -109,8 +110,15 @@ public static partial class FathomDll
             null
         );
 
+        // catch terminal or faulty positions
+        // required for pv extraction from tb
+        if (res == TB_RESULT_CHECKMATE || res == TB_RESULT_STALEMATE || (uint)res == TB_RESULT_FAILED)
+        {
+            return (0, Move.NullMove, 0);
+        }
+
         // extract data from returned value
-        int wdl = TB_GET_WDL(res);
+            int wdl = TB_GET_WDL(res);
         int from = TB_GET_FROM(res);
         int to = TB_GET_TO(res);
         int promo = TB_GET_PROMOTES(res);

@@ -48,19 +48,61 @@ public static class ThreadPool
     /// </summary>
     public static void Go()
     {
-        for (int i = 1; i < ThreadCount; i++)
+        // check if we can just pull the result from the tablebases
+        if (FathomDll.DoTbProbing
+            && Utils.popcnt(MainThread.rootPos.p.blocker) <= FathomDll.TbLargest
+            && MainThread.rootPos.p.CastlingRights == 0)
         {
-            pool[i].Reset();
-            pool[i].ply = MainThread.ply;
-            pool[i].rootPos = MainThread.rootPos;
-            pool[i].repTable.CopyFrom(ref MainThread.repTable);
-            pool[i].Go();
+            TbProbeRoot();
+            return;
         }
 
-        // delay using the main thread to not alter its repetition table
+        // otherwise, search normally
+        for (int i = 1; i < ThreadCount; i++)
+            {
+                pool[i].Reset();
+                pool[i].ply = MainThread.ply;
+                pool[i].rootPos = MainThread.rootPos;
+                pool[i].repTable.CopyFrom(ref MainThread.repTable);
+                pool[i].Go();
+            }
+
+        // delay using the main thread while copying from it
         // while other threads copy from it
         MainThread.Go();
     }
+
+
+    public static void TbProbeRoot()
+    {
+        ref Pos p = ref MainThread.rootPos.p;
+
+        Debug.Assert(FathomDll.IsInitialized);
+        Debug.Assert(FathomDll.DoTbProbing);
+        Debug.Assert(Utils.popcnt(p.blocker) <= FathomDll.TbLargest);
+        Debug.Assert(p.CastlingRights == 0);
+
+        var (wdl, tbMove, dtz) = FathomDll.ProbeRoot(ref p);
+
+        string score = wdl == (int)TbResult.TbDraw ? "cp 0" : $"mate {dtz / 2}";
+        string pv = $"pv ";
+        Pos copy = p;
+
+        for (Move m = tbMove; m.NotNull; )
+        {
+            pv += $" {m}";
+            Console.WriteLine(m);
+
+            copy.MakeMove(m, MainThread);
+            var (_, nextMove, _) = FathomDll.ProbeRoot(ref copy);
+            m = nextMove;
+        }
+
+        
+        Console.WriteLine($"info depth 1 score {score} tbhits {1} pv {pv}");
+
+    }
+
 
     /// <summary>
     /// Info Printing for UCI communication inbetween ID iterations

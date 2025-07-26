@@ -1,4 +1,9 @@
 
+/*
+The following code was copied 1:1 from fathom source code and updated to be C# compatible
+https://github.com/jdart1/Fathom/blob/master/src/tbprobe.h
+*/
+
 public static partial class FathomDll
 {
     private const int
@@ -23,6 +28,10 @@ public static partial class FathomDll
     TB_RESULT_PROMOTES_SHIFT = 16,
     TB_RESULT_EP_SHIFT = 19,
     TB_RESULT_DTZ_SHIFT = 20;
+
+    public static readonly int TB_RESULT_CHECKMATE = TB_SET_WDL(0, (int)TbResult.TbWin);
+    public static readonly int TB_RESULT_STALEMATE = TB_SET_WDL(0, (int)TbResult.TbDraw);
+    public const uint TB_RESULT_FAILED = 0xFFFFFFFF;
 
 
 
