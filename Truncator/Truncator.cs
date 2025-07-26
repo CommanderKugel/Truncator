@@ -40,6 +40,8 @@ public static class Truncator
             Utils.Dispose();
             Zobrist.Dispose();
             GC.Collect();
+
+            FathomDll.Dispose();
         }
     }
 }
