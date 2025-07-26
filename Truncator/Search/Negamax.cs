@@ -46,6 +46,7 @@ public static partial class Search
         TTEntry ttEntry = thread.tt.Probe(p.ZobristKey);
         bool ttHit = ttEntry.Key == p.ZobristKey;
         Move ttMove = ttHit ? new(ttEntry.MoveValue) : Move.NullMove;
+        bool ttCapture = ttHit && ttMove.NotNull && p.IsCapture(ttMove);
 
         // return the tt-score if the entry is any good
         if (nonPV && ttHit && ttEntry.Depth >= depth && !inSingularity && (
@@ -286,6 +287,8 @@ public static partial class Search
                     R += -ButterflyScore / 341;
 
                     if (thread.ply > 1 && !improving) R++;
+
+                    if (ttCapture) R++;
 
                     // ToDo: R += nonPV && !cutnode ? 2 : 1; // +1 if allnode
                     if ((ns + 1)->CutoffCount > 2) R++;
