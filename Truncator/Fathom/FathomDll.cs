@@ -2,7 +2,7 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
-public static partial class FathomDll
+public static partial class Fathom
 {
 
     public static bool DoTbProbing = false;
@@ -153,6 +153,8 @@ public static partial class FathomDll
 
     public static void Init(string path)
     {
+        SyzygyPath = path;
+
         if (status == Status.Initialized)
         {
             Console.WriteLine("tb is already initialized");

@@ -62,13 +62,13 @@ public static partial class Search
         int SyzygyMin = -SCORE_MATE;
         int SyzygyMax = SCORE_MATE;
         if (!isRoot
-            && FathomDll.DoTbProbing
+            && Fathom.DoTbProbing
             && p.CastlingRights == 0
             && p.FiftyMoveRule == 0
-            && Utils.popcnt(p.blocker) <= FathomDll.TbLargest)
+            && Utils.popcnt(p.blocker) <= Fathom.TbLargest)
         {
 
-            int res = FathomDll.ProbeWdl(ref p);
+            int res = Fathom.ProbeWdl(ref p);
             Debug.Assert(res >= (int)TbResult.TbLoss && res <= (int)TbResult.TbWin, "unexpected tb probing result");
 
             thread.tbHits++;

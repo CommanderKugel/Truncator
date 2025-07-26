@@ -4,7 +4,7 @@ The following code was copied 1:1 from fathom source code and updated to be C# c
 https://github.com/jdart1/Fathom/blob/master/src/tbprobe.h
 */
 
-public static partial class FathomDll
+public static partial class Fathom
 {
     private const int
     TB_PROMOTES_NONE = 0,

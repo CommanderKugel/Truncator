@@ -40,14 +40,14 @@ public static partial class UCI
         {
             Debug.Assert(tokens.Length == 5);
             var path = tokens[4];
-            FathomDll.Init(path);
+            Fathom.Init(path);
         }
 
         if (tokens[2] == "SyzygyProbePly")
         {
             Debug.Assert(tokens.Length == 5);
             int ply = int.Parse(tokens[4]);
-            FathomDll.SyzygyProbePly = ply;
+            Fathom.SyzygyProbePly = ply;
             Console.WriteLine($"SyzygyProbePly set to {ply}");
         }
 

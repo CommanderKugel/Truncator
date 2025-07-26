@@ -49,8 +49,8 @@ public static class ThreadPool
     public static void Go()
     {
         // check if we can just pull the result from the tablebases
-        if (FathomDll.DoTbProbing
-            && Utils.popcnt(MainThread.rootPos.p.blocker) <= FathomDll.TbLargest
+        if (Fathom.DoTbProbing
+            && Utils.popcnt(MainThread.rootPos.p.blocker) <= Fathom.TbLargest
             && MainThread.rootPos.p.CastlingRights == 0)
         {
             TbProbeRoot();
@@ -77,12 +77,12 @@ public static class ThreadPool
     {
         ref Pos p = ref MainThread.rootPos.p;
 
-        Debug.Assert(FathomDll.IsInitialized);
-        Debug.Assert(FathomDll.DoTbProbing);
-        Debug.Assert(Utils.popcnt(p.blocker) <= FathomDll.TbLargest);
+        Debug.Assert(Fathom.IsInitialized);
+        Debug.Assert(Fathom.DoTbProbing);
+        Debug.Assert(Utils.popcnt(p.blocker) <= Fathom.TbLargest);
         Debug.Assert(p.CastlingRights == 0);
 
-        var (wdl, tbMove, dtz) = FathomDll.ProbeRoot(ref p);
+        var (wdl, tbMove, dtz) = Fathom.ProbeRoot(ref p);
 
         string score = wdl == (int)TbResult.TbDraw ? "cp 0" : $"mate {dtz / 2}";
         string pv = $"pv ";
@@ -94,7 +94,7 @@ public static class ThreadPool
             Console.WriteLine(m);
 
             copy.MakeMove(m, MainThread);
-            var (_, nextMove, _) = FathomDll.ProbeRoot(ref copy);
+            var (_, nextMove, _) = Fathom.ProbeRoot(ref copy);
             m = nextMove;
         }
 
