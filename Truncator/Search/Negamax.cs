@@ -76,7 +76,7 @@ public static partial class Search
         }
         else
         {
-            ns->UncorrectedStaticEval = Pesto.Evaluate(ref p);
+            ns->UncorrectedStaticEval = Pesto.Evaluate(thread, ref p);
             thread.CorrHist.Correct(thread, ref p, ns);
         }
 
@@ -435,6 +435,8 @@ public static partial class Search
              flag == LOWER_BOUND && bestscore > ns->StaticEval))
         {
             thread.CorrHist.Update(thread, ref p, ns, bestscore, ns->StaticEval, depth);
+
+            thread.CorrPsqt.Update(ref p, ns->UncorrectedStaticEval, bestscore);
         }
 
         return bestscore;

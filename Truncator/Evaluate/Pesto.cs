@@ -2,10 +2,11 @@
 public static class Pesto
 {
 
-    public static int Evaluate(ref Pos p)
+    public static unsafe int Evaluate(SearchThread thread, ref Pos p)
     {
         int eval = 0;
         int phase = 0;
+        int correction = 0;
 
         for (Color stm = Color.White; stm <= Color.Black; stm++)
         {
@@ -16,8 +17,8 @@ public static class Pesto
                 while (pieces != 0)
                 {
                     int sq = Utils.popLsb(ref pieces) ^ ((int)stm * 56);
-                    eval += Material[(int)pt]
-                         + Psqt[(int)pt * 64 + sq];
+                    eval += Material[(int)pt] + Psqt[(int)pt * 64 + sq];
+                    correction += thread.CorrPsqt[(int)stm * 6 * 64 + (int)pt * 64 + sq];
                     phase += PhaseValues[(int)pt];
                 }
             }
@@ -29,6 +30,7 @@ public static class Pesto
         eval = (phase * (short)(eval >> 16) + (24 - phase) * (short)eval) / (p.Us == Color.White ? 24 : -24);
         
         eval = Scaling.MaterialScaling(ref p, eval);
+        eval += correction / 64;
         return eval;
     }
 

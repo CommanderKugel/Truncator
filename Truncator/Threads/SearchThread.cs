@@ -37,6 +37,7 @@ public class SearchThread : IDisposable
 
     public History history;
     public CorrectionHistory CorrHist;
+    public CorrPsqt CorrPsqt;
 
 
     public SearchThread(int id)
@@ -48,6 +49,7 @@ public class SearchThread : IDisposable
 
         history = new();
         CorrHist = new();
+        CorrPsqt = new();
 
         myThread = new Thread(ThreadMainLoop);
         myThread.Name = $"SearchThread_{id}";
@@ -144,6 +146,7 @@ public class SearchThread : IDisposable
         nodeCount = 0;
         completedDepth = 0;
 
+        CorrPsqt.Clear();
         pv_.Clear();
         NativeMemory.Clear(nodeStack, (nuint)sizeof(Node) * 255);
     }
@@ -156,6 +159,7 @@ public class SearchThread : IDisposable
         doSearch = true;
         Reset();
 
+        CorrPsqt.Clear();
         pv_.Clear();
         history.Clear();
         CorrHist.Clear();
