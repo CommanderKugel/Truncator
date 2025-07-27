@@ -384,11 +384,12 @@ public static partial class Search
 
                             // update killer-move
                             ns->KillerMove = m;
-                        }
 
-                        if (!IsTerminal(bestscore))
-                        {
-                            thread.CorrPsqt.UpdateSingle(p.Us, p.PieceTypeOn(m.from), m.to, score, ns->StaticEval, depth);
+                            // update correction-psqt
+                            if (!IsTerminal(bestscore))
+                            {
+                                thread.CorrPsqt.UpdateMultiple(ref p, ref quietMoves, quitesCount, bestmove, score, ns->StaticEval, depth);
+                            }
                         }
 
                         ns->CutoffCount++;
