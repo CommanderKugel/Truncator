@@ -235,13 +235,14 @@ public static partial class Search
                 thread.ply < thread.completedDepth * 2)
             {
 
-                int singularBeta = Math.Max(-SCORE_MATE + 1, ttEntry.Score - depth * 2);
+                int singularBeta = Math.Max(-SCORE_EVAL_MAX, ttEntry.Score - depth * 2);
                 int singularDepth = (depth - 1) / 2;
 
                 ns->ExcludedMove = m;
                 int singularScore = Negamax<NonPVNode>(thread, p, singularBeta - 1, singularBeta, singularDepth, ns, cutnode);
                 ns->ExcludedMove = Move.NullMove;
 
+                // proven singularity -> extend
                 if (singularScore < singularBeta)
                 {
                     if (!isPV && singularScore < singularBeta - 12)
@@ -251,6 +252,16 @@ public static partial class Search
                     else
                     {
                         extension = 1;
+                    }
+                }
+
+                // multi cut
+                // score >= sbeta && sbeta >= beta -> score >= beta
+                else if (!IsTerminal(singularBeta) && singularBeta >= beta)
+                {
+                    if (!isPV)
+                    {
+                        return singularBeta;
                     }
                 }
             }
