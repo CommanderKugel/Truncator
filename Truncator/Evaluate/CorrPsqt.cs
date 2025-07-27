@@ -1,11 +1,18 @@
 
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 
-public struct CorrPsqt
+public struct CorrPsqt : IDisposable
 {
     public const int SIZE = 2 * 6 * 64;
 
-    private unsafe fixed int table[SIZE];
+    private unsafe HistVal* table = null;
+
+
+    public unsafe CorrPsqt()
+    {
+        table = (HistVal*)NativeMemory.Alloc((nuint)sizeof(HistVal) * SIZE);
+    }
 
 
     public unsafe int this[int idx]
@@ -26,15 +33,17 @@ public struct CorrPsqt
     /// <summary>
     /// Update the Correction PSQT on the current position and search result
     /// </summary>
-    public unsafe void Update(ref Pos p, int eval, int score)
+    public unsafe void Update(ref Pos p, int eval, int score, int depth)
     {
-        // for now, just update the value by 1 in either direction
-        int delta = p.Us == Color.White ? (eval < score ? 1 : -1) : (eval < score ? -1 : 1);
+        int delta = Math.Clamp((eval - score) * depth / 8, -HistVal.HIST_VAL_MAX / 4, HistVal.HIST_VAL_MAX / 4);
+
+        if (p.Us == Color.Black)
+        {
+            delta = -delta;
+        }
 
         for (Color c = Color.White; c <= Color.Black; c++)
         {
-            int d = c == Color.White ? delta : -delta;
-
             for (PieceType pt = PieceType.Pawn; pt <= PieceType.King; pt++)
             {
                 ulong pieces = p.GetPieces(c, pt);
@@ -43,7 +52,7 @@ public struct CorrPsqt
                 {
                     int sq = Utils.popLsb(ref pieces);
                     int idx = (int)c * 6 * 64 + (int)pt * 64 + (sq ^ ((int)c * 56));
-                    table[idx] += d;
+                    table[idx].Update(c == Color.White ? delta : -delta);
                 }
             }
         }
@@ -57,6 +66,15 @@ public struct CorrPsqt
         for (int i = 0; i < SIZE; i++)
         {
             table[i] = 0;
+        }
+    }
+
+    public unsafe void Dispose()
+    {
+        if (table != null)
+        {
+            NativeMemory.Free(table);
+            table = null;
         }
     }
 

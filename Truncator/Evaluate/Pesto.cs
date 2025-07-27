@@ -30,7 +30,7 @@ public static class Pesto
         eval = (phase * (short)(eval >> 16) + (24 - phase) * (short)eval) / (p.Us == Color.White ? 24 : -24);
         
         eval = Scaling.MaterialScaling(ref p, eval);
-        eval += correction / 64;
+        eval += correction * 12 / (Utils.popcnt(p.blocker) * HistVal.HIST_VAL_MAX);
         return eval;
     }
 

@@ -435,8 +435,7 @@ public static partial class Search
              flag == LOWER_BOUND && bestscore > ns->StaticEval))
         {
             thread.CorrHist.Update(thread, ref p, ns, bestscore, ns->StaticEval, depth);
-
-            thread.CorrPsqt.Update(ref p, ns->UncorrectedStaticEval, bestscore);
+            thread.CorrPsqt.Update(ref p, ns->UncorrectedStaticEval, bestscore, depth);
         }
 
         return bestscore;
