@@ -29,34 +29,20 @@ public struct CorrPsqt : IDisposable
         }
     }
 
-
     /// <summary>
-    /// Update the Correction PSQT on the current position and search result
+    /// update the correction-psqt-square of a pieces destination
     /// </summary>
-    public unsafe void Update(ref Pos p, int eval, int score, int depth)
+    public unsafe void UpdateSingle(Color c, PieceType pt, int sq, int score, int eval, int depth)
     {
-        int delta = Math.Clamp((eval - score) * depth / 8, -HistVal.HIST_VAL_MAX / 4, HistVal.HIST_VAL_MAX / 4);
-
-        if (p.Us == Color.Black)
-        {
-            delta = -delta;
-        }
-
-        for (Color c = Color.White; c <= Color.Black; c++)
-        {
-            for (PieceType pt = PieceType.Pawn; pt <= PieceType.King; pt++)
-            {
-                ulong pieces = p.GetPieces(c, pt);
-
-                while (pieces != 0)
-                {
-                    int sq = Utils.popLsb(ref pieces);
-                    int idx = (int)c * 6 * 64 + (int)pt * 64 + (sq ^ ((int)c * 56));
-                    table[idx].Update(c == Color.White ? delta : -delta);
-                }
-            }
-        }
+        Debug.Assert(c != Color.NONE);
+        Debug.Assert(pt != PieceType.NONE);
+        Debug.Assert(sq >= 0 && sq < 64);
+        Debug.Assert(!Search.IsTerminal(score));
+        
+        int delta = Math.Clamp((score - eval) * depth / 8, -HistVal.HIST_VAL_MAX / 4, HistVal.HIST_VAL_MAX / 4);
+        table[(int)c * 6 * 64 + (int)pt * 64 + (sq ^ ((int)c * 56))].Update(c == Color.White ? delta : -delta);
     }
+
 
     /// <summary>
     /// Fill the table with Zeroes

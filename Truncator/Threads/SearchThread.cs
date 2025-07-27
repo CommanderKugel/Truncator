@@ -183,6 +183,7 @@ public class SearchThread : IDisposable
         this.repTable.Dispose();
         this.history.Dispose();
         this.CorrHist.Dispose();
+        this.CorrPsqt.Dispose();
     }
 
     public unsafe void RunBench()

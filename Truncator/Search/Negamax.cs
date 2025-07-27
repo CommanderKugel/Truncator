@@ -386,6 +386,11 @@ public static partial class Search
                             ns->KillerMove = m;
                         }
 
+                        if (!IsTerminal(bestscore))
+                        {
+                            thread.CorrPsqt.UpdateSingle(p.Us, p.PieceTypeOn(m.from), m.to, score, ns->StaticEval, depth);
+                        }
+
                         ns->CutoffCount++;
 
                         break;
@@ -435,7 +440,6 @@ public static partial class Search
              flag == LOWER_BOUND && bestscore > ns->StaticEval))
         {
             thread.CorrHist.Update(thread, ref p, ns, bestscore, ns->StaticEval, depth);
-            thread.CorrPsqt.Update(ref p, ns->UncorrectedStaticEval, bestscore, depth);
         }
 
         return bestscore;
