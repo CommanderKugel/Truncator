@@ -25,6 +25,7 @@ public static partial class UCI
         // ponder
         // mate <x>
 
+        ThreadPool.tt.Age();
         TimeManager.Start(ThreadPool.MainThread.rootPos.p.Us);
         ThreadPool.Go();
     }

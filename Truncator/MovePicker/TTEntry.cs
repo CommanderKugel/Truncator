@@ -14,6 +14,8 @@ public struct TTEntry
 
     private byte Packed_PV_Age_Flag;
     public readonly int Flag => Packed_PV_Age_Flag & 0b11;
+    public readonly bool PV => (Packed_PV_Age_Flag & 0b0100) != 0;
+    public readonly int Age => Packed_PV_Age_Flag >> 3;
 
     public void PackPVAgeFlag(bool pv, int age, int flag)
     {

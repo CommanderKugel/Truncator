@@ -18,9 +18,8 @@ public static partial class Search
         }
 
         // probe the tt for a transposition
-        TTEntry ttEntry = thread.tt.Probe(p.ZobristKey);
-        bool ttHit = ttEntry.Key == p.ZobristKey;
-        Move ttMove = ttHit ? new(ttEntry.MoveValue) : Move.NullMove;
+        bool ttHit = thread.tt.Probe(p.ZobristKey, out TTEntry ttEntry);
+        Move ttMove = new(ttEntry.MoveValue);
 
         // try for tt-cutoff if the entry is any good
         if (nonPV && ttHit && (
