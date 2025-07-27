@@ -269,6 +269,10 @@ public static partial class Search
             movesPlayed++;
             if (!isCapture) quietMoves[quitesCount++] = m;
 
+            // use new variable from here on, to keep track of deeper/shallower
+            // for extended/reduced full-window searches in pv-nodes
+            int newDepth = depth + extension;
+
             if (movesPlayed > 1 && depth >= 2)
             {
                 int R = 1;
@@ -307,26 +311,32 @@ public static partial class Search
                 // to cause a lot more curoffs. the returned value will never be an exact score, but an upper-
                 // or lower-bound. if a move unexpectedly beats the pv, we need to re-search it at full depth,
                 // to confirm it is really better than the pv and obtain its exact value.
-                score = -Negamax<NonPVNode>(thread, next, -alpha - 1, -alpha, depth - R, ns + 1, true);
+                score = -Negamax<NonPVNode>(thread, next, -alpha - 1, -alpha, newDepth - R, ns + 1, true);
 
                 // re-search if LMR seems to beat the current best move
                 if (score > alpha && R > 1)
                 {
-                    score = -Negamax<NonPVNode>(thread, next, -alpha - 1, -alpha, depth - 1, ns + 1, !cutnode);
+                    // do deeper
+                    if (score > bestscore + 50 + 5 * newDepth)
+                    {
+                        newDepth++;
+                    }
+
+                    score = -Negamax<NonPVNode>(thread, next, -alpha - 1, -alpha, newDepth - 1, ns + 1, !cutnode);
                 }
             }
 
             // ZWS for moves that are not reduced by LMR
             else if (nonPV || movesPlayed > 1)
             {
-                score = -Negamax<NonPVNode>(thread, next, -alpha - 1, -alpha, depth + extension - 1, ns + 1, !cutnode);
+                score = -Negamax<NonPVNode>(thread, next, -alpha - 1, -alpha, newDepth - 1, ns + 1, !cutnode);
             }
 
             // full-window-search
             // either the pv-line is searched fully at first, or a high-failing ZWS search needs to be confirmed.
             if (isPV && (score > alpha || movesPlayed == 1))
             {
-                score = -Negamax<PVNode>(thread, next, -beta, -alpha, depth + extension - 1, ns + 1, false);
+                score = -Negamax<PVNode>(thread, next, -beta, -alpha, newDepth - 1, ns + 1, false);
             }
 
             thread.UndoMove();
