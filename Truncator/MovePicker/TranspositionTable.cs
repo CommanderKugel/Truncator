@@ -61,6 +61,12 @@ public class TranspositionTable : IDisposable
         // current policy: always replace
         ref var entry = ref tt[key % size];
 
+        // dont overwrite pv-entries with nonpv ones
+        if (!pv && entry.PV == 1)
+        {
+            return;
+        }
+
         entry.Key = key;
         entry.Score = TTEntry.ConvertToSavescore(score, thread.ply);
         entry.MoveValue = move.value;
