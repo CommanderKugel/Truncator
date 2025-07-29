@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime;
 
 
 public unsafe struct RootPos
@@ -10,6 +11,8 @@ public unsafe struct RootPos
     public Pos p;
     public int moveCount;
 
+    public int AvgScore;
+
 
     public RootPos() { }
 
@@ -18,6 +21,9 @@ public unsafe struct RootPos
         SetNewFen(fen);
     }
 
+    /// <summary>
+    /// Makes the move on p
+    /// </summary>
     public void MakeMove(string movestr, SearchThread thread)
     {
         Move m = new(movestr, ref p);
@@ -26,7 +32,7 @@ public unsafe struct RootPos
         // make move on board representation
         p.MakeMove(m, ThreadPool.MainThread);
         thread.ply--;
-        
+
         if (p.FiftyMoveRule == 0)
         {
             thread.repTable.Clear();
@@ -37,6 +43,23 @@ public unsafe struct RootPos
         }
     }
 
+    /// <summary>
+    /// Computes the average root-moves search score
+    /// </summary>
+    public int GetAvgScore()
+    {
+        int avg = 0;
+        for (int i = 0; i < moveCount; i++)
+        {
+            avg += moveScore[i];
+        }
+        return avg / moveCount;
+    }
+
+    /// <summary>
+    /// returns the root-moves index in the roomoves-array
+    /// returns null of m not in legal rootmoves
+    /// </summary>
     public int? IndexOfMove(Move m)
     {
         for (int i = 0; i < moveCount; i++)
@@ -49,15 +72,9 @@ public unsafe struct RootPos
         return null;
     }
 
-    public unsafe void Print()
-    {
-        Console.WriteLine($"moveCount: {moveCount}");
-        for (int i = 0; i < moveCount; i++)
-        {
-            Console.WriteLine($"move {new Move(rootMoves[i])} score {moveScore[i]} nodes {moveNodes[i]}");
-        }
-    }
-
+    /// <summary>
+    /// Update a rootmoves score and nodecount
+    /// </summary>
     public void ReportBackMove(Move m, int score, long nodes, int depth)
     {
         Debug.Assert(m.NotNull, "cant report on null moves for root pos!");
@@ -95,6 +112,7 @@ public unsafe struct RootPos
     {
         p = new();
         moveCount = 0;
+        AvgScore = 0;
 
         for (int i = 0; i < 256; i++)
         {

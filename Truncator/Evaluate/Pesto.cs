@@ -2,7 +2,7 @@
 public static class Pesto
 {
 
-    public static int Evaluate(ref Pos p)
+    public static unsafe int Evaluate(SearchThread thread, ref Pos p)
     {
         int eval = 0;
         int phase = 0;
@@ -25,11 +25,24 @@ public static class Pesto
             eval = -eval;
         }
 
+        // phase interpolated & stm-relative evaluation
         phase = Math.Min(phase, 24);
         eval = (phase * (short)(eval >> 16) + (24 - phase) * (short)eval) / (p.Us == Color.White ? 24 : -24);
         
-        eval = Scaling.MaterialScaling(ref p, eval);
-        return eval;
+        // material scaling
+        int nonPawnMaterial = Utils.popcnt(p.PieceBB[(int)PieceType.Knight]) * 450
+                            + Utils.popcnt(p.PieceBB[(int)PieceType.Bishop]) * 450
+                            + Utils.popcnt(p.PieceBB[(int)PieceType.Rook]) * 650
+                            + Utils.popcnt(p.PieceBB[(int)PieceType.Queen]) * 1250;
+        eval = eval * (26_500 + nonPawnMaterial) / 32_768;
+
+        // optimism
+        if (thread.completedDepth > 4 &&  !Search.IsTerminal(thread.rootPos.AvgScore))
+        {
+            eval = (110 * eval + 18 * thread.rootPos.AvgScore) / 128; // asspulled value 
+        }
+
+        return Math.Clamp(eval, -Search.SCORE_EVAL_MAX, Search.SCORE_EVAL_MAX);
     }
 
 

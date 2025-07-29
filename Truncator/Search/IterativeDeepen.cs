@@ -45,6 +45,7 @@ public static partial class Search
 
         while (true)
         {
+            thread.rootPos.AvgScore = thread.rootPos.GetAvgScore();
             int score = Negamax<RootNode>(thread, thread.rootPos.p, alpha, beta, depth, &thread.nodeStack[thread.ply], false);
 
             // dont retry if the search already timed out
