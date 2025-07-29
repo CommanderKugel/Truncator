@@ -29,8 +29,13 @@ public static partial class Search
                 return SCORE_DRAW;
             }
 
-            // ToDo: return eval at max-ply
-            // ToDo: mate distance pruning (elo neutral & nice to have)
+            // mate distance pruning
+            int mdAlpha = Math.Max(alpha, -SCORE_MATE + thread.ply);
+            int mdBeta  = Math.Min(beta ,  SCORE_MATE - thread.ply - 1);
+            if (mdAlpha >= mdBeta)
+            {
+                return mdAlpha;
+            }
         }
 
         // if leaf-node: drop into QSearch
