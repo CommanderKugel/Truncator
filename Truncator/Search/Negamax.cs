@@ -92,7 +92,7 @@ public static partial class Search
                         ns->StaticEval >= (ns - 2)->StaticEval;
 
         // sometimes whole-node-pruning can be skippedentirely
-        if (inCheck || isPV || inSingularity)
+        if (inCheck || ttPV || inSingularity)
         {
             goto skip_whole_node_pruning;
         }
