@@ -183,7 +183,10 @@ public static partial class Search
             bool isCapture = p.IsCapture(m);
             bool isNoisy = isCapture || m.IsPromotion; // ToDo: GivesCheck()
 
+            PieceType pt = p.PieceTypeOn(m.from);
             int ButterflyScore = isCapture ? 0 : thread.history.Butterfly[p.Us, m];
+            int Conthist1ply = (*(ns - 1)->ContHist)[p.Us, pt, m.to];
+            int Conthist2ply = (*(ns - 2)->ContHist)[p.Us, pt, m.to];
 
             // move loop pruning
             if (!isRoot &&
@@ -216,6 +219,11 @@ public static partial class Search
                 }
 
                 // ToDo: Continuation Pruning
+                if (depth <= 5
+                    && Math.Min(Conthist1ply, Conthist2ply) < -128 * depth)
+                {
+                    continue;
+                }
 
             }
 
