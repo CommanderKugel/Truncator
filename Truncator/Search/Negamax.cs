@@ -51,6 +51,7 @@ public static partial class Search
         TTEntry ttEntry = thread.tt.Probe(p.ZobristKey);
         bool ttHit = ttEntry.Key == p.ZobristKey;
         Move ttMove = ttHit ? new(ttEntry.MoveValue) : Move.NullMove;
+        bool ttPV = ttHit && ttEntry.PV == 1 || isPV;
 
         // return the tt-score if the entry is any good
         if (nonPV && ttHit && ttEntry.Depth >= depth && !inSingularity && (
@@ -292,6 +293,8 @@ public static partial class Search
 
                     if (thread.ply > 1 && !improving) R++;
 
+                    if (ttPV) R--;
+
                     // ToDo: R += nonPV && !cutnode ? 2 : 1; // +1 if allnode
                     if ((ns + 1)->CutoffCount > 2) R++;
 
@@ -426,7 +429,7 @@ public static partial class Search
                 flag == UPPER_BOUND ? ttMove : bestmove,
                 depth,
                 flag,
-                isPV,
+                ttPV,
                 thread
             );
         }
