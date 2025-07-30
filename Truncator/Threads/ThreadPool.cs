@@ -51,9 +51,7 @@ public static class ThreadPool
         for (int i = 1; i < ThreadCount; i++)
         {
             pool[i].Reset();
-            pool[i].ply = MainThread.ply;
-            pool[i].rootPos = MainThread.rootPos;
-            pool[i].repTable.CopyFrom(ref MainThread.repTable);
+            pool[i].CopyFrom(MainThread);
             pool[i].Go();
         }
 
@@ -106,18 +104,15 @@ public static class ThreadPool
             pv = bestThread.GetPV;
         }
 
-        int moveIdx = bestThread.rootPos.IndexOfMove(bestMove) ?? 256;
-        Debug.Assert(moveIdx < 256, "something went wrong looking for the best move");
-
         // final reporting of the chosen best move before terminating the search
         if (final)
         {
             Console.WriteLine($"bestmove {bestMove} ponder {ponderMove}");
             return;
         }
-        
+
         // info printing in between iterations
-        int dirty_score = bestThread.rootPos.moveScore[moveIdx];
+        int dirty_score = bestThread.rootPos.RootMoves[bestMove].Score;
         long nodes = GetNodes();
         long time = TimeManager.ElapsedMilliseconds;
         long nps = nodes * 1000 / time;
