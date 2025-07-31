@@ -191,25 +191,26 @@ public static partial class Search
                 !isNoisy &&
                 notLoosing)
             {
+                int lmrDepth = depth - Math.Max(Log_[Math.Min(movesPlayed, 63)] * Log_[Math.Min(depth, 63)] / 4, 0);
 
                 // futility pruning 
                 if (nonPV &&
                     !inCheck &&
-                    depth <= 4 &&
+                    lmrDepth <= 4 &&
                     ns->StaticEval + depth * 150 <= alpha)
                 {
                     continue;
                 }
 
                 // late move pruning
-                if (depth <= 4 &&
+                if (lmrDepth <= 4 &&
                     movesPlayed >= 2 + depth * depth)
                 {
                     continue;
                 }
 
                 // main-history pruning
-                if (depth <= 5 &&
+                if (lmrDepth <= 5 &&
                     ButterflyScore < -(15 * depth + 9 * depth * depth))
                 {
                     continue;
