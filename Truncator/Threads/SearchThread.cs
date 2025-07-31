@@ -25,12 +25,10 @@ public class SearchThread : IDisposable
     public int completedDepth = 0;
 
     // search objects
-    public PV pv_;
-    public string GetPV => pv_.GetPV();
-    public int RootScore => pv_[completedDepth];
+    public PV PV;
 
-    public void NewPVLine() => pv_[ply, ply] = Move.NullMove;
-    public void PushToPV(Move m) => pv_.Push(m, ply);
+    public void NewPVLine() => PV[ply, ply] = Move.NullMove;
+    public void PushToPV(Move m) => PV.Push(m, ply);
 
     public TranspositionTable tt = ThreadPool.tt;
     public RepetitionTable repTable;
@@ -51,7 +49,7 @@ public class SearchThread : IDisposable
     public SearchThread(int id)
     {
         this.id = id;
-        pv_ = new();
+        PV = new();
         repTable = new RepetitionTable();
         rootPos = new RootPos();
 
@@ -153,7 +151,7 @@ public class SearchThread : IDisposable
         nodeCount = 0;
         completedDepth = 0;
 
-        pv_.Clear();
+        PV.Clear();
         NativeMemory.Clear(nodeStack, (nuint)sizeof(Node) * 255);
     }
 
@@ -165,7 +163,7 @@ public class SearchThread : IDisposable
         doSearch = true;
         Reset();
 
-        pv_.Clear();
+        PV.Clear();
         history.Clear();
         CorrHist.Clear();
     }
@@ -184,7 +182,7 @@ public class SearchThread : IDisposable
 
     public void Dispose()
     {
-        this.pv_.Dispose();
+        this.PV.Dispose();
         this.repTable.Dispose();
         this.history.Dispose();
         this.CorrHist.Dispose();

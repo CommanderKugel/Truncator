@@ -10,22 +10,16 @@ public struct PV : IDisposable
     public const int SIZE = 256;
 
     private unsafe Move* table_ = null;
-    private unsafe Move* lastVariation = null;
-
     private unsafe int* scores = null;
-    public object lockObject;
 
-    public unsafe Move BestMove => table_[0].NotNull ? table_[0] : lastVariation[0];
-    public unsafe Move PonderMove => table_[1].NotNull ? table_[1] : lastVariation[1];
+    public unsafe Move BestMove => table_[0];
+    public unsafe Move PonderMove => table_[1];
 
 
     public unsafe PV()
     {
         table_ = (Move*)NativeMemory.Alloc((nuint)sizeof(Move) * SIZE * SIZE);
-        lastVariation = (Move*)NativeMemory.Alloc((nuint)sizeof(Move) * SIZE);
-
         scores = (int*)NativeMemory.Alloc(sizeof(int) * SIZE);
-        lockObject = new object();
     }
 
     public unsafe Move this[int ply1, int ply2]
@@ -60,9 +54,8 @@ public struct PV : IDisposable
 
     public unsafe void Clear()
     {
-        Debug.Assert(table_ != null && lastVariation != null && scores != null, "cant clear a disposed or uninitialized pv!");
+        Debug.Assert(table_ != null && scores != null, "cant clear a disposed or uninitialized pv!");
         NativeMemory.Clear(table_, (nuint)sizeof(Move) * SIZE * SIZE);
-        NativeMemory.Clear(lastVariation, (nuint)sizeof(Move) * SIZE);
         NativeMemory.Clear(scores, sizeof(int) * SIZE);
     }
 
@@ -77,22 +70,14 @@ public struct PV : IDisposable
         }
     }
 
-    public unsafe string GetPV()
+    public override unsafe string ToString()
     {
-        var ptr = table_[0].NotNull ? table_ : lastVariation;
-
         string pv = "";
-        for (int i = 0; i < SIZE && (ptr + i)->NotNull; i++)
+        for (int i = 0; i < SIZE && this[0, i].NotNull; i++)
         {
-            pv += (ptr + i)->ToString() + " ";
+            pv += this[0, i].ToString() + " ";
         }
         return pv;
-    }
-
-    public unsafe void SaveLastLine()
-    {
-        Debug.Assert(table_ != null && lastVariation != null);
-        NativeMemory.Copy(table_, lastVariation, (nuint)sizeof(Move) * SIZE);
     }
 
     public unsafe void Dispose()
@@ -100,9 +85,8 @@ public struct PV : IDisposable
         if (table_ != null)
         {
             NativeMemory.Free(table_);
-            NativeMemory.Free(lastVariation);
             NativeMemory.Free(scores);
-            table_ = lastVariation = null;
+            table_ = null;
             scores = null;
         }
     }
