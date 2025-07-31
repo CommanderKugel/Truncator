@@ -71,8 +71,8 @@ public static class TimeManager
         // #2 we manage time ourselves
         else
         {
-            int time = Math.Max((Us == Color.White ? wtime : btime) - MoveOverhead, 1);
-            int inc = Math.Max(Us == Color.White ? winc : binc, 0);
+            int time = Us == Color.White ? wtime : btime;
+            int inc = Us == Color.White ? winc : binc;
 
             // #2.1 searching should take exactly the given time
             //      technically this is not self-managing, but we need to enable the 
@@ -87,18 +87,22 @@ public static class TimeManager
             // #2.2 Play N moves in M time + o per move, then get time bonus for next N moves
             else if (movestogo != -1)
             {
-                HardTimeout = time / Math.Min(movestogo, 2) + inc / 2;
-                SoftTimeout = time / movestogo + inc / 2;
+                HardTimeout = (time - MoveOverhead) / Math.Min(movestogo, 2) + inc / 2;
+                SoftTimeout = (time - MoveOverhead) / movestogo + inc / 2;
                 Console.WriteLine($"movestogo: mtg = {movestogo}, hardlimit = {HardTimeout}, softlimit = {SoftTimeout}");
             }
 
             // #2.3 Play whole game in M time
             else
             {
-                HardTimeout = time / 5 + inc / 2;
-                SoftTimeout = time / 30 + inc / 2;
+                HardTimeout = (time - MoveOverhead) / 5 + inc / 2;
+                SoftTimeout = (time - MoveOverhead) / 30 + inc / 2;
                 Console.WriteLine($"normal: hardlimit = {HardTimeout}, softlimit = {SoftTimeout}");
             }
+
+            // never allow to use more time then available - overhead
+            HardTimeout = Math.Min(HardTimeout, time - MoveOverhead);
+            SoftTimeout = Math.Min(SoftTimeout, time - MoveOverhead);
         }
     }
 

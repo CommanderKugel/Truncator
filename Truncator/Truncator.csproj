@@ -11,6 +11,9 @@
 
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Optimize>true</Optimize>
+
+    <!-- idea from Lizard author about GC activitie -->
+    <ServerGarbageCollection>false</ServerGarbageCollection>
   </PropertyGroup>
 
 </Project>
