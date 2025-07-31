@@ -1,5 +1,6 @@
 
 using System.Diagnostics;
+using System.Threading.Channels;
 
 public static partial class Search
 {
@@ -84,6 +85,13 @@ public static partial class Search
         {
             ns->UncorrectedStaticEval = Pesto.Evaluate(ref p);
             thread.CorrHist.Correct(thread, ref p, ns);
+
+            if (ttHit
+                && !IsTerminal(ttEntry.Score)
+                && (ttEntry.Flag & (ttEntry.Score > ns->StaticEval ? LOWER_BOUND : UPPER_BOUND)) != 0)
+            {
+                ns->StaticEval = ttEntry.Score;
+            }
         }
 
 
