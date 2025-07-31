@@ -1,20 +1,19 @@
 using System.Diagnostics;
 
 
-public unsafe struct RootPos
+public class RootPos
 {
-    public fixed ushort rootMoves[256];
-    public fixed int moveScore[256];
-    public fixed long moveNodes[256];
+    public Dictionary<Move, RootMove> RootMoves;
 
     public Pos p;
     public int moveCount;
 
 
-    public RootPos() { }
+    public RootPos() => RootMoves = new();
 
     public RootPos(string fen)
     {
+        RootMoves = new();
         SetNewFen(fen);
     }
 
@@ -26,7 +25,7 @@ public unsafe struct RootPos
         // make move on board representation
         p.MakeMove(m, ThreadPool.MainThread);
         thread.ply--;
-        
+
         if (p.FiftyMoveRule == 0)
         {
             thread.repTable.Clear();
@@ -37,24 +36,12 @@ public unsafe struct RootPos
         }
     }
 
-    public int? IndexOfMove(Move m)
-    {
-        for (int i = 0; i < moveCount; i++)
-        {
-            if (rootMoves[i] == m.value)
-            {
-                return i;
-            }
-        }
-        return null;
-    }
-
     public unsafe void Print()
     {
         Console.WriteLine($"moveCount: {moveCount}");
-        for (int i = 0; i < moveCount; i++)
+        foreach (RootMove rm in RootMoves.Values)
         {
-            Console.WriteLine($"move {new Move(rootMoves[i])} score {moveScore[i]} nodes {moveNodes[i]}");
+            Console.WriteLine($"move {rm.Move} score {rm.Score} nodes {rm.Nodes}");
         }
     }
 
@@ -63,12 +50,9 @@ public unsafe struct RootPos
         Debug.Assert(m.NotNull, "cant report on null moves for root pos!");
         Debug.Assert(nodes > 0, "did you even search?");
         Debug.Assert(depth >= 1, "depth needs to '1' or greater!");
+        Debug.Assert(RootMoves.ContainsKey(m), "move not in rootmoves!");
 
-        int idx = IndexOfMove(m) ?? 256;
-        Debug.Assert(idx <= moveCount, "no move found to report back to!");
-
-        moveScore[idx] = score;
-        moveNodes[idx] = nodes;
+        RootMoves[m] = new(m, score, nodes);
     }
 
     public void SetNewFen(string fen)
@@ -85,9 +69,7 @@ public unsafe struct RootPos
 
         for (int i = 0; i < moveCount && i < 256; i++)
         {
-            rootMoves[i] = moves[i].value;
-            moveScore[i] = 0;
-            moveNodes[i] = 0;
+            RootMoves.Add(moves[i], new RootMove(moves[i], 0, 0));
         }
     }
 
@@ -95,13 +77,14 @@ public unsafe struct RootPos
     {
         p = new();
         moveCount = 0;
+        RootMoves.Clear();
+    }
 
-        for (int i = 0; i < 256; i++)
-        {
-            rootMoves[i] = 0;
-            moveScore[i] = 0;
-            moveNodes[i] = 0;
-        }
+    public void CopyFrom(RootPos Parent)
+    {
+        RootMoves = new Dictionary<Move, RootMove>(Parent.RootMoves);
+        p = Parent.p;
+        moveCount = Parent.moveCount;
     }
 
 }

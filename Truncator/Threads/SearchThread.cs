@@ -28,6 +28,7 @@ public class SearchThread : IDisposable
     public PV pv_;
     public string GetPV => pv_.GetPV();
     public int RootScore => pv_[completedDepth];
+
     public void NewPVLine() => pv_[ply, ply] = Move.NullMove;
     public void PushToPV(Move m) => pv_.Push(m, ply);
 
@@ -37,6 +38,14 @@ public class SearchThread : IDisposable
 
     public History history;
     public CorrectionHistory CorrHist;
+
+
+    public void CopyFrom(SearchThread Parent)
+    {
+        rootPos.CopyFrom(Parent.rootPos);
+        ply = Parent.ply;
+        repTable.CopyFrom(ref Parent.repTable);
+    }
 
 
     public SearchThread(int id)
