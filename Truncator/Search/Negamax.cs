@@ -353,19 +353,13 @@ public static partial class Search
                 bestscore = score;
                 flag = UPPER_BOUND;
 
-                // lock pv-updates at root to avoid it being read for uci info printing and
-                // written to by the searching thread at the same time. this is only relevant
-                // at root nodes, because info printing only ever uses the full latest pv
-                if (isRoot)
+                if (isPV)
                 {
-                    lock (thread.pv_.lockObject)
+                    if (isRoot)
                     {
-                        thread.pv_[depth] = bestscore;
-                        thread.PushToPV(m);
+                        thread.PV[depth] = bestscore;
                     }
-                }
-                else if (isPV)
-                {
+
                     thread.PushToPV(m);
                 }
 
