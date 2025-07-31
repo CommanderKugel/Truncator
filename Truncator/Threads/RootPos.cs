@@ -55,6 +55,16 @@ public class RootPos
         RootMoves[m] = new(m, score, nodes);
     }
 
+    public int GetAvgSqrScore()
+    {
+        int avg = 0;
+        foreach (RootMove rm in RootMoves.Values)
+        {
+            avg += rm.Score * rm.Score;
+        }
+        return avg / moveCount;
+    }
+
     public void SetNewFen(string fen)
     {
         Clear();

@@ -51,17 +51,30 @@ public static partial class Search
                 return score;
             }
 
-            // if the score falls outside the window
-            // widen the window and try again 
-            if (score <= alpha || score >= beta)
+            // return exact scores
+            if (score > alpha && score < beta)
             {
-                alpha = -SCORE_MATE;
-                beta = SCORE_MATE;
-                continue;
+                return score;
             }
 
-            // return an exact score
-            return score;
+            int avgSqr = thread.rootPos.GetAvgSqrScore();
+
+            // if the score falls outside the window, widen the window and try again 
+            // update on score, because it might not equal alpha/beta to begin with
+            if (score <= alpha)
+            {
+                beta = (alpha + beta) / 2;
+                alpha = Math.Max(score - avgSqr, int.MinValue);
+            }
+
+            else if (score >= beta)
+            {
+                // somehow most engines dont update alpha on a fail-high, so we dont (for now?)
+                beta = Math.Min(score + avgSqr, int.MaxValue);
+            }
+
+            delta += delta;
+            // continue with widened windows
         }
     }
 
