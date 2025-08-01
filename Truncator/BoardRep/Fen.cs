@@ -79,6 +79,9 @@ public partial struct Pos
         // fifty move rule
         FiftyMoveRule = 0;
 
+        Threats[(int)Color.White] = ComputeThreats(Color.White);
+        Threats[(int)Color.Black] = ComputeThreats(Color.Black);
+
         Castling.UpdateNewPosition(ref this);
         Zobrist.ComputeFromZero(ref this);
     }
