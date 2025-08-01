@@ -64,7 +64,8 @@ public unsafe partial struct Pos
             threats |= PieceAttacks(PieceType.Rook, Utils.popLsb(ref pieces), blocker);
         }
 
-        pieces = GetPieces(c, PieceType.Rook, PieceType.Queen);
+        pieces = GetPieces(c, PieceType.King);
+        Debug.Assert(pieces != 0);
         threats |= PieceAttacks(PieceType.King, Utils.popLsb(ref pieces), blocker);
 
         return threats;
