@@ -217,8 +217,7 @@ public unsafe partial struct Pos
         Us = Them;
         ZobristKey ^= Zobrist.stmKey;
 
-        Threats[(int)Color.White] = ComputeThreats(Color.White);
-        Threats[(int)Color.Black] = ComputeThreats(Color.Black);
+        Threats = ComputeThreats();
 
         // update the search-stack
         thread.nodeStack[thread.ply].MovedPieceType = movingPt;
@@ -249,8 +248,7 @@ public unsafe partial struct Pos
             EnPassantSquare = (int)Square.NONE;
         }
 
-        Threats[(int)Color.White] = ComputeThreats(Color.White);
-        Threats[(int)Color.Black] = ComputeThreats(Color.Black);
+        Threats = ComputeThreats();
 
         // update the search-stack
         thread.nodeStack[thread.ply].MovedPieceType = PieceType.NONE;

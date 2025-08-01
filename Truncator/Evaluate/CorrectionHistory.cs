@@ -64,7 +64,7 @@ public struct CorrectionHistory : IDisposable
         int npwhite = 12 * WhiteNonPawnTable[MakeKey(p.Us, p.NonPawnMaterialKey(Color.White))];
         int npblack = 12 * BlackNonPawnTable[MakeKey(p.Us, p.NonPawnMaterialKey(Color.Black))];
         int minor = 12 * MinorTable[MakeKey(p.Us, p.MinorKey)];
-        int threat = 12 * ThreatTable[MakeKey(p.Us, murmurHash(p.Threats[(int)p.Them] & p.ColorBB[(int)p.Us]))];
+        int threat = 12 * ThreatTable[MakeKey(p.Us, murmurHash(p.Threats & p.ColorBB[(int)p.Us]))];
 
         int prevPiece = (thread.ply > 0 && (n - 1)->move.NotNull) ?
             12 * MoveTable[p.Us, (n - 1)->MovedPieceType, (n - 1)->move.to] : 0;
@@ -89,7 +89,7 @@ public struct CorrectionHistory : IDisposable
         BlackNonPawnTable[MakeKey(p.Us, p.NonPawnMaterialKey(Color.Black))].Update(delta);
         MinorTable[MakeKey(p.Us, p.MinorKey)].Update(delta);
 
-        ThreatTable[MakeKey(p.Us, murmurHash(p.Threats[(int)p.Them] & p.ColorBB[(int)p.Us]))].Update(delta);
+        ThreatTable[MakeKey(p.Us, murmurHash(p.Threats & p.ColorBB[(int)p.Us]))].Update(delta);
 
         if (thread.ply > 0 && (n - 1)->move.NotNull)
         {

@@ -35,36 +35,36 @@ public unsafe partial struct Pos
     public readonly ulong blocker => ColorBB[0] | ColorBB[1];
 
     /// <summary>
-    /// Bitboards of all attacked squares by each opponents color
+    /// Bitboards of all attacked squares by the opponent
     /// </summary>
-    public fixed ulong Threats[2];
+    public ulong Threats;
 
-    private ulong ComputeThreats(Color c)
+    private ulong ComputeThreats()
     {
         // pawns - knights - diag sliders - ortho sliders - king
 
-        ulong pieces = GetPieces(c, PieceType.Pawn);
+        ulong pieces = GetPieces(Them, PieceType.Pawn);
         ulong threats = LeftPawnMassAttacks(Them, pieces) | RightPawnMassAttacks(Them, pieces);
 
-        pieces = GetPieces(c, PieceType.Knight);
+        pieces = GetPieces(Them, PieceType.Knight);
         while (pieces != 0)
         {
             threats |= PieceAttacks(PieceType.Knight, Utils.popLsb(ref pieces), blocker);
         }
 
-        pieces = GetPieces(c, PieceType.Bishop, PieceType.Queen);
+        pieces = GetPieces(Them, PieceType.Bishop, PieceType.Queen);
         while (pieces != 0)
         {
             threats |= PieceAttacks(PieceType.Bishop, Utils.popLsb(ref pieces), blocker);
         }
 
-        pieces = GetPieces(c, PieceType.Rook, PieceType.Queen);
+        pieces = GetPieces(Them, PieceType.Rook, PieceType.Queen);
         while (pieces != 0)
         {
             threats |= PieceAttacks(PieceType.Rook, Utils.popLsb(ref pieces), blocker);
         }
 
-        pieces = GetPieces(c, PieceType.King);
+        pieces = GetPieces(Them, PieceType.King);
         Debug.Assert(pieces != 0);
         threats |= PieceAttacks(PieceType.King, Utils.popLsb(ref pieces), blocker);
 
