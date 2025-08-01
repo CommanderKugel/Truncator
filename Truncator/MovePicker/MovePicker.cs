@@ -31,6 +31,7 @@ public ref struct MovePicker
 
         var ContHist1ply = thread.nodeStack[thread.ply - 1].ContHist;
         var ContHist2ply = thread.nodeStack[thread.ply - 2].ContHist;
+        var PawnHist = thread.history.PawnHist[p.PawnKey];
 
         for (int i = 0; i < moveCount; i++)
         {
@@ -57,6 +58,7 @@ public ref struct MovePicker
                 scores[i] = thread.history.Butterfly[p.Us, m];
                 scores[i] += (*ContHist1ply)[p.Us, pt, m.to];
                 scores[i] += (*ContHist2ply)[p.Them, pt, m.to];
+                scores[i] += (*PawnHist)[p.Us, pt, m.to];
             }
         }
     }
