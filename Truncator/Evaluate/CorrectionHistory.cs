@@ -16,6 +16,7 @@ public struct CorrectionHistory : IDisposable
     private unsafe HistVal* WhiteNonPawnTable;
     private unsafe HistVal* BlackNonPawnTable;
     private unsafe HistVal* MinorTable;
+    private unsafe HistVal* MajorTable;
 
     public PieceToHistory MoveTable;
 
@@ -26,6 +27,7 @@ public struct CorrectionHistory : IDisposable
         WhiteNonPawnTable = (HistVal*)NativeMemory.AllocZeroed((nuint)sizeof(HistVal) * SIZE * 2);
         BlackNonPawnTable = (HistVal*)NativeMemory.AllocZeroed((nuint)sizeof(HistVal) * SIZE * 2);
         MinorTable = (HistVal*)NativeMemory.AllocZeroed((nuint)sizeof(HistVal) * SIZE * 2);
+        MajorTable = (HistVal*)NativeMemory.AllocZeroed((nuint)sizeof(HistVal) * SIZE * 2);
 
         MoveTable = new();
     }
@@ -45,6 +47,7 @@ public struct CorrectionHistory : IDisposable
         CorrectionValue += 12 * WhiteNonPawnTable[MakeKey(p.Us, p.NonPawnMaterialKey(Color.White))];
         CorrectionValue += 12 * BlackNonPawnTable[MakeKey(p.Us, p.NonPawnMaterialKey(Color.Black))];
         CorrectionValue += 12 * MinorTable[MakeKey(p.Us, p.MinorKey)];
+        CorrectionValue += 12 * MajorTable[MakeKey(p.Us, p.MajorKey)];
 
         if (thread.ply > 0 && (n - 1)->move.NotNull)
         {
@@ -70,6 +73,7 @@ public struct CorrectionHistory : IDisposable
         WhiteNonPawnTable[MakeKey(p.Us, p.NonPawnMaterialKey(Color.White))].Update(delta);
         BlackNonPawnTable[MakeKey(p.Us, p.NonPawnMaterialKey(Color.Black))].Update(delta);
         MinorTable[MakeKey(p.Us, p.MinorKey)].Update(delta);
+        MajorTable[MakeKey(p.Us, p.MajorKey)].Update(delta);
 
         if (thread.ply > 0 && (n - 1)->move.NotNull)
         {
@@ -87,6 +91,7 @@ public struct CorrectionHistory : IDisposable
         NativeMemory.Clear(WhiteNonPawnTable, (nuint)sizeof(HistVal) * SIZE * 2);
         NativeMemory.Clear(BlackNonPawnTable, (nuint)sizeof(HistVal) * SIZE * 2);
         NativeMemory.Clear(MinorTable, (nuint)sizeof(HistVal) * SIZE * 2);
+        NativeMemory.Clear(MajorTable, (nuint)sizeof(HistVal) * SIZE * 2);
         MoveTable.Clear();
     }
 
@@ -101,6 +106,7 @@ public struct CorrectionHistory : IDisposable
             NativeMemory.Free(WhiteNonPawnTable);
             NativeMemory.Free(BlackNonPawnTable);
             NativeMemory.Free(MinorTable);
+            NativeMemory.Free(MajorTable);
             PawnTable = WhiteNonPawnTable = BlackNonPawnTable = MinorTable = null;
         }
 
