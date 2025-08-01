@@ -222,6 +222,7 @@ public unsafe partial struct Pos
         thread.nodeStack[thread.ply].CapturedPieceType = victimPt;
         thread.nodeStack[thread.ply].move = m;
         thread.nodeStack[thread.ply].ContHist = thread.history.ContHist[Them, movingPt, m.to];
+        thread.nodeStack[thread.ply].ContCorrhist = thread.CorrHist.ContCorrhist[Them, movingPt, m.to];
 
         // update the thread-data
         thread.nodeCount++;

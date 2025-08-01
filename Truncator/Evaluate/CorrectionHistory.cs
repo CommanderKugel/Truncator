@@ -1,5 +1,6 @@
 
 using System.Diagnostics;
+using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
 
 public struct CorrectionHistory : IDisposable
@@ -18,6 +19,7 @@ public struct CorrectionHistory : IDisposable
     private unsafe HistVal* MinorTable;
 
     public PieceToHistory MoveTable;
+    public ContinuationHistory ContCorrhist;
 
 
     public unsafe CorrectionHistory()
@@ -28,6 +30,7 @@ public struct CorrectionHistory : IDisposable
         MinorTable = (HistVal*)NativeMemory.AllocZeroed((nuint)sizeof(HistVal) * SIZE * 2);
 
         MoveTable = new();
+        ContCorrhist = new();
     }
 
     private ulong MakeKey(Color c, ulong key) => (ulong)c * SIZE + key % SIZE;
@@ -48,13 +51,31 @@ public struct CorrectionHistory : IDisposable
 
         if (thread.ply > 0 && (n - 1)->move.NotNull)
         {
-            CorrectionValue += 12 * MoveTable[p.Us, (n - 1)->MovedPieceType, (n - 1)->move.to];
+            Color c = p.Us;
+            PieceType pt = (n - 1)->MovedPieceType;
+            int to = (n - 1)->move.to;
+
+            CorrectionValue += 12 * MoveTable[c, pt, to];
+
+            if (thread.ply > 1 && (n - 2)->move.NotNull)
+            {
+                CorrectionValue += 8 * GetContCorrHist(n, 2, c, pt, to);
+            }
         }
 
         CorrectionValue /= HistVal.HIST_VAL_MAX;
         n->StaticEval = Math.Clamp(n->UncorrectedStaticEval + CorrectionValue, -Search.SCORE_EVAL_MAX, Search.SCORE_EVAL_MAX);
 
         return CorrectionValue;
+    }
+
+    private unsafe ref HistVal GetContCorrHist(Node* n, int ply, Color c, PieceType pt, int sq)
+    {
+        Debug.Assert(c != Color.NONE);
+        Debug.Assert(pt != PieceType.NONE);
+        Debug.Assert(sq >= 0 && sq < 64);
+        Debug.Assert(ply > 0);
+        return ref (*(n - ply)->ContCorrhist)[c, pt, sq];
     }
 
     /// <summary>
@@ -73,7 +94,16 @@ public struct CorrectionHistory : IDisposable
 
         if (thread.ply > 0 && (n - 1)->move.NotNull)
         {
-            MoveTable[p.Us, (n - 1)->MovedPieceType, (n - 1)->move.to].Update(delta);
+            Color c = p.Us;
+            PieceType pt = (n - 1)->MovedPieceType;
+            int to = (n - 1)->move.to;
+
+            MoveTable[c, pt, to].Update(delta);
+
+            if (thread.ply > 1 && (n - 2)->move.NotNull)
+            {
+                GetContCorrHist(n, 2, c, pt, to).Update(delta);
+            }
         }
     }
 
