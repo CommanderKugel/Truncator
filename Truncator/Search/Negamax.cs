@@ -71,6 +71,7 @@ public static partial class Search
         }
 
         
+        p.ComputeThreats();
         bool inCheck = p.GetCheckers() != 0;
 
         // static evaluaton
@@ -183,7 +184,7 @@ public static partial class Search
             bool isCapture = p.IsCapture(m);
             bool isNoisy = isCapture || m.IsPromotion; // ToDo: GivesCheck()
 
-            int ButterflyScore = isCapture ? 0 : thread.history.Butterfly[p.Us, m];
+            int ButterflyScore = isCapture ? 0 : thread.history.Butterfly[p.Us, m, p.AllThreats];
 
             // move loop pruning
             if (!isRoot &&

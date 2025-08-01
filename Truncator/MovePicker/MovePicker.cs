@@ -54,7 +54,7 @@ public ref struct MovePicker
             {
                 PieceType pt = p.PieceTypeOn(m.from);
 
-                scores[i] = thread.history.Butterfly[p.Us, m];
+                scores[i] = thread.history.Butterfly[p.Us, m, p.AllThreats];
                 scores[i] += (*ContHist1ply)[p.Us, pt, m.to];
                 scores[i] += (*ContHist2ply)[p.Them, pt, m.to];
             }

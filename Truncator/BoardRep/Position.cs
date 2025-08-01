@@ -32,6 +32,10 @@ public unsafe partial struct Pos
     public readonly ulong MajorKey => PieceKeys[(int)PieceType.Rook] ^ PieceKeys[(int)PieceType.Queen] ^ PieceKeys[(int)PieceType.King];
     public readonly ulong NonPawnMaterialKey(Color c) => NonPawnKeys[(int)c];
 
+    public fixed ulong Threats[6];
+    public readonly ulong AllThreats => Threats[(int)PieceType.King];
+    public readonly bool IsAttacked(int sq) => ((1ul << sq) & Threats[(int)PieceType.King]) != 0;
+
     public readonly ulong blocker => ColorBB[0] | ColorBB[1];
 
 
@@ -124,10 +128,31 @@ public unsafe partial struct Pos
 
     private bool IsInsufficientMaterial => (PieceBB[(int)PieceType.Pawn] | PieceBB[(int)PieceType.Rook] | PieceBB[(int)PieceType.Queen]) == 0
                                         && !Utils.MoreThanOne(PieceBB[(int)PieceType.Bishop] | PieceBB[(int)PieceType.Knight]);
-    
+
     public bool IsDraw(SearchThread thread)
     {
         Debug.Assert(FiftyMoveRule >= 0 && FiftyMoveRule <= 100, "why are you still playing? This game is already drawn!");
         return IsFiftyMoveDraw || IsInsufficientMaterial || thread.repTable.IsTwofoldRepetition(ref this);
+    }
+
+    public void ComputeThreats()
+    {
+        ulong pawns = GetPieces(Them, PieceType.Pawn);
+        Threats[(int)PieceType.Pawn] = LeftPawnMassAttacks(Them, pawns) | RightPawnMassAttacks(Them, pawns);
+
+        ulong block = blocker;
+        for (PieceType pt = PieceType.Knight; pt <= PieceType.King; pt++)
+        {
+            // add lesser valued pieces threats to this attack map
+            Threats[(int)pt] |= Threats[(int)pt - 1];
+
+            ulong pieces = GetPieces(Them, pt);
+            while (pieces != 0)
+            {
+                int sq = Utils.popLsb(ref pieces);
+                ulong attack = PieceAttacks(pt, sq, block);
+                Threats[(int)pt] |= attack;
+            }
+        }
     }
 }
