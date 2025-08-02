@@ -147,8 +147,11 @@ public static partial class Search
             depth++;
         }
 
-        // ToDo: Internal Iterative Reductions
-        // if (depth >= 4 && isPV && !ttHit) depth--;
+        // IIR
+        if (isPV && !ttHit && depth > 4)
+        {
+            depth--;
+        }
 
         // movegeneration, scoring and ordering is outsourced to the move-picker
         Span<Move> moves = stackalloc Move[256];
