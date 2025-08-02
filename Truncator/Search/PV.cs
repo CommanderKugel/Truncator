@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Security.Cryptography;
 
 public struct PV : IDisposable
 {
@@ -10,7 +9,9 @@ public struct PV : IDisposable
     public const int SIZE = 256;
 
     private unsafe Move* table_ = null;
-    private unsafe int* scores = null;
+
+    public unsafe int* scores = null;
+    public unsafe Move* moves = null;
 
     public unsafe Move BestMove => table_[0];
     public unsafe Move PonderMove => table_[1];
@@ -20,6 +21,7 @@ public struct PV : IDisposable
     {
         table_ = (Move*)NativeMemory.Alloc((nuint)sizeof(Move) * SIZE * SIZE);
         scores = (int*)NativeMemory.Alloc(sizeof(int) * SIZE);
+        moves = (Move*)NativeMemory.Alloc((nuint)sizeof(Move) * SIZE);
     }
 
     public unsafe Move this[int ply1, int ply2]
@@ -35,20 +37,6 @@ public struct PV : IDisposable
             Debug.Assert(ply1 >= 0 && ply1 < SIZE);
             Debug.Assert(ply2 >= 0 && ply2 < SIZE);
             table_[SIZE * ply1 + ply2] = value;
-        }
-    }
-
-    public unsafe int this[int iteration]
-    {
-        get
-        {
-            Debug.Assert(iteration >= 0 && iteration <= SIZE);
-            return scores[iteration];
-        }
-        set
-        {
-            Debug.Assert(iteration >= 0 && iteration <= SIZE);
-            scores[iteration] = value;
         }
     }
 

@@ -357,7 +357,8 @@ public static partial class Search
                 {
                     if (isRoot)
                     {
-                        thread.PV[depth] = bestscore;
+                        thread.PV.scores[depth] = bestscore;
+                        thread.PV.moves[depth] = m;
                     }
 
                     thread.PushToPV(m);
