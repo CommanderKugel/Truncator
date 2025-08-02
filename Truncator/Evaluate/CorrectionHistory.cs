@@ -18,6 +18,7 @@ public struct CorrectionHistory : IDisposable
     private unsafe HistVal* MinorTable;
 
     public PieceToHistory MoveTable;
+    public ContinuationHistory ContHist;
 
 
     public unsafe CorrectionHistory()
@@ -28,6 +29,7 @@ public struct CorrectionHistory : IDisposable
         MinorTable = (HistVal*)NativeMemory.AllocZeroed((nuint)sizeof(HistVal) * SIZE * 2);
 
         MoveTable = new();
+        ContHist = new();
     }
 
     private ulong MakeKey(Color c, ulong key) => (ulong)c * SIZE + key % SIZE;
@@ -48,7 +50,15 @@ public struct CorrectionHistory : IDisposable
 
         if (thread.ply > 0 && (n - 1)->move.NotNull)
         {
-            CorrectionValue += 12 * MoveTable[p.Us, (n - 1)->MovedPieceType, (n - 1)->move.to];
+            PieceType pt = (n - 1)->MovedPieceType;
+            int sq = (n - 1)->move.to;
+
+            CorrectionValue += 12 * MoveTable[p.Us, pt, sq];
+
+            if (thread.ply > 1 && (n - 2)->move.NotNull)
+            {
+                CorrectionValue += 8 * (*(n - 2)->ContCorrHist)[p.Us, pt, sq];
+            }
         }
 
         CorrectionValue /= HistVal.HIST_VAL_MAX;
@@ -73,7 +83,15 @@ public struct CorrectionHistory : IDisposable
 
         if (thread.ply > 0 && (n - 1)->move.NotNull)
         {
-            MoveTable[p.Us, (n - 1)->MovedPieceType, (n - 1)->move.to].Update(delta);
+            PieceType pt = (n - 1)->MovedPieceType;
+            int sq = (n - 1)->move.to;
+
+            MoveTable[p.Us, pt, sq].Update(delta);
+
+            if (thread.ply > 1 && (n - 2)->move.NotNull)
+            {
+                (*(n - 2)->ContCorrHist)[p.Us, pt, sq].Update(delta);
+            }
         }
     }
 
@@ -87,7 +105,9 @@ public struct CorrectionHistory : IDisposable
         NativeMemory.Clear(WhiteNonPawnTable, (nuint)sizeof(HistVal) * SIZE * 2);
         NativeMemory.Clear(BlackNonPawnTable, (nuint)sizeof(HistVal) * SIZE * 2);
         NativeMemory.Clear(MinorTable, (nuint)sizeof(HistVal) * SIZE * 2);
+        
         MoveTable.Clear();
+        ContHist.Clear();
     }
 
     /// <summary>
@@ -105,5 +125,6 @@ public struct CorrectionHistory : IDisposable
         }
 
         MoveTable.Dispose();
+        ContHist.Dispose();
     }
 }

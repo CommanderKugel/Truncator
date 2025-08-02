@@ -72,6 +72,7 @@ public class SearchThread : IDisposable
             for (int i = 0; i < 8; i++)
             {
                 (NodePtr + i)->ContHist = this.history.ContHist.NullHist;
+                (NodePtr + i)->ContCorrHist = this.CorrHist.ContHist.NullHist;
             }
 
             try
@@ -200,6 +201,7 @@ public class SearchThread : IDisposable
             for (int i = 0; i < 8; i++)
             {
                 (NodePtr + i)->ContHist = this.history.ContHist.NullHist;
+                (NodePtr + i)->ContCorrHist = this.CorrHist.ContHist.NullHist;
             }
 
             watch.Start();

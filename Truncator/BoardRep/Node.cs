@@ -16,6 +16,7 @@ public struct Node
     public Move ExcludedMove;
 
     public unsafe PieceToHistory* ContHist;
+    public unsafe PieceToHistory* ContCorrHist;
 
     public int CutoffCount;
 
