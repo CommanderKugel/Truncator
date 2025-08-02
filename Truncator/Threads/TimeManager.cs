@@ -143,19 +143,19 @@ public static class TimeManager
             return true;
         }
 
-        // pv stability
-        // spend less time, if we agree over manyiterations
-        // what the best move might be
+        // node tm
+        // if we spend most of our node searching for the best move
+        // the other moves are probably much worse.
+        // spend less time when the bestmove might be much better than the rest
 
-        ref var PV = ref thread.PV;
-        PvStability = PV.moves[iteration] == PV.moves[iteration - 1] ? Math.Min(PvStability + 1, 10) : 0;
-        double PvStabilityFactor = 1.20 - 0.04 * PvStability;
+        long bestmoveNodes = thread.rootPos.RootMoves[thread.PV.BestMove].Nodes;
+        double nonBestNodesFraction = 1.0 - (double)bestmoveNodes / (double)thread.nodeCount;
+        double NodesFactor = Math.Max(0.5, 2 * nonBestNodesFraction * 2.0 + 0.4);
 
         // pv-tm
-        // node-tm
         // score-tm
 
-        return watch.ElapsedMilliseconds > SoftTimeout * PvStabilityFactor;
+        return watch.ElapsedMilliseconds > SoftTimeout * NodesFactor;
     }
 
     public static long ElapsedMilliseconds => Math.Max(watch.ElapsedMilliseconds, 1);
