@@ -71,8 +71,10 @@ public static class TimeManager
         // #2 we manage time ourselves
         else
         {
-            int time = Math.Max((Us == Color.White ? wtime : btime) - MoveOverhead, 1);
-            int inc = Math.Max(Us == Color.White ? winc : binc, 0);
+            int time = Us == Color.White ? wtime : btime;
+            int inc = Us == Color.White ? winc : binc;
+
+            time = Math.Max(time - MoveOverhead, 1);
 
             // #2.1 searching should take exactly the given time
             //      technically this is not self-managing, but we need to enable the 
@@ -81,7 +83,7 @@ public static class TimeManager
             {
                 HardTimeout = movetime;
                 SoftTimeout = movetime;
-                Console.WriteLine($"movetime: hard- & softlimit = {HardTimeout}");
+                Console.WriteLine($"info string 'movetime: hard- & softlimit = {HardTimeout}'");
             }
 
             // #2.2 Play N moves in M time + o per move, then get time bonus for next N moves
@@ -89,7 +91,7 @@ public static class TimeManager
             {
                 HardTimeout = time / Math.Min(movestogo, 2) + inc / 2;
                 SoftTimeout = time / movestogo + inc / 2;
-                Console.WriteLine($"movestogo: mtg = {movestogo}, hardlimit = {HardTimeout}, softlimit = {SoftTimeout}");
+                Console.WriteLine($"info string 'movestogo: mtg = {movestogo}, hardlimit = {HardTimeout}, softlimit = {SoftTimeout}'");
             }
 
             // #2.3 Play whole game in M time
@@ -97,8 +99,16 @@ public static class TimeManager
             {
                 HardTimeout = time / 5 + inc / 2;
                 SoftTimeout = time / 30 + inc / 2;
-                Console.WriteLine($"normal: hardlimit = {HardTimeout}, softlimit = {SoftTimeout}");
+                Console.WriteLine($"info string 'normal: hardlimit = {HardTimeout}, softlimit = {SoftTimeout}'");
             }
+
+            // never spend more time than available minus some margin
+            // moveoverhead protects against unaccounted latency between the matchrunner/UI 
+            // and the engine and might avoid time losses due to that latency
+
+            HardTimeout = Math.Clamp(HardTimeout, 1, time);
+            SoftTimeout = Math.Clamp(SoftTimeout, 1, time);
+            SoftTimeout = Math.Min(SoftTimeout, HardTimeout);
         }
     }
 
