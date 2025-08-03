@@ -298,6 +298,8 @@ public static partial class Search
                     // ToDo: R += nonPV && !cutnode ? 2 : 1; // +1 if allnode
                     if ((ns + 1)->CutoffCount > 2) R++;
 
+                    if (flag > NONE_BOUND) R++;
+
                     R = Math.Max(1, R);
                 }
 
