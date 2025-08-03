@@ -35,7 +35,6 @@ public static partial class UCI
             // every uci command.
             else if (command == "isready")
             {
-                GC.Collect();
                 Console.WriteLine("readyok");
             }
 
