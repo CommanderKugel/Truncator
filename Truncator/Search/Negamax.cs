@@ -52,6 +52,8 @@ public static partial class Search
         bool ttHit = ttEntry.Key == p.ZobristKey;
         Move ttMove = ttHit ? new(ttEntry.MoveValue) : Move.NullMove;
         bool ttPV = ttHit && ttEntry.PV == 1 || isPV;
+        bool ttCapture = ttHit && ttMove.NotNull && p.IsCapture(ttMove);
+
 
         // return the tt-score if the entry is any good
         if (nonPV && ttHit && ttEntry.Depth >= depth && !inSingularity && (
@@ -99,10 +101,20 @@ public static partial class Search
 
 
         // reverse futility pruning (RFP)
-        if (depth <= 5 &&
-            ns->StaticEval - 75 * depth >= beta)
         {
-            return ns->StaticEval;
+            int margin = 75 * depth;
+
+            if (ttCapture)
+            {
+                margin -= Math.Max(SEE.SEEMaterial[(int)p.GetCapturedPieceType(ttMove)]
+                    - SEE.SEEMaterial[(int)p.PieceTypeOn(ttMove.from)], 0);
+            }
+
+            if (depth <= 5
+                && ns->StaticEval - margin >= beta)
+            {
+                return ns->StaticEval;
+            }
         }
 
         // razoring
