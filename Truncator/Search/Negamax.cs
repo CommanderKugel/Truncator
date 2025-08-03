@@ -104,9 +104,9 @@ public static partial class Search
         {
             int margin = 75 * depth;
 
-            if (ttCapture)
+            if (ttCapture && SEE.SEE_threshold(ttMove, ref p, 0))
             {
-                margin -= Math.Max(SEE.SEEMaterial[(int)p.GetCapturedPieceType(ttMove)]
+                margin = Math.Max(SEE.SEEMaterial[(int)p.GetCapturedPieceType(ttMove)]
                     - SEE.SEEMaterial[(int)p.PieceTypeOn(ttMove.from)], 0);
             }
 
