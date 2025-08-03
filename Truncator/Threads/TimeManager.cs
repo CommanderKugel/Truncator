@@ -14,7 +14,7 @@ public static class TimeManager
     public  static int  maxDepth = 128;
     public  static long maxNodes = long.MaxValue;
 
-    public static int MoveOverhead = 10;
+    public static int MoveOverhead = 100;
 
 
     private static Stopwatch watch = new Stopwatch();
