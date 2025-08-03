@@ -217,6 +217,8 @@ public unsafe partial struct Pos
         Us = Them;
         ZobristKey ^= Zobrist.stmKey;
 
+        Threats = ComputeThreats();
+
         // update the search-stack
         thread.nodeStack[thread.ply].MovedPieceType = movingPt;
         thread.nodeStack[thread.ply].CapturedPieceType = victimPt;
@@ -245,6 +247,8 @@ public unsafe partial struct Pos
             ZobristKey ^= Zobrist.GetEpKEy(EnPassantSquare);
             EnPassantSquare = (int)Square.NONE;
         }
+
+        Threats = ComputeThreats();
 
         // update the search-stack
         thread.nodeStack[thread.ply].MovedPieceType = PieceType.NONE;
