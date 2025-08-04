@@ -203,7 +203,7 @@ public static partial class Search
 
                 // late move pruning
                 if (depth <= 4 &&
-                    movesPlayed >= 2 + depth * depth)
+                    movesPlayed >= 4 + depth * depth / (improving ? 1 : 2))
                 {
                     continue;
                 }
