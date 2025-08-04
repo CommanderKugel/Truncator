@@ -153,7 +153,7 @@ public static partial class Search
         // movegeneration, scoring and ordering is outsourced to the move-picker
         Span<Move> moves = stackalloc Move[256];
         Span<int> scores = stackalloc int[256];
-        MovePicker picker = new MovePicker(thread, ref p, ttMove, ref moves, ref scores, false);
+        MovePicker picker = new MovePicker(thread, ttMove, ref moves, ref scores, false);
 
 
         int bestscore = -SCORE_MATE;
@@ -167,7 +167,7 @@ public static partial class Search
         Move bestmove = Move.NullMove;
 
         // main move loop
-        for (Move m = picker.Next(); m.NotNull; m = picker.Next())
+        for (Move m = picker.Next(ref p); m.NotNull; m = picker.Next(ref p))
         {
             Debug.Assert(m.NotNull);
 
