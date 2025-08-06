@@ -11,7 +11,6 @@ public static partial class UCI
     {
         // wake up main thread
         ThreadPool.MainThread.ply = 0;
-        Fathom.Init(@"C:\Users\nikol\Desktop\3-4-5_pieces_Syzygy\3-4-5\");
 
         while (true)
         {
@@ -30,7 +29,7 @@ public static partial class UCI
                 Console.WriteLine($"option name UCI_ShowWDL type check default false");
 
                 Console.WriteLine($"option name SyzygyPath type string default <empty>");
-                Console.WriteLine($"option name SyzygyProbePly type spin default 40 min 1 max 128");
+                //Console.WriteLine($"option name SyzygyProbePly type spin default 40 min 1 max 128");
 
                 Console.WriteLine("uciok");
             }
@@ -83,8 +82,6 @@ public static partial class UCI
             // signal to close the programm. dont forget to stop all the threads!
             else if (tokens[0] == "quit")
             {
-                ThreadPool.StopAll();
-                ThreadPool.Join();
                 return;
             }
 

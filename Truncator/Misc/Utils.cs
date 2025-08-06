@@ -93,7 +93,7 @@ public static class Utils
 
     public static unsafe void Dispose()
     {
-        if (Rays is not null)
+        if (Rays != null)
         {
             NativeMemory.Free(Rays);
             Rays = null;

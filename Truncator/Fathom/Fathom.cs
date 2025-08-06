@@ -118,7 +118,7 @@ public static partial class Fathom
         }
 
         // extract data from returned value
-            int wdl = TB_GET_WDL(res);
+        int wdl = TB_GET_WDL(res);
         int from = TB_GET_FROM(res);
         int to = TB_GET_TO(res);
         int promo = TB_GET_PROMOTES(res);
@@ -171,8 +171,17 @@ public static partial class Fathom
         }
 
         SyzygyPath = path;
+
+        // try to extract the Fathom dll from this programms assembly
+        // should fail if extraction does not work properly
+
+        if (!OperatingSystem.IsWindows())
+        {
+            Console.WriteLine($"Fathom is only supported under Windows for now");
+            return;
+        }
         
-        if (!BindingUnpacker.Unpack())
+        if (!BindingHandler.UnpackContainedDll("Truncator.Fathom.fathomDll.dll", "fathomDll.dll"))
         {
             Console.WriteLine("Could not load Fathom Bindings");
             return;
@@ -206,19 +215,20 @@ public static partial class Fathom
     {
         if (status == Status.Uninitialized)
         {
-            Console.WriteLine("tb is not initialized, nothing to dispose");
+            Debug.WriteLine("tb is not initialized, nothing to dispose");
             return;
         }
+        
         if (status == Status.Disposed)
         {
-            Console.WriteLine("tb is already disposed");
+            Debug.WriteLine("tb is already disposed");
             return;
         }
 
         try
         {
             tb_free_();
-            Console.WriteLine($"tb successfully disposed");
+            Debug.WriteLine($"tb successfully disposed");
             status = Status.Disposed;
         }
         catch (Exception e)

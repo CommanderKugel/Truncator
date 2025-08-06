@@ -1,54 +1,64 @@
 
 using System.Diagnostics;
 using System.Reflection;
-using System.Runtime.InteropServices;
 
-public static class BindingUnpacker
+public static class BindingHandler
 {
 
-    public static bool Unpack()
+    private static List<string> Files = new List<string>();
+
+    public static bool UnpackContainedDll(string resourceName, string fileName)
     {
+        string filePath = Path.Combine(AppContext.BaseDirectory, fileName);
 
-        bool IsWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+        // quit if the file is already extracted
 
-        // Fathom currently only exists for Windows
-        if (!IsWindows)
+        if (File.Exists(filePath))
         {
-            return false;
-        }
-
-        string filename = "Fathom.fathomDll.dll";
-        string resname = $"Truncator.{filename}";
-
-        string path = Path.Combine(Path.GetDirectoryName(AppContext.BaseDirectory), filename);
-
-        // skip extraction, if the file already exists
-        if (File.Exists(path))
-        {
-            Console.WriteLine($"Fathom binding already exists");
+            Debug.WriteLine($"file {filePath} already exists!");
+            Files.Add(filePath);
             return true;
         }
-        Debug.WriteLine("File not found, now try to extract it");
 
-        // now to extracting the file
-        var asm = Assembly.GetExecutingAssembly();
-        Debug.WriteLine($"looking for {resname} in [{string.Join(", ", asm.GetManifestResourceNames())}]");
-        using Stream stream = asm.GetManifestResourceStream(resname);
+        // first extract the assembly from the compiled program
+        // then paste it into the correct file
 
-        if (stream == null)
-        {
-            Console.WriteLine("Fathom bindings not found in asm");
-            return false;
-        }
+        var asm = Assembly.GetEntryAssembly();
+        Debug.WriteLine($"looking for {resourceName} in [{string.Join(", ", asm.GetManifestResourceNames())}]");
+        Stream stream = asm.GetManifestResourceStream(resourceName) ?? throw new FileNotFoundException($"file not found :(");
 
-        string dllPath = Path.Combine(path, filename);
+        // then, paste the assembly in an external file
+        // simply create the file anew, as it does not exist yet
 
-        using FileStream fs = new FileStream(dllPath, FileMode.Create, FileAccess.Write);
+        using FileStream fs = new FileStream(filePath, FileMode.Create, FileAccess.Write);
         stream.CopyTo(fs);
+        Console.WriteLine($"info string 'Fathom Dll at: {filePath}'");
 
-        NativeLibrary.Load(path);
+        // remember file for later Disposal
+
+        Files.Add(filePath);
 
         return true;
+    }
+
+    public static void Dispose()
+    {
+        foreach (var file in Files)
+        {
+            try
+            {
+                if (File.Exists(file))
+                {
+                    File.Delete(file);
+                    Console.WriteLine($"deleted {file}");
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Something went wrong deleting {file}");
+                Console.WriteLine(e);
+            }
+        }
     }
 
 }

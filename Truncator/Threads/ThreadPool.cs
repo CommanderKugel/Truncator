@@ -54,6 +54,7 @@ public static class ThreadPool
             && MainThread.rootPos.p.CastlingRights == 0)
         {
             TbProbeRoot();
+            UCI.state = UciState.Idle;
             return;
         }
 
@@ -85,7 +86,7 @@ public static class ThreadPool
         var (wdl, tbMove, dtz) = Fathom.ProbeRoot(ref p);
 
         string score = wdl == (int)TbResult.TbDraw ? "cp 0" : $"mate {dtz / 2}";
-        string pv = $"pv ";
+        string pv = "pv";
         Pos copy = p;
 
         for (Move m = tbMove; m.NotNull; )
@@ -97,10 +98,8 @@ public static class ThreadPool
             var (_, nextMove, _) = Fathom.ProbeRoot(ref copy);
             m = nextMove;
         }
-
         
-        Console.WriteLine($"info depth 1 score {score} tbhits {1} pv {pv}");
-
+        Console.WriteLine($"info depth 1 score {score} tbhits {1} {pv}");
     }
 
 
