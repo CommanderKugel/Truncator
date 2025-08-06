@@ -29,8 +29,13 @@ public static partial class Search
                 return SCORE_DRAW;
             }
 
-            // ToDo: return eval at max-ply
-            // ToDo: mate distance pruning (elo neutral & nice to have)
+            // mate distance pruning
+            int mdAlpha = Math.Max(alpha, -SCORE_MATE + thread.ply);
+            int mdBeta  = Math.Min(beta ,  SCORE_MATE - thread.ply - 1);
+            if (mdAlpha >= mdBeta)
+            {
+                return mdAlpha;
+            }
         }
 
         // if leaf-node: drop into QSearch
@@ -46,6 +51,7 @@ public static partial class Search
         TTEntry ttEntry = thread.tt.Probe(p.ZobristKey);
         bool ttHit = ttEntry.Key == p.ZobristKey;
         Move ttMove = ttHit ? new(ttEntry.MoveValue) : Move.NullMove;
+        bool ttPV = ttHit && ttEntry.PV == 1 || isPV;
 
         // return the tt-score if the entry is any good
         if (nonPV && ttHit && ttEntry.Depth >= depth && !inSingularity && (
@@ -159,7 +165,7 @@ public static partial class Search
 
         // reverse futility pruning (RFP)
         if (depth <= 5 &&
-            ns->StaticEval - 75 * depth >= beta)
+            ns->StaticEval - 75 * (improving ? depth - 1 : depth) >= beta)
         {
             return ns->StaticEval;
         }
@@ -212,7 +218,7 @@ public static partial class Search
         // movegeneration, scoring and ordering is outsourced to the move-picker
         Span<Move> moves = stackalloc Move[256];
         Span<int> scores = stackalloc int[256];
-        MovePicker picker = new MovePicker(thread, ref p, ttMove, ref moves, ref scores, false);
+        MovePicker picker = new MovePicker(thread, ttMove, ref moves, ref scores, false);
 
 
         int bestscore = -SCORE_MATE;
@@ -226,7 +232,7 @@ public static partial class Search
         Move bestmove = Move.NullMove;
 
         // main move loop
-        for (Move m = picker.Next(); m.NotNull; m = picker.Next())
+        for (Move m = picker.Next(ref p); m.NotNull; m = picker.Next(ref p))
         {
             Debug.Assert(m.NotNull);
 
@@ -352,6 +358,8 @@ public static partial class Search
 
                     if (thread.ply > 1 && !improving) R++;
 
+                    if (ttPV) R--;
+
                     // ToDo: R += nonPV && !cutnode ? 2 : 1; // +1 if allnode
                     if ((ns + 1)->CutoffCount > 2) R++;
 
@@ -410,19 +418,13 @@ public static partial class Search
                 bestscore = score;
                 flag = UPPER_BOUND;
 
-                // lock pv-updates at root to avoid it being read for uci info printing and
-                // written to by the searching thread at the same time. this is only relevant
-                // at root nodes, because info printing only ever uses the full latest pv
-                if (isRoot)
+                if (isPV)
                 {
-                    lock (thread.pv_.lockObject)
+                    if (isRoot)
                     {
-                        thread.pv_[depth] = bestscore;
-                        thread.PushToPV(m);
+                        thread.PV[depth] = bestscore;
                     }
-                }
-                else if (isPV)
-                {
+
                     thread.PushToPV(m);
                 }
 
@@ -486,7 +488,7 @@ public static partial class Search
                 flag == UPPER_BOUND ? ttMove : bestmove,
                 depth,
                 flag,
-                isPV,
+                ttPV,
                 thread
             );
         }

@@ -34,6 +34,43 @@ public unsafe partial struct Pos
 
     public readonly ulong blocker => ColorBB[0] | ColorBB[1];
 
+    /// <summary>
+    /// Bitboards of all attacked squares by the opponent
+    /// </summary>
+    public ulong Threats;
+
+    private ulong ComputeThreats()
+    {
+        // pawns - knights - diag sliders - ortho sliders - king
+
+        ulong pieces = GetPieces(Them, PieceType.Pawn);
+        ulong threats = LeftPawnMassAttacks(Them, pieces) | RightPawnMassAttacks(Them, pieces);
+
+        pieces = GetPieces(Them, PieceType.Knight);
+        while (pieces != 0)
+        {
+            threats |= PieceAttacks(PieceType.Knight, Utils.popLsb(ref pieces), blocker);
+        }
+
+        pieces = GetPieces(Them, PieceType.Bishop, PieceType.Queen);
+        while (pieces != 0)
+        {
+            threats |= PieceAttacks(PieceType.Bishop, Utils.popLsb(ref pieces), blocker);
+        }
+
+        pieces = GetPieces(Them, PieceType.Rook, PieceType.Queen);
+        while (pieces != 0)
+        {
+            threats |= PieceAttacks(PieceType.Rook, Utils.popLsb(ref pieces), blocker);
+        }
+
+        pieces = GetPieces(Them, PieceType.King);
+        Debug.Assert(pieces != 0);
+        threats |= PieceAttacks(PieceType.King, Utils.popLsb(ref pieces), blocker);
+
+        return threats;
+    }
+
 
     public ulong GetPieces(Color c, PieceType pt)
     {

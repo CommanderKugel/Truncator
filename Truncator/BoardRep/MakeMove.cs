@@ -4,6 +4,90 @@ using System.Diagnostics;
 public unsafe partial struct Pos
 {
 
+    public bool IsPseudoLegal(Move m)
+    {
+        PieceType pt = PieceTypeOn(m.from);
+
+        // catch obviously illegal cases
+        // we have to move our own piece
+        // cant capture our own pieces 
+        // except castling, which is encoded as king x rook
+        // and only pawns are able to promote
+
+        if (m.IsNull
+            || pt == PieceType.NONE
+            || ColorOn(m.from) != Us
+            || ColorOn(m.to) == Us && !m.IsCastling
+            || m.IsPromotion && pt != PieceType.Pawn)
+        {
+            return false;
+        }
+
+        // castling moves two pieces and follows its rules on its own...
+        // also, (d)frc castling is kinda fucked, luckily its logic 
+        // is mostly computed by IsLegal() and MakeMove()
+
+        if (m.IsCastling)
+        {
+            // make sure we have the castling rights and 
+            // are about to capture the correct rook
+
+            return pt == PieceType.King
+                && HasCastlingRight(Us, m.from < m.to)
+                && m.from == Castling.GetKingStart(Us)
+                && m.to == Castling.GetKingCastlingTarget(Us, m.from < m.to)
+                && PieceTypeOn(m.to) == PieceType.Rook
+                && ColorOn(m.to) == Us;
+        }
+
+        Debug.Assert(!m.IsCastling);
+
+        // pawns are special so lets handle them on their own
+        // luckily, promotions are really easy here
+
+        if (pt == PieceType.Pawn)
+        {
+            if (m.IsEnPassant)
+            {
+                int target = m.to - (Us == Color.White ? 8 : -8);
+                return EnPassantSquare == target;
+            }
+
+            if (Utils.FileOf(m.from) != Utils.FileOf(m.to)) // capture
+            {
+                return ((1ul << m.to) & Attacks.PawnAttacks(Us, m.from)) != 0
+                    && IsCapture(m);
+            }
+
+            else // pawn pushes
+            {
+                ulong bb = Up(Us, 1ul << m.from) & ~blocker;
+
+                // double pushes
+                if (Utils.RankOf(m.from) == (Us == Color.White ? 1 : 6))
+                {
+                    bb |= Up(Us, bb) & ~blocker;
+                }
+
+                return ((1ul << m.to) & bb) != 0;
+
+                static ulong Up(Color c, ulong bb) => c == Color.White ? bb << 8 : bb >> 8;
+            }
+
+        }
+
+        // test if the destination is accessible to the Piece
+        // now Knight, Bishop, Rook, Queen and King remain
+
+        Debug.Assert(pt != PieceType.Pawn);
+        Debug.Assert(!m.IsCastling);
+        Debug.Assert(!m.IsEnPassant);
+        Debug.Assert(m.NotNull);
+
+        return (Attacks.PieceAttacks(pt, m.from, blocker) & (1ul << m.to)) != 0;
+    }
+
+
     public bool IsLegal(Move m)
     {
         
@@ -217,6 +301,8 @@ public unsafe partial struct Pos
         Us = Them;
         ZobristKey ^= Zobrist.stmKey;
 
+        Threats = ComputeThreats();
+
         // update the search-stack
         thread.nodeStack[thread.ply].MovedPieceType = movingPt;
         thread.nodeStack[thread.ply].CapturedPieceType = victimPt;
@@ -245,6 +331,8 @@ public unsafe partial struct Pos
             ZobristKey ^= Zobrist.GetEpKEy(EnPassantSquare);
             EnPassantSquare = (int)Square.NONE;
         }
+
+        Threats = ComputeThreats();
 
         // update the search-stack
         thread.nodeStack[thread.ply].MovedPieceType = PieceType.NONE;

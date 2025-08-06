@@ -19,9 +19,10 @@ public static partial class UCI
 
             // initial command that signals the engine to use the uci-protocol
             // Truncator only implements uci, so uci initialization is basically skipped
+
             if (command == "uci")
             {
-                Console.WriteLine("id name Truncator 0.59");
+                Console.WriteLine("id name Truncator 0.66");
                 Console.WriteLine("id author CommanderKugel");
 
                 Console.WriteLine($"option name Hash type spin default {TranspositionTable.DEFAULT_SIZE} min {TranspositionTable.MIN_SIZE} max {TranspositionTable.MAX_SIZE}");
@@ -36,6 +37,7 @@ public static partial class UCI
 
             // the 'are you still alive?' check from the match runner. will be answered between 
             // every uci command.
+
             else if (command == "isready")
             {
                 Console.WriteLine("readyok");
@@ -51,6 +53,7 @@ public static partial class UCI
             // options can be set to different values. most important are
             // - size (mb) of the transposition table
             // - number of threads used for search
+
             else if (tokens[0] == "setoption")
             {
                 Debug.Assert(state == UciState.Idle, "command only available, when engine is idle!");
@@ -58,6 +61,7 @@ public static partial class UCI
             }
 
             // signal to reset all heuristics that save data between moves
+
             else if (tokens[0] == "ucinewgame")
             {
                 Debug.Assert(state == UciState.Idle, "command only available, when engine is idle!");
@@ -66,6 +70,7 @@ public static partial class UCI
 
             // initialization of the position to start searching from.
             // comes with a list of moves most of the time
+
             else if (tokens[0] == "position")
             {
                 Debug.Assert(state == UciState.Idle, "command only available, when engine is idle!");
@@ -73,6 +78,7 @@ public static partial class UCI
             }
 
             // command to start searching. comes with subcommands most of the time.
+
             else if (tokens[0] == "go")
             {
                 Debug.Assert(state == UciState.Idle, "command only available, when engine is idle!");
@@ -80,14 +86,14 @@ public static partial class UCI
             }
 
             // signal to close the programm. dont forget to stop all the threads!
+
             else if (tokens[0] == "quit")
             {
                 return;
             }
 
             // ===== CUSTOM COMMANDS ===== //
-
-            // print the current board to the commandline
+            
             else if (command == "print")
             {
                 Utils.print(ThreadPool.MainThread.rootPos.p);

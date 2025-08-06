@@ -60,13 +60,11 @@ public static class ThreadPool
 
         // otherwise, search normally
         for (int i = 1; i < ThreadCount; i++)
-            {
-                pool[i].Reset();
-                pool[i].ply = MainThread.ply;
-                pool[i].rootPos = MainThread.rootPos;
-                pool[i].repTable.CopyFrom(ref MainThread.repTable);
-                pool[i].Go();
-            }
+        {
+            pool[i].Reset();
+            pool[i].CopyFrom(MainThread);
+            pool[i].Go();
+        }
 
         // delay using the main thread while copying from it
         // while other threads copy from it
@@ -106,17 +104,43 @@ public static class ThreadPool
     /// <summary>
     /// Info Printing for UCI communication inbetween ID iterations
     /// </summary>
-    public static unsafe void ReportToUci(bool final)
+    public static unsafe void ReportToUci()
+    {
+        // info printing in between iterations
+        int depth = MainThread.completedDepth;
+        int seldepth = MainThread.seldepth;
+        int dirty_score = MainThread.PV[depth];
+        long nodes = GetNodes();
+        long time = TimeManager.ElapsedMilliseconds;
+        long nps = nodes * 1000 / time;
+        int hashfull = tt.GetHashfull();
+
+        // normalize score to +100 cp ~ 50% chance of winning
+        var (norm_score, w, d, l) = WDL.GetWDL(dirty_score);
+        string scoreString = Search.IsTerminal(dirty_score) ? $"mate {(Math.Abs(dirty_score) - Search.SCORE_MATE) / 2}" : $"cp {norm_score}";
+
+        string info = $"info depth {depth} seldepth {seldepth} nodes {nodes} time {time} nps {nps} score {scoreString} hashfull {hashfull}";
+
+        if (WDL.UCI_showWDL)
+        {
+            info += $" wdl {(int)(w * 1000)} {(int)(d * 1000)} {(int)(l * 1000)}";
+        }
+
+        info += $" pv {MainThread.PV.ToString()}";
+        Console.WriteLine(info);
+    }
+
+    public static void ReportBestmove()
     {
         SearchThread bestThread = pool[0];
         int bestDepth = bestThread.completedDepth;
-        int bestScore = bestThread.RootScore;
+        int bestScore = bestThread.PV[bestThread.completedDepth];
 
         for (int i = 0; i < ThreadCount; i++)
         {
             var thread = pool[i];
             int depth = pool[i].completedDepth;
-            int score = pool[i].RootScore;
+            int score = pool[i].PV[depth];
 
             // if depths are equal, choose the higher score
             if (depth == bestDepth && score > bestScore)
@@ -136,53 +160,9 @@ public static class ThreadPool
             }
         }
 
-        string pv;
-        Move bestMove, ponderMove;
-
-        // avoid UB by not allowing a searching thread to write to the current pv-line
-        lock (bestThread.pv_.lockObject)
-        {
-            bestMove = bestThread.pv_.BestMove;
-            ponderMove = bestThread.pv_.PonderMove;
-            pv = bestThread.GetPV;
-        }
-
-        int moveIdx = bestThread.rootPos.IndexOfMove(bestMove) ?? 256;
-        Debug.Assert(moveIdx < 256, "something went wrong looking for the best move");
-
-        // final reporting of the chosen best move before terminating the search
-        if (final)
-        {
-            Console.WriteLine($"bestmove {bestMove} ponder {ponderMove}");
-            return;
-        }
-        
-        // info printing in between iterations
-        int dirty_score = bestThread.rootPos.moveScore[moveIdx];
-        long nodes = GetNodes();
-        long tbHits = GetTbHits();
-        long time = TimeManager.ElapsedMilliseconds;
-        long nps = nodes * 1000 / time;
-        int hashfull = tt.GetHashfull();
-
-        // normalize score to +100 cp ~ 50% chance of winning
-        var (norm_score, w, d, l) = WDL.GetWDL(dirty_score);
-
-        int info_score = dirty_score >= Search.SCORE_MATE_IN_MAX ? (Search.SCORE_MATE - dirty_score + 1) / 2
-            : dirty_score <= -Search.SCORE_MATE_IN_MAX ? -(Search.SCORE_MATE + dirty_score) / 2
-            : norm_score;
-
-        string scoreString = $"{(Search.IsTerminal(dirty_score) ? "mate" : "cp")} {info_score}";
-
-        string info = $"info depth {bestThread.completedDepth} seldepth {bestThread.seldepth} nodes {nodes} tbhits {tbHits} time {time} nps {nps} score {scoreString} hashfull {hashfull}";
-
-        if (WDL.UCI_showWDL)
-        {
-            info += $" wdl {(int)(w * 1000)} {(int)(d * 1000)} {(int)(l * 1000)}";
-        }
-
-        info += $" pv {pv}";
-        Console.WriteLine(info);
+        Move bestmove = bestThread.PV.BestMove;
+        Move pondermove = bestThread.PV.PonderMove;
+        Console.WriteLine($"bestmove {bestmove} ponder {pondermove}");
     }
 
     public static void Clear()

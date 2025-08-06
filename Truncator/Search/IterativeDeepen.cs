@@ -18,14 +18,14 @@ public static partial class Search
 
             if (thread.IsMainThread && !isBench)
             {
-                ThreadPool.ReportToUci(false);
+                ThreadPool.ReportToUci();
             }
         }
 
         if (thread.IsMainThread && !isBench)
         {
             ThreadPool.StopAll();
-            ThreadPool.ReportToUci(true);
+            ThreadPool.ReportBestmove();
         }
     }
 
@@ -38,10 +38,8 @@ public static partial class Search
         }
 
         int delta = 30;
-        int alpha = thread.pv_[thread.completedDepth] - delta;
-        int beta = thread.pv_[thread.completedDepth] + delta;
-
-        thread.pv_.SaveLastLine();
+        int alpha = thread.PV[thread.completedDepth] - delta;
+        int beta = thread.PV[thread.completedDepth] + delta;
 
         while (true)
         {
