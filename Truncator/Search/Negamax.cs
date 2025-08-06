@@ -100,7 +100,7 @@ public static partial class Search
 
         // reverse futility pruning (RFP)
         if (depth <= 5 &&
-            ns->StaticEval - 75 * depth >= beta)
+            ns->StaticEval - 75 * (improving ? depth - 1 : depth) >= beta)
         {
             return ns->StaticEval;
         }
