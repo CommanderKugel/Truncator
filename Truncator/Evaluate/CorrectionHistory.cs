@@ -37,20 +37,6 @@ public struct CorrectionHistory : IDisposable
         Debug.Assert(c != Color.NONE);
         return (ulong)c * SIZE + key % SIZE;
     }
-
-    /// <summary>
-    /// Copied this implementation verbatim from Sirius
-    /// https://github.com/mcthouacbb/Sirius/blob/258f3eb1ce43c2d428484639b873b86ff50f5d97/Sirius/src/util/murmur.h#L5
-    /// </summary>
-    private unsafe ulong murmurHash(ulong key)
-    {
-        key ^= key >> 33;
-        key *= 0xff51afd7ed558ccd;
-        key ^= key >> 33;
-        key *= 0xc4ceb9fe1a85ec53;
-        key ^= key >> 33;
-        return key;
-    }
     
     /// <summary>
     /// Correct Static Evaluation based on past Search results
@@ -66,7 +52,7 @@ public struct CorrectionHistory : IDisposable
         int npblack = 12 * BlackNonPawnTable[MakeKey(p.Us, p.NonPawnMaterialKey(Color.Black))];
         int minor = 12 * MinorTable[MakeKey(p.Us, p.MinorKey)];
         int major = 12 * MajorTable[MakeKey(p.Us, p.MajorKey)];
-        int threat = 12 * ThreatTable[MakeKey(p.Us, murmurHash(p.Threats & p.ColorBB[(int)p.Us]))];
+        int threat = 12 * ThreatTable[MakeKey(p.Us, Utils.murmurHash(p.Threats & p.ColorBB[(int)p.Us]))];
 
 
         int prevPiece = (thread.ply > 0 && (n - 1)->move.NotNull) ?
@@ -93,7 +79,7 @@ public struct CorrectionHistory : IDisposable
         MinorTable[MakeKey(p.Us, p.MinorKey)].Update(delta);
         MajorTable[MakeKey(p.Us, p.MajorKey)].Update(delta);
 
-        ThreatTable[MakeKey(p.Us, murmurHash(p.Threats & p.ColorBB[(int)p.Us]))].Update(delta);
+        ThreatTable[MakeKey(p.Us, Utils.murmurHash(p.Threats & p.ColorBB[(int)p.Us]))].Update(delta);
 
         if (thread.ply > 0 && (n - 1)->move.NotNull)
         {
