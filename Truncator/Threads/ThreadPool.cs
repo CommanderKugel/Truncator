@@ -87,14 +87,20 @@ public static class ThreadPool
         string pv = "pv";
         Pos copy = p;
 
-        for (Move m = tbMove; m.NotNull; )
+        for (Move m = tbMove; m.NotNull && MainThread.ply <= 128;)
         {
             pv += $" {m}";
-            Console.WriteLine(m);
-
             copy.MakeMove(m, MainThread);
             var (_, nextMove, _) = Fathom.ProbeRoot(ref copy);
             m = nextMove;
+
+            MainThread.repTable.Push(copy.ZobristKey);
+            MainThread.ply++;
+
+            if (copy.IsDraw(MainThread))
+            {
+                break;
+            }
         }
         
         Console.WriteLine($"info depth 1 score {score} tbhits {1} {pv}");
