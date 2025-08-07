@@ -163,7 +163,8 @@ public static partial class Search
 
         int movesPlayed = 0;
         int quitesCount = 0;
-        Span<Move> quietMoves = stackalloc Move[128];
+        int capturesCount = 0;
+        Span<Move> playedMoves = stackalloc Move[256];
 
         Move bestmove = Move.NullMove;
 
@@ -274,7 +275,8 @@ public static partial class Search
             thread.repTable.Push(next.ZobristKey);
 
             movesPlayed++;
-            if (!isCapture) quietMoves[quitesCount++] = m;
+            if (!isCapture) playedMoves[quitesCount++] = m;
+            else playedMoves[255 - capturesCount++] = m;
 
             if (movesPlayed > 1 && depth >= 2)
             {
@@ -377,17 +379,22 @@ public static partial class Search
                         // the opponent can already force a better line and will not allow us to
                         // play the current one and we dont need to search further down this branch
                         flag = LOWER_BOUND;
+                        
+                        int HistDelta = depth * depth;
 
                         if (!isCapture)
                         {
                             // update history
                             // ToDo: increase Bonus for ttmoves -> (depth + 1) * depth
-                            int HistDelta = depth * depth;
-                            thread.history.UpdateQuietMoves(thread, ns, (short)HistDelta, (short)-HistDelta, ref p, ref quietMoves, quitesCount, m);
+
+                            thread.history.UpdateQuietMoves(thread, ns, HistDelta, -HistDelta, ref p, ref playedMoves, quitesCount, m);
 
                             // update killer-move
                             ns->KillerMove = m;
                         }
+
+                        // always update capture history, even if bestmove is quiet
+                        thread.history.UpdateCaptureMoves(HistDelta, -HistDelta, ref p, ref playedMoves, capturesCount, m);
 
                         ns->CutoffCount++;
 
