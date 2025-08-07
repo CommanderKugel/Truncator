@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 public struct CaptureHistory : IDisposable
 {
 
-    public const int SIZE = 2 * 6 * 6 * 64;
+    public const int SIZE = 2 * 6 * 6 * 64 * 64;
     private unsafe HistVal* table_ = null;
 
     public unsafe CaptureHistory()
@@ -13,15 +13,14 @@ public struct CaptureHistory : IDisposable
         table_ = (HistVal*)NativeMemory.Alloc((nuint)sizeof(HistVal) * SIZE);
     }
 
-    public unsafe ref HistVal this[Color c, PieceType att, PieceType vict, int sq]
+    public unsafe ref HistVal this[Color c, PieceType att, PieceType vict, Move m]
     {
         get
         {
             Debug.Assert(c == Color.White || c == Color.Black);
             Debug.Assert(att != PieceType.NONE);
             Debug.Assert(vict != PieceType.NONE);
-            Debug.Assert(sq >= 0 && sq < 64);
-            return ref table_[(int)c * 6 * 6 * 64 + (int)att * 6 * 64 + (int)vict * 64 + sq];
+            return ref table_[(int)c * 6 * 6 * 64 * 64 + (int)att * 6 * 64 * 64 + (int)vict * 64 * 64 + m.ButterflyMask];
         }
     }
 

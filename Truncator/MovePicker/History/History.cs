@@ -50,7 +50,7 @@ public struct History : IDisposable
 
             PieceType att = p.PieceTypeOn(m.from);
             PieceType vict = p.GetCapturedPieceType(m);
-            CaptHist[p.Us, att, vict, m.to].Update(delta);
+            CaptHist[p.Us, att, vict, m].Update(delta);
         }
     }
 
