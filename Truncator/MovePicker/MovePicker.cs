@@ -49,7 +49,7 @@ public ref struct MovePicker
             {
                 scores[i] = (SEE.SEE_threshold(m, ref p, 0) ? 1_000_000 : -1_000_000)
                           + (int)p.GetCapturedPieceType(m) * HistVal.HIST_VAL_MAX
-                          + thread.history.CaptHist[p.Us, p.PieceTypeOn(m.from), p.GetCapturedPieceType(m), m.to];
+                          + thread.history.CaptHist[p.Us, p.PieceTypeOn(m.from), p.GetCapturedPieceType(m), m.to, p.Threats];
             }
             else if (m == killer)
             {
