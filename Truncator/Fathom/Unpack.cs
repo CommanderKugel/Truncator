@@ -1,6 +1,7 @@
 
 using System.Diagnostics;
 using System.Reflection;
+using System.Runtime.InteropServices;
 
 public static class BindingHandler
 {
@@ -9,18 +10,20 @@ public static class BindingHandler
 
     public static bool UnpackContainedDll(string resourceName, string fileName)
     {
-        string filePath = Path.Combine(AppContext.BaseDirectory, fileName);
+        // first, create a new unique directory to load the dll into
+        // fathoms probe_root() is not threadsafe and crashes if called
+        // multiple times in parallel
 
-        // quit if the file is already extracted
+        string guid = Guid.NewGuid().ToString();
+        string tempDir = Path.Combine(AppContext.BaseDirectory, guid);
+        string filePath = Path.Combine(tempDir, fileName);
 
-        if (File.Exists(filePath))
-        {
-            Debug.WriteLine($"file {filePath} already exists!");
-            Files.Add(filePath);
-            return true;
-        }
+        Directory.CreateDirectory(tempDir);
 
-        // first extract the assembly from the compiled program
+        Debug.WriteLine($"App Base Dir: {AppContext.BaseDirectory}");
+        Debug.WriteLine($"created temp Dir: {tempDir}");
+
+        // next, extract the assembly from the compiled program
         // then paste it into the correct file
 
         var asm = Assembly.GetEntryAssembly();
@@ -30,9 +33,16 @@ public static class BindingHandler
         // then, paste the assembly in an external file
         // simply create the file anew, as it does not exist yet
 
-        using FileStream fs = new FileStream(filePath, FileMode.Create, FileAccess.Write);
-        stream.CopyTo(fs);
-        Console.WriteLine($"info string 'Fathom Dll at: {filePath}'");
+        using (FileStream fs = new FileStream(filePath, FileMode.Create, FileAccess.Write))
+        {
+            stream.CopyTo(fs);
+            fs.Flush(true);
+            Debug.WriteLine($"info string 'Fathom Dll at: {filePath}'");
+        }
+        
+        // load the temp directory and the dll for later use
+
+        NativeLibrary.Load(filePath);
 
         // remember file for later Disposal
 
