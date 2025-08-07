@@ -119,8 +119,9 @@ public static partial class Search
         }
 
         // null move pruning
-        if ((ns - 1)->move.NotNull &&
-            ns->StaticEval >= beta)
+        if ((ns - 1)->move.NotNull
+            && ns->StaticEval >= beta
+            && (!ttHit || ttEntry.Flag > UPPER_BOUND || ttEntry.Score >= beta))
         {
             Pos PosAfterNull = p;
             PosAfterNull.MakeNullMove(thread);
