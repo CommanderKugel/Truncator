@@ -61,7 +61,7 @@ public static partial class Fathom
             p.PieceBB[(int)PieceType.Pawn],
             (uint)p.FiftyMoveRule,
             (uint)p.CastlingRights,
-            p.EnPassantSquare == (uint)Square.NONE ? 0 : (uint)p.EnPassantSquare,
+            (uint)p.GetFathomEpSq(),
             p.Us == Color.White
         );
 
@@ -105,7 +105,7 @@ public static partial class Fathom
             p.PieceBB[(int)PieceType.Pawn],
             (uint)p.FiftyMoveRule,
             (uint)p.CastlingRights,
-            p.EnPassantSquare == (uint)Square.NONE ? 0 : (uint)p.EnPassantSquare,
+            (uint)p.GetFathomEpSq(),
             p.Us == Color.White,
             null
         );
