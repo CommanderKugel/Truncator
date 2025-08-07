@@ -32,11 +32,44 @@ public unsafe partial struct Pos
     public readonly ulong MajorKey => PieceKeys[(int)PieceType.Rook] ^ PieceKeys[(int)PieceType.Queen] ^ PieceKeys[(int)PieceType.King];
     public readonly ulong NonPawnMaterialKey(Color c) => NonPawnKeys[(int)c];
 
-    public fixed ulong Threats[6];
-    public readonly ulong AllThreats => Threats[(int)PieceType.King];
-    public readonly bool IsAttacked(int sq) => ((1ul << sq) & Threats[(int)PieceType.King]) != 0;
-
     public readonly ulong blocker => ColorBB[0] | ColorBB[1];
+
+    /// <summary>
+    /// Bitboards of all attacked squares by the opponent
+    /// </summary>
+    public ulong Threats;
+
+    private ulong ComputeThreats()
+    {
+        // pawns - knights - diag sliders - ortho sliders - king
+
+        ulong pieces = GetPieces(Them, PieceType.Pawn);
+        ulong threats = LeftPawnMassAttacks(Them, pieces) | RightPawnMassAttacks(Them, pieces);
+
+        pieces = GetPieces(Them, PieceType.Knight);
+        while (pieces != 0)
+        {
+            threats |= PieceAttacks(PieceType.Knight, Utils.popLsb(ref pieces), blocker);
+        }
+
+        pieces = GetPieces(Them, PieceType.Bishop, PieceType.Queen);
+        while (pieces != 0)
+        {
+            threats |= PieceAttacks(PieceType.Bishop, Utils.popLsb(ref pieces), blocker);
+        }
+
+        pieces = GetPieces(Them, PieceType.Rook, PieceType.Queen);
+        while (pieces != 0)
+        {
+            threats |= PieceAttacks(PieceType.Rook, Utils.popLsb(ref pieces), blocker);
+        }
+
+        pieces = GetPieces(Them, PieceType.King);
+        Debug.Assert(pieces != 0);
+        threats |= PieceAttacks(PieceType.King, Utils.popLsb(ref pieces), blocker);
+
+        return threats;
+    }
 
 
     public ulong GetPieces(Color c, PieceType pt)
@@ -135,24 +168,4 @@ public unsafe partial struct Pos
         return IsFiftyMoveDraw || IsInsufficientMaterial || thread.repTable.IsTwofoldRepetition(ref this);
     }
 
-    public void ComputeThreats()
-    {
-        ulong pawns = GetPieces(Them, PieceType.Pawn);
-        Threats[(int)PieceType.Pawn] = LeftPawnMassAttacks(Them, pawns) | RightPawnMassAttacks(Them, pawns);
-
-        ulong block = blocker;
-        for (PieceType pt = PieceType.Knight; pt <= PieceType.King; pt++)
-        {
-            // add lesser valued pieces threats to this attack map
-            Threats[(int)pt] |= Threats[(int)pt - 1];
-
-            ulong pieces = GetPieces(Them, pt);
-            while (pieces != 0)
-            {
-                int sq = Utils.popLsb(ref pieces);
-                ulong attack = PieceAttacks(pt, sq, block);
-                Threats[(int)pt] |= attack;
-            }
-        }
-    }
 }

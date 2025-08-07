@@ -50,6 +50,21 @@ public static class Utils
     }
 
 
+    /// <summary>
+    /// Copied this implementation verbatim from Sirius
+    /// https://github.com/mcthouacbb/Sirius/blob/258f3eb1ce43c2d428484639b873b86ff50f5d97/Sirius/src/util/murmur.h#L5
+    /// </summary>
+    public static unsafe ulong murmurHash(ulong key)
+    {
+        key ^= key >> 33;
+        key *= 0xff51afd7ed558ccd;
+        key ^= key >> 33;
+        key *= 0xc4ceb9fe1a85ec53;
+        key ^= key >> 33;
+        return key;
+    }
+
+
     private static unsafe ulong* Rays = null;
 
     public static unsafe ulong GetRay(int x, int y)

@@ -64,10 +64,10 @@ public static partial class Search
         // move generation and picking
         Span<Move> moves = stackalloc Move[256];
         Span<int> scores = stackalloc int[256];
-        MovePicker picker = new MovePicker(thread, ref p, ttMove, ref moves, ref scores, inQS: !inCheck);
+        MovePicker picker = new MovePicker(thread, ttMove, ref moves, ref scores, !inCheck);
 
         // main move loop
-        for (Move m = picker.Next(); m.NotNull; m = picker.Next())
+        for (Move m = picker.Next(ref p); m.NotNull; m = picker.Next(ref p))
         {
             Debug.Assert(m.NotNull);
 

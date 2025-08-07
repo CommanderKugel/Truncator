@@ -71,7 +71,6 @@ public static partial class Search
         }
 
         
-        p.ComputeThreats();
         bool inCheck = p.GetCheckers() != 0;
 
         // static evaluaton
@@ -101,7 +100,7 @@ public static partial class Search
 
         // reverse futility pruning (RFP)
         if (depth <= 5 &&
-            ns->StaticEval - 75 * depth >= beta)
+            ns->StaticEval - 75 * (improving ? depth - 1 : depth) >= beta)
         {
             return ns->StaticEval;
         }
@@ -120,8 +119,9 @@ public static partial class Search
         }
 
         // null move pruning
-        if ((ns - 1)->move.NotNull &&
-            ns->StaticEval >= beta)
+        if ((ns - 1)->move.NotNull
+            && ns->StaticEval >= beta
+            && (!ttHit || ttEntry.Flag > UPPER_BOUND || ttEntry.Score >= beta))
         {
             Pos PosAfterNull = p;
             PosAfterNull.MakeNullMove(thread);
@@ -154,7 +154,7 @@ public static partial class Search
         // movegeneration, scoring and ordering is outsourced to the move-picker
         Span<Move> moves = stackalloc Move[256];
         Span<int> scores = stackalloc int[256];
-        MovePicker picker = new MovePicker(thread, ref p, ttMove, ref moves, ref scores, false);
+        MovePicker picker = new MovePicker(thread, ttMove, ref moves, ref scores, false);
 
 
         int bestscore = -SCORE_MATE;
@@ -168,7 +168,7 @@ public static partial class Search
         Move bestmove = Move.NullMove;
 
         // main move loop
-        for (Move m = picker.Next(); m.NotNull; m = picker.Next())
+        for (Move m = picker.Next(ref p); m.NotNull; m = picker.Next(ref p))
         {
             Debug.Assert(m.NotNull);
 
@@ -184,7 +184,7 @@ public static partial class Search
             bool isCapture = p.IsCapture(m);
             bool isNoisy = isCapture || m.IsPromotion; // ToDo: GivesCheck()
 
-            int ButterflyScore = isCapture ? 0 : thread.history.Butterfly[p.Us, m, p.AllThreats];
+            int ButterflyScore = isCapture ? 0 : thread.history.Butterfly[p.Us, m, p.Threats];
 
             // move loop pruning
             if (!isRoot &&
