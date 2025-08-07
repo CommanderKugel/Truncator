@@ -82,28 +82,10 @@ public static class ThreadPool
         Debug.Assert(p.CastlingRights == 0);
 
         var (wdl, tbMove, dtz) = Fathom.ProbeRoot(ref p);
-
         string score = wdl == (int)TbResult.TbDraw ? "cp 0" : $"mate {dtz / 2}";
-        string pv = "pv";
-        Pos copy = p;
 
-        for (Move m = tbMove; m.NotNull && MainThread.ply <= 128;)
-        {
-            pv += $" {m}";
-            copy.MakeMove(m, MainThread);
-            var (_, nextMove, _) = Fathom.ProbeRoot(ref copy);
-            m = nextMove;
-
-            MainThread.repTable.Push(copy.ZobristKey);
-            MainThread.ply++;
-
-            if (copy.IsDraw(MainThread))
-            {
-                break;
-            }
-        }
-        
-        Console.WriteLine($"info depth 1 score {score} tbhits {1} {pv}");
+        Console.WriteLine($"info depth 1 score {score} tbhits {1} pv {tbMove}");
+        Console.WriteLine($"bestmove {tbMove}");
     }
 
 
@@ -117,6 +99,7 @@ public static class ThreadPool
         int seldepth = MainThread.seldepth;
         int dirty_score = MainThread.PV[depth];
         long nodes = GetNodes();
+        long tbHits = GetTbHits();
         long time = TimeManager.ElapsedMilliseconds;
         long nps = nodes * 1000 / time;
         int hashfull = tt.GetHashfull();
@@ -125,7 +108,7 @@ public static class ThreadPool
         var (norm_score, w, d, l) = WDL.GetWDL(dirty_score);
         string scoreString = Search.IsTerminal(dirty_score) ? $"mate {(Math.Abs(dirty_score) - Search.SCORE_MATE) / 2}" : $"cp {norm_score}";
 
-        string info = $"info depth {depth} seldepth {seldepth} nodes {nodes} time {time} nps {nps} score {scoreString} hashfull {hashfull}";
+        string info = $"info depth {depth} seldepth {seldepth} nodes {nodes} tbhits {tbHits} time {time} nps {nps} score {scoreString} hashfull {hashfull}";
 
         if (WDL.UCI_showWDL)
         {
