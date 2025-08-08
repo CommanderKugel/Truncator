@@ -21,9 +21,11 @@ public struct ButterflyHistory : IDisposable
             Debug.Assert(c == Color.White || c == Color.Black);
             Debug.Assert(m.NotNull);
             Debug.Assert(m.ButterflyMask == (m.to * 64 + m.from));
-            int threatenedFrom = ((1ul << m.from) & threats) != 0 ? 2 * 64 * 64 : 0;
-            int threatenedTo = ((1ul << m.from) & threats) != 0 ? 2 * 2 * 64 * 64 : 0;
-            return ref table_[(int)c * 64 * 64 + m.ButterflyMask + threatenedFrom + threatenedTo];
+
+            return ref table_[(int)c * (1 << 12) + m.ButterflyMask
+                + (((1ul << m.from) & threats) != 0 ? (1 << 13) : 0)
+                + (((1ul << m.to) & threats) != 0 ? (1 << 14) : 0)
+            ];
         }
     }
 
