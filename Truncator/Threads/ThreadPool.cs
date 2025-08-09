@@ -48,6 +48,17 @@ public static class ThreadPool
     /// </summary>
     public static void Go()
     {
+        // check if we can just pull the result from the tablebases
+        if (Fathom.DoTbProbing
+            && Utils.popcnt(MainThread.rootPos.p.blocker) <= Fathom.TbLargest
+            && MainThread.rootPos.p.CastlingRights == 0)
+        {
+            TbProbeRoot();
+            UCI.state = UciState.Idle;
+            return;
+        }
+
+        // otherwise, search normally
         for (int i = 1; i < ThreadCount; i++)
         {
             pool[i].Reset();
@@ -55,10 +66,28 @@ public static class ThreadPool
             pool[i].Go();
         }
 
-        // delay using the main thread to not alter its repetition table
+        // delay using the main thread while copying from it
         // while other threads copy from it
         MainThread.Go();
     }
+
+
+    public static void TbProbeRoot()
+    {
+        ref Pos p = ref MainThread.rootPos.p;
+
+        Debug.Assert(Fathom.IsInitialized);
+        Debug.Assert(Fathom.DoTbProbing);
+        Debug.Assert(Utils.popcnt(p.blocker) <= Fathom.TbLargest);
+        Debug.Assert(p.CastlingRights == 0);
+
+        var (wdl, tbMove, dtz) = Fathom.ProbeRoot(ref p);
+        string score = wdl == (int)TbResult.TbDraw ? "cp 0" : $"mate {dtz / 2}";
+
+        Console.WriteLine($"info depth 1 score {score} tbhits {1} pv {tbMove}");
+        Console.WriteLine($"bestmove {tbMove}");
+    }
+
 
     /// <summary>
     /// Info Printing for UCI communication inbetween ID iterations
@@ -70,6 +99,7 @@ public static class ThreadPool
         int seldepth = MainThread.seldepth;
         int dirty_score = MainThread.PV[depth];
         long nodes = GetNodes();
+        long tbHits = GetTbHits();
         long time = TimeManager.ElapsedMilliseconds;
         long nps = nodes * 1000 / time;
         int hashfull = tt.GetHashfull();
@@ -78,7 +108,7 @@ public static class ThreadPool
         var (norm_score, w, d, l) = WDL.GetWDL(dirty_score);
         string scoreString = Search.IsTerminal(dirty_score) ? $"mate {(Math.Abs(dirty_score) - Search.SCORE_MATE) / 2}" : $"cp {norm_score}";
 
-        string info = $"info depth {depth} seldepth {seldepth} nodes {nodes} time {time} nps {nps} score {scoreString} hashfull {hashfull}";
+        string info = $"info depth {depth} seldepth {seldepth} nodes {nodes} tbhits {tbHits} time {time} nps {nps} score {scoreString} hashfull {hashfull}";
 
         if (WDL.UCI_showWDL)
         {
@@ -150,6 +180,16 @@ public static class ThreadPool
             nodes += thread.nodeCount;
         }
         return nodes;
+    }
+
+    public static long GetTbHits()
+    {
+        long tbHits = 0;
+        foreach (var thread in pool)
+        {
+            tbHits += thread.tbHits;
+        }
+        return tbHits;
     }
 
     /// <summary>

@@ -21,6 +21,7 @@ public class SearchThread : IDisposable
     public volatile int ply;
     public volatile int seldepth;
     public long nodeCount = 0;
+    public long tbHits = 0;
 
     public int completedDepth = 0;
 
@@ -149,6 +150,7 @@ public class SearchThread : IDisposable
         ply = 0;
         seldepth = 0;
         nodeCount = 0;
+        tbHits = 0;
         completedDepth = 0;
 
         PV.Clear();

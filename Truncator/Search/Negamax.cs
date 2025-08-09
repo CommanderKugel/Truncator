@@ -62,6 +62,71 @@ public static partial class Search
             return ttEntry.Score;
         }
 
+        // tablebase probing
+        // TODO: check for root-ply >= tbprobeply
+
+        int SyzygyMin = -SCORE_MATE;
+        int SyzygyMax = SCORE_MATE;
+        if (!isRoot
+            && Fathom.DoTbProbing
+            && p.CastlingRights == 0
+            && p.FiftyMoveRule == 0
+            && Utils.popcnt(p.blocker) <= Fathom.TbLargest)
+        {
+
+            int res = Fathom.ProbeWdl(ref p);
+            Debug.Assert(res >= (int)TbResult.TbLoss && res <= (int)TbResult.TbWin, "unexpected tb probing result");
+
+            thread.tbHits++;
+
+            int TbScore = res switch
+            {
+                (int)TbResult.TbLoss => -SCORE_TB_WIN + thread.ply,
+                (int)TbResult.TbWin => SCORE_TB_WIN - thread.ply,
+
+                // blessed losses and cursed wins are draws in practice
+                _ => SCORE_DRAW
+            };
+
+            int TbBound = res switch
+            {
+                (int)TbResult.TbLoss => UPPER_BOUND,
+                (int)TbResult.TbWin => LOWER_BOUND,
+                _ => EXACT_BOUND
+            };
+
+            // check for tb cutoff via the bounds
+            if (TbBound == EXACT_BOUND
+                || TbBound == UPPER_BOUND && TbScore <= alpha
+                || TbBound == LOWER_BOUND && TbScore >= beta)
+            {
+                thread.tt.Write(
+                    p.ZobristKey,
+                    TbScore,
+                    Move.NullMove,
+                    depth,
+                    TbBound,
+                    isPV,
+                    thread
+                );
+                return TbScore;
+            }
+
+            // clamp the bestscore to syzygy probing scores
+            // but only in pv nodes, because nonpv nodes only search in null-windows
+            if (isPV && TbBound == LOWER_BOUND)
+            {
+                SyzygyMin = TbScore;
+                alpha = Math.Max(alpha, TbScore);
+            }
+            if (isPV && TbBound == UPPER_BOUND)
+            {
+                SyzygyMax = TbScore;
+            }
+
+        }
+
+
         // clear childrens relevant node data
         (ns + 1)->KillerMove = Move.NullMove;
         (ns + 1)->CutoffCount = 0;
@@ -440,6 +505,11 @@ public static partial class Search
              flag == LOWER_BOUND && bestscore > ns->StaticEval))
         {
             thread.CorrHist.Update(thread, ref p, ns, bestscore, ns->StaticEval, depth);
+        }
+
+        if (isPV)
+        {
+            bestscore = Math.Clamp(bestscore, SyzygyMin, SyzygyMax);
         }
 
         return bestscore;

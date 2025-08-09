@@ -35,11 +35,19 @@ public static class Truncator
 #endif
 
         {
+            Console.WriteLine("Disposing Fathom Dll and deleting File");
+            Fathom.Dispose();
+            BindingHandler.Dispose();
+
+            Console.WriteLine("Disposing off miscellaeous stuff");
             Attacks.Dispose();
             Castling.Dispose();
             Utils.Dispose();
             Zobrist.Dispose();
-            GC.Collect();
+
+            Console.WriteLine("Dosposing of all Threads");
+            ThreadPool.StopAll();
+            ThreadPool.Join();
         }
     }
 }

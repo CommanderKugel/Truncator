@@ -93,10 +93,10 @@ public partial struct Pos
 
     private unsafe void SetCastlingRight(char cr)
     {
-        Debug.Assert(cr >= 'a' && cr <= 'h' ||
-                     cr >= 'A' && cr <= 'H' ||
-                     "KQkq".Contains(cr),
-                     "Invalid char to set castling right from");
+        Debug.Assert(cr >= 'a' && cr <= 'h'
+            || cr >= 'A' && cr <= 'H'
+            || "KQkq".Contains(cr),
+            "Invalid char to set castling right from");
 
         Color c = char.IsUpper(cr) ? Color.White : Color.Black;
 
@@ -111,8 +111,6 @@ public partial struct Pos
         bool kingside = castleFile > kingFile;
 
         CastlingRights |= Castling.GetCastlingRightMask(c, kingside);
-
-        // optional for (d)frc here: save rook and king start squares
     }
     
     public string get_fen()
