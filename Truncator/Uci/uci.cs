@@ -139,29 +139,6 @@ public static partial class UCI
                 }
             }
 
-
-            else if (command == "tbinit")
-            {
-                const string path = @"C:\Users\nikol\Desktop\3-4-5_pieces_Syzygy\3-4-5\";
-                Fathom.Init(path);
-            }
-
-            else if (command == "tbdispose")
-            {
-                Fathom.Dispose();
-            }
-
-            else if (command == "tbprobe")
-            {
-                int res = Fathom.ProbeWdl(ref ThreadPool.MainThread.rootPos.p);
-                Console.WriteLine($"tb probe result: {res}");
-            }
-
-            else if (command == "tbproberoot")
-            {
-                ThreadPool.TbProbeRoot();
-            }
-
         }
     }
 

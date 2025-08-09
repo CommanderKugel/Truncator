@@ -8,6 +8,10 @@ public static partial class Fathom
     public static bool DoTbProbing = false;
     public static int TbLargest = 0;
     public static string SyzygyPath = "";
+
+    /// <summary>
+    /// not used anywhere right now
+    /// </summary>
     public static int SyzygyProbePly = 40;
 
     private enum Status
