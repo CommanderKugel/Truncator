@@ -36,5 +36,20 @@ public static partial class UCI
             WDL.UCI_showWDL = tokens[4] == "true";
         }
 
+        if (tokens[2] == "SyzygyPath" && tokens.Length >= 5)
+        {
+            Debug.Assert(tokens.Length == 5);
+            var path = tokens[4];
+            Fathom.Init(path);
+        }
+
+        if (tokens[2] == "SyzygyProbePly")
+        {
+            Debug.Assert(tokens.Length == 5);
+            int ply = int.Parse(tokens[4]);
+            Fathom.SyzygyProbePly = ply;
+            Console.WriteLine($"SyzygyProbePly set to {ply}");
+        }
+
     }
 }

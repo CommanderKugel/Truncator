@@ -29,6 +29,9 @@ public static partial class UCI
                 Console.WriteLine($"option name Threads type spin default 1 min 1 max {ThreadPool.MAX_THREAD_COUNT}");
                 Console.WriteLine($"option name UCI_ShowWDL type check default false");
 
+                Console.WriteLine($"option name SyzygyPath type string default <empty>");
+                //Console.WriteLine($"option name SyzygyProbePly type spin default 40 min 1 max 128");
+
                 Console.WriteLine("uciok");
             }
 

@@ -167,4 +167,21 @@ public unsafe partial struct Pos
         Debug.Assert(FiftyMoveRule >= 0 && FiftyMoveRule <= 100, "why are you still playing? This game is already drawn!");
         return IsFiftyMoveDraw || IsInsufficientMaterial || thread.repTable.IsTwofoldRepetition(ref this);
     }
+
+    public int GetFathomEpSq()
+    {
+        // fathom wants SqNont to be zero
+
+        if (EnPassantSquare == (int)Square.NONE)
+        {
+            return 0;
+        }
+
+        // also, if ep might be legal, it really is only legal
+        // when there is a pawn to capture via enpassant
+
+        int epTarget = Us == Color.White ? EnPassantSquare + 8 : EnPassantSquare - 8;
+        bool attackerExists = (PawnAttacks(Them, epTarget) & GetPieces(Us, PieceType.Pawn)) != 0;
+        return attackerExists ? epTarget : 0;
+    }
 }

@@ -8,9 +8,14 @@
 
     <SelfContained>true</SelfContained>
     <PublishSingleFile>true</PublishSingleFile>
+    <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
 
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Optimize>true</Optimize>
   </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Fathom/fathomDll.dll"/>
+  </ItemGroup>
 
 </Project>
