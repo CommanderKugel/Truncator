@@ -90,8 +90,9 @@ public unsafe partial struct Pos
 
     public bool IsLegal(Move m)
     {
-        
+
         // assumes positive IsPseudoLegal check
+        
         Debug.Assert(m.NotNull);
 
         int from = m.from;
@@ -106,13 +107,16 @@ public unsafe partial struct Pos
         // 1. we are not in check and we do not move through/into check
         // 2. we have the corresponding castling rights
         // 3. the kings and rooks path is not blocked by other pieces
+        
         if (m.IsCastling)
         {
             block ^= 1ul << to;
+
             // check if we have the castling rights, the path is not blocked
             // and if we are currently in check
-            if (!HasCastlingRight(Us, from < to) ||
-                (block & Castling.GetCastlingBlocker(Us, from < to)) != 0)
+
+            if (!HasCastlingRight(Us, from < to)
+                || (block & Castling.GetCastlingBlocker(Us, from < to)) != 0)
             {
                 return false;
             }
@@ -122,8 +126,9 @@ public unsafe partial struct Pos
 
             block ^= (1ul << kingEndSq) | (1ul << rookEndSq);
             int dir = from < to ? 1 : -1;
-            
+
             // check if we move through check
+
             for (int sq = from; sq != target; sq += dir)
             {
                 if ((AttackerTo(sq, block) & ColorBB[(int)Them]) != 0)
@@ -133,6 +138,7 @@ public unsafe partial struct Pos
             }
 
             // check if we would end in check
+
             return (AttackerTo(target, block) & ColorBB[(int)Them]) == 0;
         }
 
@@ -140,6 +146,7 @@ public unsafe partial struct Pos
         {
             // for en-passant, simply always compute the king-attackers with the
             // blocker configuratio after the move
+
             block ^= 1ul << EnPassantSquare;
             ulong victim = 1ul << (Us == Color.White ? to - 8 : to + 8);
             return (AttackerTo(ksq, block) & ColorBB[(int)Them] & ~victim) == 0;
@@ -150,8 +157,9 @@ public unsafe partial struct Pos
         // only moves are generated that block slider checks or capture the checking piece,
         // if needed. Thus, only potential pinned pieces can leave the king in check.
         // If the king and moving Piece are aligned, a legality check is needed.
-        return (pt != PieceType.King && !IsInKingsSliderVision(from)) ||
-               (AttackerTo(ksq, block) & ColorBB[(int)Them] & ~(1ul << to)) == 0;
+
+        return (pt != PieceType.King && !IsInKingsSliderVision(from))
+            || (AttackerTo(ksq, block) & ColorBB[(int)Them] & ~(1ul << to)) == 0;
     }
 
     public void MakeMove(Move m, SearchThread thread)
@@ -169,10 +177,12 @@ public unsafe partial struct Pos
         Debug.Assert(movingPt != PieceType.NONE, "there is no piece to move!");
 
         // make the quiet part of the move
+
         ColorBB[(int)Us] ^= FromToBB;
         PieceBB[(int)movingPt] ^= FromToBB;
 
         // update Zobrist keys regarding the moves piece
+
         ulong temp = Zobrist.GetSinglePieceKey(Us, movingPt, from) ^ Zobrist.GetSinglePieceKey(Us, movingPt, to);
         ZobristKey ^= temp;
         PieceKeys[(int)movingPt] ^= temp;
@@ -184,12 +194,14 @@ public unsafe partial struct Pos
         FiftyMoveRule++;
 
         // if capture: remove the victim
+
         if (victimPt != PieceType.NONE && !m.IsCastling)
         {
             ColorBB[(int)Them] ^= toBB;
             PieceBB[(int)victimPt] ^= toBB;
 
             // update zobrist keys regarding the captured piece
+
             temp = Zobrist.GetSinglePieceKey(Them, victimPt, to);
             ZobristKey ^= temp;
             PieceKeys[(int)victimPt] ^= temp;
@@ -202,6 +214,7 @@ public unsafe partial struct Pos
         }
 
         // reset the ep-square
+
         if (EnPassantSquare != (int)Square.NONE)
         {
             ZobristKey ^= Zobrist.GetEpKEy(EnPassantSquare);
@@ -211,9 +224,11 @@ public unsafe partial struct Pos
         if (movingPt == PieceType.Pawn)
         {
             // fifty move rule resets, because pawn-moves are not reversible
+
             FiftyMoveRule = 0;
 
             // set ep square after double pawn pushes
+
             if (Math.Abs(from - to) == 16)
             {
                 EnPassantSquare = to;
@@ -221,6 +236,7 @@ public unsafe partial struct Pos
             }
 
             // swap the pawn with the promoted piece
+
             if (m.IsPromotion)
             {
                 PieceType promoPt = m.PromoType;
@@ -228,6 +244,7 @@ public unsafe partial struct Pos
                 PieceBB[(int)promoPt] ^= toBB;
 
                 // update zobrist keys regarding the promoted pawn and piece 
+                
                 ulong promoKey = Zobrist.GetSinglePieceKey(Us, promoPt, to);
                 ulong pawnKey = Zobrist.GetSinglePieceKey(Us, PieceType.Pawn, to);
                 ZobristKey ^= promoKey ^ pawnKey;
@@ -237,6 +254,7 @@ public unsafe partial struct Pos
             }
 
             // capture the ep-victim, as it is not done like normal captures
+
             if (m.IsEnPassant)
             {
                 int victim = Us == Color.White ? to - 8 : to + 8;
@@ -244,6 +262,7 @@ public unsafe partial struct Pos
                 ColorBB[(int)Them] ^= 1ul << victim;
 
                 // update zobrist keys regarding the captured pawn
+
                 temp = Zobrist.GetSinglePieceKey(Them, PieceType.Pawn, victim);
                 ZobristKey ^= temp;
                 PieceKeys[(int)PieceType.Pawn] ^= temp;
@@ -252,26 +271,33 @@ public unsafe partial struct Pos
         }
 
         // move the rooks when castling
+
         if (m.IsCastling)
         {
             var (kingEnd, rookEnd) = Castling.GetCastlingSquares(Us, from < to);
+
             // first, move the king to the correct square.
             // for (d)frc, castling is encoded as capturing the rook.
+
             PieceBB[(int)PieceType.King] ^= 1ul << to;
             PieceBB[(int)PieceType.King] |= 1ul << kingEnd;
 
             // now move the rook to its destination.
+
             PieceBB[(int)PieceType.Rook] ^= 1ul << to;
             PieceBB[(int)PieceType.Rook] |= 1ul << rookEnd;
 
             // lastly, update out colors occupancy.
             // the rook was already 'captured', only place down both pieces.
+
             ColorBB[(int)Us] ^= 1ul << kingEnd | 1ul << rookEnd;
 
             // correctly update kingsquare
+
             KingSquares[(int)Us] = kingEnd;
 
             // update zobrist keys regarding the king and rook
+
             ulong kingKey = Zobrist.GetSinglePieceKey(Us, PieceType.King, kingEnd) ^ Zobrist.GetSinglePieceKey(Us, PieceType.King, to);
             ulong rookKey = Zobrist.GetSinglePieceKey(Us, PieceType.Rook, to) ^ Zobrist.GetSinglePieceKey(Us, PieceType.Rook, rookEnd);
             ZobristKey ^= kingKey ^ rookKey;
@@ -287,6 +313,7 @@ public unsafe partial struct Pos
         }
 
         // update castling rights
+        
         byte oldCastling = CastlingRights;
         CastlingRights &= Castling.modifier[from];
         CastlingRights &= Castling.modifier[to];
@@ -298,20 +325,21 @@ public unsafe partial struct Pos
         }
 
         // swap the side-to-move
+
         Us = Them;
         ZobristKey ^= Zobrist.stmKey;
 
         Threats = ComputeThreats();
 
-        // update the search-stack
+        // update thread and search-stack data
+
         thread.nodeStack[thread.ply].MovedPieceType = movingPt;
         thread.nodeStack[thread.ply].CapturedPieceType = victimPt;
         thread.nodeStack[thread.ply].move = m;
         thread.nodeStack[thread.ply].ContHist = thread.history.ContHist[Them, movingPt, m.to];
-
-        // update the thread-data
         thread.nodeCount++;
         thread.ply++;
+
         // push to rep-table only in search, because qsearch cant realistically cause repetitions
 
         Debug.Assert(NonPawnKeys[(int)Color.White] == Zobrist.GetNonPawnKey(Color.White, ref this));
@@ -322,10 +350,12 @@ public unsafe partial struct Pos
     public void MakeNullMove(SearchThread thread)
     {
         // swap the side-to-move
+
         Us = Them;
         ZobristKey ^= Zobrist.stmKey;
 
         // reset the ep-square
+
         if (EnPassantSquare != (int)Square.NONE)
         {
             ZobristKey ^= Zobrist.GetEpKEy(EnPassantSquare);
@@ -334,13 +364,12 @@ public unsafe partial struct Pos
 
         Threats = ComputeThreats();
 
-        // update the search-stack
+        // update thread and search-stack data
+
         thread.nodeStack[thread.ply].MovedPieceType = PieceType.NONE;
         thread.nodeStack[thread.ply].CapturedPieceType = PieceType.NONE;
         thread.nodeStack[thread.ply].move = Move.NullMove;
         thread.nodeStack[thread.ply].ContHist = thread.history.ContHist.NullHist;
-
-        // update the thread-data
         thread.nodeCount++;
         thread.ply++;
     }

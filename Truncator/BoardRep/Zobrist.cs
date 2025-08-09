@@ -69,6 +69,7 @@ public static class Zobrist
     {
         p.ZobristKey = p.Us == Color.White ? 0 : stmKey;
         p.NonPawnKeys[(int)Color.White] = p.NonPawnKeys[(int)Color.Black] = 0;
+        
         // piece keys will simply be overwritten
 
         for (PieceType pt = PieceType.Pawn; pt <= PieceType.King; pt++)

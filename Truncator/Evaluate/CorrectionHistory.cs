@@ -4,7 +4,9 @@ using System.Runtime.InteropServices;
 
 public struct CorrectionHistory : IDisposable
 {
-
+    /// <summary>
+    /// Size of a table per each color
+    /// </summary>
     public const int SIZE = 16_384;
 
     private const int MAX_BONUS = HistVal.HIST_VAL_MAX / 4;
@@ -53,7 +55,6 @@ public struct CorrectionHistory : IDisposable
         int minor = 12 * MinorTable[MakeKey(p.Us, p.MinorKey)];
         int major = 12 * MajorTable[MakeKey(p.Us, p.MajorKey)];
         int threat = 12 * ThreatTable[MakeKey(p.Us, Utils.murmurHash(p.Threats & p.ColorBB[(int)p.Us]))];
-
 
         int prevPiece = (thread.ply > 0 && (n - 1)->move.NotNull) ?
             12 * MoveTable[p.Us, (n - 1)->MovedPieceType, (n - 1)->move.to] : 0;
