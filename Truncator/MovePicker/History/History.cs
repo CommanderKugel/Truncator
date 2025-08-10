@@ -18,7 +18,6 @@ public struct History : IDisposable
     public unsafe void UpdateQuietMoves(SearchThread thread, Node* n, short bonus, short penalty, ref Pos p, ref Span<Move> quiets, int count, Move bestmove)
     {
         var NullHist = thread.history.ContHist.NullHist;
-        var PHist = PawnHist[p.PawnKey];
 
         for (int i = 0; i < count; i++)
         {
@@ -27,7 +26,7 @@ public struct History : IDisposable
             PieceType pt = p.PieceTypeOn(m.from);
 
             Butterfly[p.Us, m].Update(delta);
-            (*PHist)[p.Us, pt, m.to].Update(delta);
+            PawnHist[p.Us, pt, m.to, p.PawnKey].Update(delta);
 
             if ((n - 1)->ContHist != NullHist)
             {
