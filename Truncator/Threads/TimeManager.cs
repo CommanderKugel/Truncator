@@ -28,6 +28,9 @@ public static class TimeManager
         movetime = -1;
         depth = -1;
         softnodes = hardnodes = long.MaxValue;
+
+        lastBestMove = Move.NullMove;
+        PVstability = 0;
     }
 
     public static void Start(Color Us)
@@ -122,15 +125,43 @@ public static class TimeManager
         return IsSelfManaging && watch.ElapsedMilliseconds > HardTimeout || thread.nodeCount >= hardnodes;
     }
 
+    private static Move lastBestMove;
+    private static int PVstability = 0;
+
     public static bool IsSoftTimeout(SearchThread thread, int iteration)
     {
         Debug.Assert(!IsSelfManaging || SoftTimeout != 0 && iteration > 0);
 
-        // pv-tm
+        // dont check at ultra low depths for soft-timeout
+
+        if (thread.completedDepth <= 4)
+        {
+            return false;
+        }
+
+        // some time controls dont require fancy soft timeouts
+
+        if (!IsSelfManaging)
+        {
+            return false;
+        }
+
+        if (thread.nodeCount >= softnodes)
+        {
+            return true;
+        }
+        
+        // pv stability
+        // the longer one move is deemed best in a row, the less time should be spent
+
+        PVstability = Math.Min(thread.PV.BestMove == lastBestMove ? PVstability + 1 : 0, 10);
+        lastBestMove = thread.PV.BestMove;
+        double PVstabilityFactor = 1.2 - 0.04 * PVstability;
+
         // node-tm
         // score-tm
 
-        return IsSelfManaging && watch.ElapsedMilliseconds > SoftTimeout || thread.nodeCount >= softnodes;
+        return IsSelfManaging && (double)watch.ElapsedMilliseconds > (double)SoftTimeout * PVstabilityFactor;
     }
 
     public static long ElapsedMilliseconds => Math.Max(watch.ElapsedMilliseconds, 1);
