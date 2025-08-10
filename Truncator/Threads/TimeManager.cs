@@ -152,16 +152,22 @@ public static class TimeManager
         }
         
         // pv stability
-        // the longer one move is deemed best in a row, the less time should be spent
+        // the longer one move is deemed best in a row, the less time should be spent overall
 
         PVstability = Math.Min(thread.PV.BestMove == lastBestMove ? PVstability + 1 : 0, 10);
         lastBestMove = thread.PV.BestMove;
         double PVstabilityFactor = 1.2 - 0.04 * PVstability;
 
         // node-tm
+        // the more nodes are spent on the best move, the less time should be spent overall
+
+        long NonBestNodes = thread.nodeCount - thread.rootPos.RootMoves[thread.PV.BestMove].Nodes;
+        double nonBestNodesFraction = (double)(NonBestNodes) / thread.nodeCount;
+        double NodeFactor = Math.Clamp(0.4 + 2.0 * nonBestNodesFraction, 0.5, 1.5);
+
         // score-tm
 
-        return IsSelfManaging && (double)watch.ElapsedMilliseconds > (double)SoftTimeout * PVstabilityFactor;
+        return IsSelfManaging && (double)watch.ElapsedMilliseconds > (double)SoftTimeout * PVstabilityFactor * NodeFactor;
     }
 
     public static long ElapsedMilliseconds => Math.Max(watch.ElapsedMilliseconds, 1);
