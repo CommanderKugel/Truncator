@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 public struct TTEntry
 {
     // Size = 8 + 2 + 2 + 1 + 1 = 14 bytes
+    // use 16 for now to leave space for Eval (2 bytes)
 
     public ulong Key;
     public short Score;
