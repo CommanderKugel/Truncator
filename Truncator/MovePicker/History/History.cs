@@ -7,12 +7,14 @@ public struct History : IDisposable
 
     public ButterflyHistory Butterfly;
     public ContinuationHistory ContHist;
+    public PawnHistory PawnHist;
 
     public History()
     {
         isDisposed = false;
         Butterfly = new();
         ContHist = new();
+        PawnHist = new();
     }
 
     public unsafe void UpdateQuietMoves(SearchThread thread, Node* n, short bonus, short penalty, ref Pos p, ref Span<Move> quiets, int count, Move bestmove)
@@ -26,6 +28,7 @@ public struct History : IDisposable
             PieceType pt = p.PieceTypeOn(m.from);
 
             Butterfly[p.Us, m].Update(delta);
+            PawnHist[p.Us, pt, m.to, p.PawnKey].Update(delta);
 
             if ((n - 1)->ContHist != NullHist)
             {
@@ -43,6 +46,7 @@ public struct History : IDisposable
     {
         Butterfly.Clear();
         ContHist.Clear();
+        PawnHist.Clear();
     }
 
     public void Dispose()
@@ -51,6 +55,7 @@ public struct History : IDisposable
         {
             Butterfly.Dispose();
             ContHist.Dispose();
+            PawnHist.Dispose();
             isDisposed = true;
         }
     }

@@ -62,6 +62,7 @@ public ref struct MovePicker
                 scores[i] = thread.history.Butterfly[p.Us, m];
                 scores[i] += (*ContHist1ply)[p.Us, pt, m.to];
                 scores[i] += (*ContHist2ply)[p.Them, pt, m.to];
+                scores[i] += thread.history.PawnHist[p.Us, pt, m.to, p.PawnKey];
             }
         }
     }
