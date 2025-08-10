@@ -192,7 +192,10 @@ public static partial class Search
             int rfpDepth = improving ? depth - 1 : depth;
             int margin = 75;
 
-            if (depth <= 5 && ns->StaticEval - margin * rfpDepth >= beta)
+            // prune less if prevmoves history is good and vice versa
+            int histMod = (ns - 1)->HistScore * 64 / HistVal.HIST_VAL_MAX;
+
+            if (depth <= 5 && ns->StaticEval - margin * rfpDepth - histMod >= beta)
             {
                 return ns->StaticEval;
             }
