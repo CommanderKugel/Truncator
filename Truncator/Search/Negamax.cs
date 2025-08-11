@@ -296,11 +296,13 @@ public static partial class Search
                 && notLoosing)
             {
 
+                int MoveLoopPruningDepth = depth - depth / 6 - movesPlayed / 6;
+
                 // futility pruning 
                 if (nonPV
                     && !inCheck
-                    && depth <= 4
-                    && ns->StaticEval + depth * 150 <= alpha)
+                    && MoveLoopPruningDepth <= 4
+                    && ns->StaticEval + MoveLoopPruningDepth * 150 <= alpha)
                 {
                     continue;
                 }
