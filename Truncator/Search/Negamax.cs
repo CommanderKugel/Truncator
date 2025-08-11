@@ -296,6 +296,8 @@ public static partial class Search
                 && notLoosing)
             {
 
+                int MoveLoopPruningDepth = depth - depth / 6 - movesPlayed / 6;
+
                 // futility pruning 
                 if (nonPV
                     && !inCheck
@@ -312,8 +314,8 @@ public static partial class Search
                 }
 
                 // main-history pruning
-                if (depth <= 5 &&
-                    ns->HistScore < -(15 * depth + 9 * depth * depth))
+                if (MoveLoopPruningDepth <= 5
+                    && ns->HistScore < -(15 * MoveLoopPruningDepth + 9 * MoveLoopPruningDepth * depth))
                 {
                     continue;
                 }
