@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Security.Cryptography;
 
 public static partial class Search
 {
@@ -87,6 +88,16 @@ public static partial class Search
                 && !p.IsCapture(m)
                 && !IsLoss(bestscore))
             {
+                continue;
+            }
+
+            // futility pruning
+            
+            if (!inCheck
+                && !m.IsPromotion
+                && ns->StaticEval + 200 + SEE.SEEMaterial[(int)p.GetCapturedPieceType(m)] <= alpha)
+            {
+                bestscore = ns->StaticEval + 200;
                 continue;
             }
 
