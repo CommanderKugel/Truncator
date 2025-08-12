@@ -308,14 +308,13 @@ public static partial class Search
                 }
 
                 // late move pruning
-                if (MoveLoopPruningDepth <= 4 && movesPlayed >= 2 + MoveLoopPruningDepth * depth)
+                if (MoveLoopPruningDepth <= 4 && movesPlayed >= 2 + depth * depth)
                 {
                     continue;
                 }
 
                 // main-history pruning
-                if (depth <= 5 &&
-                    ns->HistScore < -(15 * depth + 9 * depth * depth))
+                if (depth <= 5 && ns->HistScore < -(15 * depth + 9 * depth * depth))
                 {
                     continue;
                 }
