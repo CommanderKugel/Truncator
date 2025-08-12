@@ -246,7 +246,12 @@ public static partial class Search
             depth++;
         }
 
-        // ToDo: Internal Iterative Reductions
+        // internal iterative deepening
+
+        if (isPV && !inSingularity && depth > 5 && ttMove.IsNull)
+        {
+            depth--;
+        }
 
         // movegeneration, scoring and ordering
         // outsourced to the move-picker
