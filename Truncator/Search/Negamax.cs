@@ -315,7 +315,7 @@ public static partial class Search
 
                 // main-history pruning
                 if (MoveLoopPruningDepth <= 5
-                    && ns->HistScore < -(15 * MoveLoopPruningDepth + 9 * MoveLoopPruningDepth * depth))
+                    && ns->HistScore < -(15 * depth + 9 * depth * depth))
                 {
                     continue;
                 }
