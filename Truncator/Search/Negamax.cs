@@ -362,6 +362,11 @@ public static partial class Search
                         extension = 1;
                     }
                 }
+
+                else if (ttEntry.Score <= alpha)
+                {
+                    extension = -1;
+                }
             }
 
             // skip illegal moves for obvious reasons
