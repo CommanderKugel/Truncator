@@ -37,9 +37,16 @@ public static partial class Search
             return Negamax<RootNode>(thread, thread.rootPos.p, -SCORE_MATE, SCORE_MATE, depth, &thread.nodeStack[thread.ply], false);
         }
 
-        int delta = 30;
-        int alpha = thread.PV[thread.completedDepth] - delta;
-        int beta = thread.PV[thread.completedDepth] + delta;
+        // compute delta, alpha and beta
+        // assuming the upcoming iterations score will vary just a bit from the last full iterations
+        // we set alpha and beta to a window around that value
+        // scores outside of that bound are just bounds and require re-searches
+
+        int prevScore = thread.PV[thread.completedDepth];
+        int delta = 10 + prevScore * prevScore / short.MaxValue;
+        
+        int alpha = prevScore - delta;
+        int beta = prevScore + delta;
 
         while (true)
         {
