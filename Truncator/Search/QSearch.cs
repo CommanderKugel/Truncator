@@ -18,16 +18,19 @@ public static partial class Search
         }
 
         // probe the tt for a transposition
+
         TTEntry ttEntry = thread.tt.Probe(p.ZobristKey);
         bool ttHit = ttEntry.Key == p.ZobristKey;
         Move ttMove = ttHit ? new(ttEntry.MoveValue) : Move.NullMove;
 
         // try for tt-cutoff if the entry is any good
-        if (nonPV && ttHit && (
-                ttEntry.Flag == EXACT_BOUND ||
-                ttEntry.Flag == LOWER_BOUND && ttEntry.Score >= beta ||
-                ttEntry.Flag == UPPER_BOUND && ttEntry.Score <= alpha
-            ))
+        // every entry that matches this positin is worth using
+
+        if (nonPV
+            && ttHit
+            && (ttEntry.Flag == EXACT_BOUND
+                || ttEntry.Flag == LOWER_BOUND && ttEntry.Score >= beta
+                || ttEntry.Flag == UPPER_BOUND && ttEntry.Score <= alpha))
         {
             return ttEntry.Score;
         }
@@ -48,6 +51,9 @@ public static partial class Search
 
         int bestscore = ns->StaticEval;
 
+        // Stand pat logic
+        // sometimes we can simply do nothing and enjoy having beta already beaten
+
         if (!inCheck)
         {
             if (ns->StaticEval >= beta)
@@ -59,34 +65,40 @@ public static partial class Search
             {
                 alpha = ns->StaticEval;
             }
-        }        
+        }
 
         // move generation and picking
+        // outsourced to movepicker
+        
         Span<Move> moves = stackalloc Move[256];
         Span<int> scores = stackalloc int[256];
         MovePicker picker = new MovePicker(thread, ttMove, ref moves, ref scores, !inCheck);
 
         // main move loop
+
         for (Move m = picker.Next(ref p); m.NotNull; m = picker.Next(ref p))
         {
             Debug.Assert(m.NotNull);
 
             // skip quiets if there is a non-loosing line already
-            if (inCheck &&
-                !p.IsCapture(m) &&
-                !IsLoss(bestscore))
+            // quiets are only generated when in check anyways
+
+            if (inCheck
+                && !p.IsCapture(m)
+                && !IsLoss(bestscore))
             {
                 continue;
             }
 
-            // prune all bad captures
-            if (nonPV &&
-                !SEE.SEE_threshold(m, ref p, 0))
+            // simply prune all bad captures
+
+            if (nonPV && !SEE.SEE_threshold(m, ref p, 0))
             {
                 continue;
             }
 
             // only make legal moves
+
             if (!p.IsLegal(m))
             {
                 continue;
@@ -95,11 +107,10 @@ public static partial class Search
             Pos next = p;
             next.MakeMove(m, thread);
 
-            // no re-searches, we only ever pass null-windows in nonPV nodes
             int score = -QSearch<Type>(thread, next, -beta, -alpha, ns + 1);
 
+            // ~unmake
             thread.ply--;
-
 
             if (score > bestscore)
             {
@@ -113,10 +124,13 @@ public static partial class Search
 
                 if (score > alpha)
                 {
+                    // now we have an exact score
+
                     alpha = score;
 
                     if (score >= beta)
                     {
+                        // fail high
                         break;
                     }
                 }
