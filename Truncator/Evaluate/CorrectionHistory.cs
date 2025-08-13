@@ -19,6 +19,8 @@ public struct CorrectionHistory : IDisposable
     private unsafe HistVal* MajorTable;
     private unsafe HistVal* WhiteThreatTable;
     private unsafe HistVal* BlackThreatTable;
+    private unsafe HistVal* WhiteKingThreatTable;
+    private unsafe HistVal* BlackKingThreatTable;
 
     public PieceToHistory MoveTable;
 
@@ -30,8 +32,11 @@ public struct CorrectionHistory : IDisposable
         BlackNonPawnTable = (HistVal*)NativeMemory.AllocZeroed((nuint)sizeof(HistVal) * SIZE * 2);
         MinorTable = (HistVal*)NativeMemory.AllocZeroed((nuint)sizeof(HistVal) * SIZE * 2);
         MajorTable = (HistVal*)NativeMemory.AllocZeroed((nuint)sizeof(HistVal) * SIZE * 2);
+
         WhiteThreatTable = (HistVal*)NativeMemory.AllocZeroed((nuint)sizeof(HistVal) * SIZE * 2);
         BlackThreatTable = (HistVal*)NativeMemory.AllocZeroed((nuint)sizeof(HistVal) * SIZE * 2);
+        WhiteKingThreatTable = (HistVal*)NativeMemory.AllocZeroed((nuint)sizeof(HistVal) * SIZE * 2);
+        BlackKingThreatTable = (HistVal*)NativeMemory.AllocZeroed((nuint)sizeof(HistVal) * SIZE * 2);
 
         MoveTable = new();
     }
@@ -64,10 +69,15 @@ public struct CorrectionHistory : IDisposable
         int threatus = 12 * our_ttable[MakeKey(p.Us, Utils.murmurHash(p.Threats[(int)p.Them] & p.ColorBB[(int)p.Us]))];
         int threatthem = 12 * their_ttable[MakeKey(p.Us, Utils.murmurHash(p.Threats[(int)p.Us] & p.ColorBB[(int)p.Them]))];
 
+        var our_kttable = p.Us == Color.White ? WhiteKingThreatTable : BlackKingThreatTable;
+        var their_kttable = p.Us == Color.Black ? WhiteKingThreatTable : BlackKingThreatTable;
+        int kthreatus = 12 * our_kttable[MakeKey(p.Us, Utils.murmurHash(p.KingZoneAttacker[(int)p.Us]))];
+        int kthreattem = 12 * their_kttable[MakeKey(p.Us, Utils.murmurHash(p.KingZoneAttacker[(int)p.Them]))];
+
         int prevPiece = (thread.ply > 0 && (n - 1)->move.NotNull) ?
             12 * MoveTable[p.Us, (n - 1)->MovedPieceType, (n - 1)->move.to] : 0;
         
-        int CorrectionValue = (pawn + npwhite + npblack + minor + major + threatus + threatthem + prevPiece) / HistVal.HIST_VAL_MAX;
+        int CorrectionValue = (pawn + npwhite + npblack + minor + major + threatus + threatthem + prevPiece + kthreatus + kthreattem) / HistVal.HIST_VAL_MAX;
         n->StaticEval = Math.Clamp(n->UncorrectedStaticEval + CorrectionValue, -Search.SCORE_EVAL_MAX, Search.SCORE_EVAL_MAX);
 
         return CorrectionValue;
@@ -88,10 +98,11 @@ public struct CorrectionHistory : IDisposable
         MinorTable[MakeKey(p.Us, p.MinorKey)].Update(delta);
         MajorTable[MakeKey(p.Us, p.MajorKey)].Update(delta);
 
-        var our_ttable = p.Us == Color.White ? WhiteThreatTable : BlackThreatTable;
-        var their_ttable = p.Us == Color.Black ? WhiteThreatTable : BlackThreatTable;
-        our_ttable[MakeKey(p.Us, Utils.murmurHash(p.Threats[(int)p.Them] & p.ColorBB[(int)p.Us]))].Update(delta);
-        their_ttable[MakeKey(p.Us, Utils.murmurHash(p.Threats[(int)p.Us] & p.ColorBB[(int)p.Them]))].Update(delta);
+        WhiteThreatTable[MakeKey(p.Us, Utils.murmurHash(p.Threats[(int)Color.Black] & p.ColorBB[(int)Color.White]))].Update(delta);
+        BlackThreatTable[MakeKey(p.Us, Utils.murmurHash(p.Threats[(int)Color.White] & p.ColorBB[(int)Color.Black]))].Update(delta);
+
+        WhiteKingThreatTable[MakeKey(p.Us, Utils.murmurHash(p.KingZoneAttacker[(int)Color.White]))].Update(delta);
+        BlackKingThreatTable[MakeKey(p.Us, Utils.murmurHash(p.KingZoneAttacker[(int)Color.Black]))].Update(delta);
 
         if (thread.ply > 0 && (n - 1)->move.NotNull)
         {

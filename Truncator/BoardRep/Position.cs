@@ -40,40 +40,45 @@ public unsafe partial struct Pos
     /// Bitboards of all attacked squares by the opponent
     /// </summary>
     public fixed ulong Threats[2];
+    
+    /// <summary>
+    /// Bitboard of all Pieces attacking the opponents king zone
+    /// </summary>
+    public fixed ulong KingZoneAttacker[2];
 
     /// <summary>
     /// returns a bitboard containing all squares the given color attacks
     /// </summary>
-    private ulong ComputeThreats(Color c)
+    private void ComputeThreats(Color c, out ulong threats, out ulong kingZoneAttacker)
     {
         // pawns - knights - diag sliders - ortho sliders - king
 
         ulong pieces = GetPieces(c, PieceType.Pawn);
-        ulong threats = LeftPawnMassAttacks(c, pieces) | RightPawnMassAttacks(c, pieces);
+        threats = LeftPawnMassAttacks(c, pieces) | RightPawnMassAttacks(c, pieces);
 
-        pieces = GetPieces(c, PieceType.Knight);
-        while (pieces != 0)
-        {
-            threats |= PieceAttacks(PieceType.Knight, Utils.popLsb(ref pieces), blocker);
-        }
+        kingZoneAttacker = 0;
+        ulong oppKingZone = EvalUtils.KingZones[KingSquares[1 - (int)c]];
 
-        pieces = GetPieces(c, PieceType.Bishop, PieceType.Queen);
-        while (pieces != 0)
+        for (PieceType pt = PieceType.Knight; pt <= PieceType.Queen; pt++)
         {
-            threats |= PieceAttacks(PieceType.Bishop, Utils.popLsb(ref pieces), blocker);
-        }
+            pieces = GetPieces(c, pt);
 
-        pieces = GetPieces(c, PieceType.Rook, PieceType.Queen);
-        while (pieces != 0)
-        {
-            threats |= PieceAttacks(PieceType.Rook, Utils.popLsb(ref pieces), blocker);
+            while (pieces != 0)
+            {
+                int sq = Utils.popLsb(ref pieces);
+                ulong attack = PieceAttacks(pt, sq, blocker);
+                threats |= attack;
+
+                if ((oppKingZone & attack) != 0)
+                {
+                    kingZoneAttacker |= 1ul << sq;
+                }
+            }
         }
 
         pieces = GetPieces(c, PieceType.King);
         Debug.Assert(pieces != 0);
         threats |= PieceAttacks(PieceType.King, Utils.popLsb(ref pieces), blocker);
-
-        return threats;
     }
 
     /// <summary>
