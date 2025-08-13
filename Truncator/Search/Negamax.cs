@@ -20,7 +20,8 @@ public static partial class Search
         // make sure to not return a null move in root nodes
         // dont check for the actual time every node as this is very costly on certain hardware
 
-        if ((thread.nodeCount & 512) == 0
+        if (thread.completedDepth >= 4
+            && (thread.nodeCount & 512) == 0
             && (!thread.doSearch || thread.IsMainThread && TimeManager.IsHardTimeout(thread)))
         {
             thread.doSearch = false;
