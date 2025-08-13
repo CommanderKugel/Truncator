@@ -15,22 +15,22 @@ public static partial class Search
         bool nonPV = typeof(Type) == typeof(NonPVNode);
         bool inSingularity = ns->ExcludedMove.NotNull;
 
-        // overwrite previous pv line
-
-        thread.NewPVLine();
-
         // hard timeout
         // stop searching if we spent way too much time
         // make sure to not return a null move in root nodes
         // dont check for the actual time every node as this is very costly on certain hardware
 
         if ((thread.nodeCount & 512) == 0
-            && (!isPV || thread.PV.BestMove.NotNull)
             && (!thread.doSearch || thread.IsMainThread && TimeManager.IsHardTimeout(thread)))
         {
             thread.doSearch = false;
-            return isRoot ? thread.PV[thread.completedDepth - 1] : 0;
+            return 0;
         }
+
+        // overwrite previous pv line
+        // make sure to not exit root nodes when the pv is empty
+
+        thread.NewPVLine();
 
         if (!isRoot)
         {
