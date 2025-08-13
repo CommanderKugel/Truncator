@@ -21,8 +21,10 @@ public static partial class Search
 
         // hard timeout
         // stop searching if we spent way too much time
+        // dont check for the actual time every node as this is very costly on certain hardware
 
-        if (!thread.doSearch || thread.IsMainThread && TimeManager.IsHardTimeout(thread))
+        if ((thread.nodeCount & 512) == 0
+            && (!thread.doSearch || thread.IsMainThread && TimeManager.IsHardTimeout(thread)))
         {
             thread.doSearch = false;
             return isRoot ? thread.PV[thread.completedDepth - 1] : 0;
