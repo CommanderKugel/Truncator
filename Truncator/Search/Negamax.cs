@@ -16,7 +16,17 @@ public static partial class Search
         bool inSingularity = ns->ExcludedMove.NotNull;
 
         // overwrite previous pv line
+
         thread.NewPVLine();
+
+        // hard timeout
+        // stop searching if we spent way too much time
+
+        if (!thread.doSearch || thread.IsMainThread && TimeManager.IsHardTimeout(thread))
+        {
+            thread.doSearch = false;
+            return isRoot ? thread.PV[thread.completedDepth - 1] : 0;
+        }
 
         if (!isRoot)
         {
@@ -36,7 +46,7 @@ public static partial class Search
             // we can no longer fing a faster mate and can stop searching
 
             int mdAlpha = Math.Max(alpha, -SCORE_MATE + thread.ply);
-            int mdBeta  = Math.Min(beta ,  SCORE_MATE - thread.ply - 1);
+            int mdBeta = Math.Min(beta, SCORE_MATE - thread.ply - 1);
             if (mdAlpha >= mdBeta)
             {
                 return mdAlpha;
@@ -523,18 +533,6 @@ public static partial class Search
                     } // beta beaten
                 } // alpha beaten
             } // best beaten
-
-            // check if we have time left
-            // do this in the move-loop & after updaing the pv
-            // otherwise we could end up without a best move
-            // TODO: instantly return instead of breaking, the search results 
-            // are unfinished and unreliabla
-            // TODO: move this up earlier in the moveloop for earlier and more correct exits 
-
-            if (!thread.doSearch || thread.IsMainThread && TimeManager.IsHardTimeout(thread))
-            {
-                break;
-            }
 
         } // move-loop
 
