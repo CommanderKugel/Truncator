@@ -17,7 +17,8 @@ public struct CorrectionHistory : IDisposable
     private unsafe HistVal* BlackNonPawnTable;
     private unsafe HistVal* MinorTable;
     private unsafe HistVal* MajorTable;
-    private unsafe HistVal* ThreatTable;
+    private unsafe HistVal* WhiteThreatTable;
+    private unsafe HistVal* BlackThreatTable;
 
     public PieceToHistory MoveTable;
 
@@ -29,7 +30,8 @@ public struct CorrectionHistory : IDisposable
         BlackNonPawnTable = (HistVal*)NativeMemory.AllocZeroed((nuint)sizeof(HistVal) * SIZE * 2);
         MinorTable = (HistVal*)NativeMemory.AllocZeroed((nuint)sizeof(HistVal) * SIZE * 2);
         MajorTable = (HistVal*)NativeMemory.AllocZeroed((nuint)sizeof(HistVal) * SIZE * 2);
-        ThreatTable = (HistVal*)NativeMemory.AllocZeroed((nuint)sizeof(HistVal) * SIZE * 2);
+        WhiteThreatTable = (HistVal*)NativeMemory.AllocZeroed((nuint)sizeof(HistVal) * SIZE * 2);
+        BlackThreatTable = (HistVal*)NativeMemory.AllocZeroed((nuint)sizeof(HistVal) * SIZE * 2);
 
         MoveTable = new();
     }
@@ -46,20 +48,26 @@ public struct CorrectionHistory : IDisposable
     /// </summary>
     public unsafe int Correct(SearchThread thread, ref Pos p, Node* n)
     {
-        Debug.Assert(PawnTable != null && WhiteNonPawnTable != null && BlackNonPawnTable != null);
-        Debug.Assert(MinorTable != null && MajorTable != null && ThreatTable != null);
+        Debug.Assert(PawnTable != null);
+        Debug.Assert(WhiteNonPawnTable != null && BlackNonPawnTable != null);
+        Debug.Assert(MinorTable != null && MajorTable != null);
+        Debug.Assert(WhiteThreatTable != null && BlackThreatTable != null);
 
         int pawn = 16 * PawnTable[MakeKey(p.Us, p.PawnKey)];
         int npwhite = 12 * WhiteNonPawnTable[MakeKey(p.Us, p.NonPawnMaterialKey(Color.White))];
         int npblack = 12 * BlackNonPawnTable[MakeKey(p.Us, p.NonPawnMaterialKey(Color.Black))];
         int minor = 12 * MinorTable[MakeKey(p.Us, p.MinorKey)];
         int major = 12 * MajorTable[MakeKey(p.Us, p.MajorKey)];
-        int threat = 12 * ThreatTable[MakeKey(p.Us, Utils.murmurHash(p.Threats & p.ColorBB[(int)p.Us]))];
+
+        var our_ttable = p.Us == Color.White ? WhiteThreatTable : BlackThreatTable;
+        var their_ttable = p.Us == Color.Black ? WhiteThreatTable : BlackThreatTable;
+        int threatus = 12 * our_ttable[MakeKey(p.Us, Utils.murmurHash(p.Threats[(int)p.Them] & p.ColorBB[(int)p.Us]))];
+        int threatthem = 12 * their_ttable[MakeKey(p.Us, Utils.murmurHash(p.Threats[(int)p.Us] & p.ColorBB[(int)p.Them]))];
 
         int prevPiece = (thread.ply > 0 && (n - 1)->move.NotNull) ?
             12 * MoveTable[p.Us, (n - 1)->MovedPieceType, (n - 1)->move.to] : 0;
         
-        int CorrectionValue = (pawn + npwhite + npblack + minor + major + threat + prevPiece) / HistVal.HIST_VAL_MAX;
+        int CorrectionValue = (pawn + npwhite + npblack + minor + major + threatus + threatthem + prevPiece) / HistVal.HIST_VAL_MAX;
         n->StaticEval = Math.Clamp(n->UncorrectedStaticEval + CorrectionValue, -Search.SCORE_EVAL_MAX, Search.SCORE_EVAL_MAX);
 
         return CorrectionValue;
@@ -80,7 +88,10 @@ public struct CorrectionHistory : IDisposable
         MinorTable[MakeKey(p.Us, p.MinorKey)].Update(delta);
         MajorTable[MakeKey(p.Us, p.MajorKey)].Update(delta);
 
-        ThreatTable[MakeKey(p.Us, Utils.murmurHash(p.Threats & p.ColorBB[(int)p.Us]))].Update(delta);
+        var our_ttable = p.Us == Color.White ? WhiteThreatTable : BlackThreatTable;
+        var their_ttable = p.Us == Color.Black ? WhiteThreatTable : BlackThreatTable;
+        our_ttable[MakeKey(p.Us, Utils.murmurHash(p.Threats[(int)p.Them] & p.ColorBB[(int)p.Us]))].Update(delta);
+        their_ttable[MakeKey(p.Us, Utils.murmurHash(p.Threats[(int)p.Us] & p.ColorBB[(int)p.Them]))].Update(delta);
 
         if (thread.ply > 0 && (n - 1)->move.NotNull)
         {
@@ -99,7 +110,8 @@ public struct CorrectionHistory : IDisposable
         NativeMemory.Clear(BlackNonPawnTable, (nuint)sizeof(HistVal) * SIZE * 2);
         NativeMemory.Clear(MinorTable, (nuint)sizeof(HistVal) * SIZE * 2);
         NativeMemory.Clear(MajorTable, (nuint)sizeof(HistVal) * SIZE * 2);
-        NativeMemory.Clear(ThreatTable, (nuint)sizeof(HistVal) * SIZE * 2);
+        NativeMemory.Clear(WhiteThreatTable, (nuint)sizeof(HistVal) * SIZE * 2);
+        NativeMemory.Clear(BlackThreatTable, (nuint)sizeof(HistVal) * SIZE * 2);
         MoveTable.Clear();
     }
 
@@ -115,9 +127,10 @@ public struct CorrectionHistory : IDisposable
             NativeMemory.Free(BlackNonPawnTable);
             NativeMemory.Free(MinorTable);
             NativeMemory.Free(MajorTable);
-            NativeMemory.Free(ThreatTable);
+            NativeMemory.Free(WhiteThreatTable);
+            NativeMemory.Free(BlackThreatTable);
             PawnTable = WhiteNonPawnTable = BlackNonPawnTable = null;
-            MinorTable = MajorTable = ThreatTable = null;
+            MinorTable = MajorTable = WhiteThreatTable = BlackThreatTable = null;
         }
 
         MoveTable.Dispose();

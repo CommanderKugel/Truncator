@@ -329,7 +329,8 @@ public unsafe partial struct Pos
         Us = Them;
         ZobristKey ^= Zobrist.stmKey;
 
-        Threats = ComputeThreats();
+        Threats[(int)Color.White] = ComputeThreats(Color.White);
+        Threats[(int)Color.Black] = ComputeThreats(Color.Black);
 
         // update thread and search-stack data
 
@@ -362,7 +363,8 @@ public unsafe partial struct Pos
             EnPassantSquare = (int)Square.NONE;
         }
 
-        Threats = ComputeThreats();
+        Threats[(int)Color.White] = ComputeThreats(Color.White);
+        Threats[(int)Color.Black] = ComputeThreats(Color.Black);
 
         // update thread and search-stack data
 
