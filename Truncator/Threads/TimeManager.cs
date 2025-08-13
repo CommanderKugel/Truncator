@@ -71,12 +71,16 @@ public static class TimeManager
         // #2 we manage time ourselves
         else
         {
-            int time = Math.Max((Us == Color.White ? wtime : btime) - MoveOverhead, 1);
+            // sometimes negative times are passed to us
+            // make sure to not crash on them
+
+            int time = Math.Max(Us == Color.White ? wtime : btime, 1);
             int inc = Math.Max(Us == Color.White ? winc : binc, 0);
 
             // #2.1 searching should take exactly the given time
             //      technically this is not self-managing, but we need to enable the 
             //      soft- and hard-timeout checks
+
             if (movetime != -1)
             {
                 HardTimeout = movetime;
@@ -85,20 +89,29 @@ public static class TimeManager
             }
 
             // #2.2 Play N moves in M time + o per move, then get time bonus for next N moves
+
             else if (movestogo != -1)
             {
-                HardTimeout = time / Math.Min(movestogo, 2) + inc / 2;
-                SoftTimeout = time / movestogo + inc / 2;
+                HardTimeout = (time - MoveOverhead) / movestogo + inc / 2;
+                SoftTimeout = (time - MoveOverhead) / movestogo + inc / 2;
                 Console.WriteLine($"movestogo: mtg = {movestogo}, hardlimit = {HardTimeout}, softlimit = {SoftTimeout}");
             }
 
-            // #2.3 Play whole game in M time
+            // #2.3 Play whole game in M time + o per move
+            //      this is the standard and tc will be optimized for this mode
+
             else
             {
-                HardTimeout = time / 5 + inc / 2;
-                SoftTimeout = time / 30 + inc / 2;
+                HardTimeout = (time - MoveOverhead) / 5 + inc / 2;
+                SoftTimeout = (time - MoveOverhead) / 30 + inc / 2;
                 Console.WriteLine($"normal: hardlimit = {HardTimeout}, softlimit = {SoftTimeout}");
             }
+
+            // make sure to never spend more time than we have
+            // minus the overhead for obvious reasons
+
+            HardTimeout = Math.Min(HardTimeout, time - MoveOverhead);
+            SoftTimeout = Math.Min(HardTimeout, time - MoveOverhead);
         }
     }
 
