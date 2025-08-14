@@ -488,11 +488,17 @@ public static partial class Search
                 {
                     if (isRoot)
                     {
-                        thread.PV[depth] = bestscore;
+                        thread.PV.scores[depth] = bestscore;
+                        thread.PV.bestmoves[depth] = m;
+                        thread.PV.BestMove = m;
                     }
 
-                    // still push the upper-bound move to the pv
-                    // so we always have a bestmove 
+                    else if (thread.ply == 1)
+                    {
+                        thread.PV.PonderMove = m;
+                    }
+
+                    // push upper bounds to pv to always have a line
 
                     thread.PushToPV(m);
                 }

@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Security.Cryptography;
 
 public struct PV : IDisposable
 {
@@ -10,15 +9,17 @@ public struct PV : IDisposable
     public const int SIZE = 256;
 
     private unsafe Move* table_ = null;
-    private unsafe int* scores = null;
+    public unsafe Move* bestmoves = null;
+    public unsafe int* scores = null;
 
-    public unsafe Move BestMove => table_[0];
-    public unsafe Move PonderMove => table_[1];
+    public unsafe Move BestMove;
+    public unsafe Move PonderMove;
 
 
     public unsafe PV()
     {
         table_ = (Move*)NativeMemory.Alloc((nuint)sizeof(Move) * SIZE * SIZE);
+        bestmoves = (Move*)NativeMemory.Alloc((nuint)sizeof(Move) * SIZE);
         scores = (int*)NativeMemory.Alloc(sizeof(int) * SIZE);
     }
 
@@ -38,25 +39,15 @@ public struct PV : IDisposable
         }
     }
 
-    public unsafe int this[int iteration]
-    {
-        get
-        {
-            Debug.Assert(iteration >= 0 && iteration <= SIZE);
-            return scores[iteration];
-        }
-        set
-        {
-            Debug.Assert(iteration >= 0 && iteration <= SIZE);
-            scores[iteration] = value;
-        }
-    }
-
     public unsafe void Clear()
     {
         Debug.Assert(table_ != null && scores != null, "cant clear a disposed or uninitialized pv!");
         NativeMemory.Clear(table_, (nuint)sizeof(Move) * SIZE * SIZE);
+        NativeMemory.Clear(bestmoves, (nuint)sizeof(Move) * SIZE);
         NativeMemory.Clear(scores, sizeof(int) * SIZE);
+
+        BestMove = Move.NullMove;
+        PonderMove = Move.NullMove;
     }
 
     public unsafe void Push(Move m, int ply)
@@ -86,6 +77,7 @@ public struct PV : IDisposable
         {
             NativeMemory.Free(table_);
             NativeMemory.Free(scores);
+            NativeMemory.Free(bestmoves);
             table_ = null;
             scores = null;
         }

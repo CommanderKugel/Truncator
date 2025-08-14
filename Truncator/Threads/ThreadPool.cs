@@ -97,7 +97,7 @@ public static class ThreadPool
         // info printing in between iterations
         int depth = MainThread.completedDepth;
         int seldepth = MainThread.seldepth;
-        int dirty_score = MainThread.PV[depth];
+        int dirty_score = MainThread.PV.scores[depth];
         long nodes = GetNodes();
         long tbHits = GetTbHits();
         long time = TimeManager.ElapsedMilliseconds;
@@ -119,17 +119,17 @@ public static class ThreadPool
         Console.WriteLine(info);
     }
 
-    public static void ReportBestmove()
+    public static unsafe void ReportBestmove()
     {
         SearchThread bestThread = pool[0];
         int bestDepth = bestThread.completedDepth;
-        int bestScore = bestThread.PV[bestThread.completedDepth];
+        int bestScore = bestThread.PV.scores[bestThread.completedDepth];
 
         for (int i = 0; i < ThreadCount; i++)
         {
             var thread = pool[i];
             int depth = pool[i].completedDepth;
-            int score = pool[i].PV[depth];
+            int score = pool[i].PV.scores[depth];
 
             // if depths are equal, choose the higher score
             if (depth == bestDepth && score > bestScore)

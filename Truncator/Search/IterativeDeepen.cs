@@ -38,8 +38,8 @@ public static partial class Search
         }
 
         int delta = 30;
-        int alpha = thread.PV[thread.completedDepth] - delta;
-        int beta = thread.PV[thread.completedDepth] + delta;
+        int alpha = thread.PV.scores[thread.completedDepth] - delta;
+        int beta = thread.PV.scores[thread.completedDepth] + delta;
 
         while (true)
         {
