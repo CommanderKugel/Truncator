@@ -21,15 +21,20 @@ public static partial class Search
         if (!isRoot)
         {
             // Draw Detection
-            // - twofold repetition
-            // - insufficient mating material
-            // - fiftx move rule
+            // + twofold repetition
+            // + insufficient mating material
+            // + fiftx move rule
+            // - stalemate (covered by move-generation)
+
             if (p.IsDraw(thread))
             {
                 return SCORE_DRAW;
             }
 
             // mate distance pruning
+            // if we already found a mate and are already deeper in the tree than the best mate
+            // we can no longer fing a faster mate and can stop searching
+
             int mdAlpha = Math.Max(alpha, -SCORE_MATE + thread.ply);
             int mdBeta  = Math.Min(beta ,  SCORE_MATE - thread.ply - 1);
             if (mdAlpha >= mdBeta)
@@ -38,26 +43,30 @@ public static partial class Search
             }
         }
 
-        // if leaf-node: drop into QSearch
-        // static evaluation should only be returned from quiet positions.
-        // because material is by far the most important evaluation term
-        // by playing out all good captures, qsearch eliminates possible material-swings
+        // for leaf-nodes: drop into QSearch
+        // material is the most important 
+
         if (depth <= 0 || thread.ply >= 128)
         {
             return QSearch<Type>(thread, p, alpha, beta, ns);
         }
 
         // probe the transposition table for already visited positions
+
         TTEntry ttEntry = thread.tt.Probe(p.ZobristKey);
         bool ttHit = ttEntry.Key == p.ZobristKey;
         Move ttMove = ttHit ? new(ttEntry.MoveValue) : Move.NullMove;
         bool ttPV = ttHit && ttEntry.PV == 1 || isPV;
 
-        // return the tt-score if the entry is any good
-        if (nonPV && ttHit && ttEntry.Depth >= depth && !inSingularity && (
-            ttEntry.Flag == LOWER_BOUND && ttEntry.Score >= beta ||
-            ttEntry.Flag == UPPER_BOUND && ttEntry.Score <= alpha ||
-            ttEntry.Flag == EXACT_BOUND))
+        // return the tt-score if the entry is sufficient
+
+        if (nonPV
+            && ttHit
+            && ttEntry.Depth >= depth
+            && !inSingularity
+            && (ttEntry.Flag == LOWER_BOUND && ttEntry.Score >= beta
+                || ttEntry.Flag == UPPER_BOUND && ttEntry.Score <= alpha
+                || ttEntry.Flag == EXACT_BOUND))
         {
             return ttEntry.Score;
         }
@@ -67,6 +76,7 @@ public static partial class Search
 
         int SyzygyMin = -SCORE_MATE;
         int SyzygyMax = SCORE_MATE;
+
         if (!isRoot
             && Fathom.DoTbProbing
             && p.CastlingRights == 0
@@ -95,7 +105,8 @@ public static partial class Search
                 _ => EXACT_BOUND
             };
 
-            // check for tb cutoff via the bounds
+            // check for tb cutoff via bounds
+
             if (TbBound == EXACT_BOUND
                 || TbBound == UPPER_BOUND && TbScore <= alpha
                 || TbBound == LOWER_BOUND && TbScore >= beta)
@@ -113,12 +124,14 @@ public static partial class Search
             }
 
             // clamp the bestscore to syzygy probing scores
-            // but only in pv nodes, because nonpv nodes only search in null-windows
+            // only for exact scores (pv nodes)
+
             if (isPV && TbBound == LOWER_BOUND)
             {
                 SyzygyMin = TbScore;
                 alpha = Math.Max(alpha, TbScore);
             }
+
             if (isPV && TbBound == UPPER_BOUND)
             {
                 SyzygyMax = TbScore;
@@ -128,8 +141,10 @@ public static partial class Search
 
 
         // clear childrens relevant node data
+
         (ns + 1)->KillerMove = Move.NullMove;
         (ns + 1)->CutoffCount = 0;
+
         if (isRoot)
         {
             ns->CutoffCount = 0;
@@ -139,8 +154,10 @@ public static partial class Search
         bool inCheck = p.GetCheckers() != 0;
 
         // static evaluaton
-        // although this is a noisy position and we have to distrust the static
-        // evaluation of the current node to an extend, we can draw some conclusion from it.
+        // although this might be a noisy position and we have to distrust the static
+        // evaluation of the current node to an extend, we can still draw some conclusion from it
+        // most importantly, big/unnecessary material shifts can be measured
+
         if (inCheck)
         {
             ns->StaticEval = ns->UncorrectedStaticEval = -SCORE_MATE;
@@ -151,12 +168,18 @@ public static partial class Search
             thread.CorrHist.Correct(thread, ref p, ns);
         }
 
+        // the past series of moves improved our static evaluation and indicates
+        // that we should take a deeper look at this position than on others
+        // only applicable if we have usable evaluations 
+        // (not in check now and 2 plies ago)
 
-        bool improving = thread.ply > 1 && !inCheck &&
-                        (ns - 2)->StaticEval != -SCORE_MATE && 
-                        ns->StaticEval >= (ns - 2)->StaticEval;
+        bool improving = thread.ply > 1
+            && !inCheck
+            && (ns - 2)->StaticEval != -SCORE_MATE
+            && ns->StaticEval >= (ns - 2)->StaticEval;
 
-        // sometimes whole-node-pruning can be skippedentirely
+        // sometimes whole-node-pruning can be skipped entirely
+
         if (inCheck || isPV || inSingularity)
         {
             goto skip_whole_node_pruning;
@@ -164,16 +187,22 @@ public static partial class Search
 
 
         // reverse futility pruning (RFP)
-        if (depth <= 5 &&
-            ns->StaticEval - 75 * (improving ? depth - 1 : depth) >= beta)
+
         {
-            return ns->StaticEval;
+            int rfpDepth = improving ? depth - 1 : depth;
+            int margin = 75;
+
+            if (depth <= 5 && ns->StaticEval - margin * rfpDepth >= beta)
+            {
+                return ns->StaticEval;
+            }
         }
 
         // razoring
-        if (!IsTerminal(alpha) &&
-            depth <= 4 &&
-            ns->StaticEval + 300 * depth <= alpha)
+
+        if (!IsTerminal(alpha)
+            && depth <= 4
+            && ns->StaticEval + 300 * depth <= alpha)
         {
             int RazoringScore = QSearch<NonPVNode>(thread, p, alpha, beta, ns);
 
@@ -183,9 +212,11 @@ public static partial class Search
             }
         }
 
-        // null move pruning
+        // null move pruning (NMP)
+
         if ((ns - 1)->move.NotNull
             && ns->StaticEval >= beta
+            && p.HasNonPawnMaterial(p.Us)
             && (!ttHit || ttEntry.Flag > UPPER_BOUND || ttEntry.Score >= beta))
         {
             Pos PosAfterNull = p;
@@ -204,19 +235,22 @@ public static partial class Search
         }
 
 
+        // go here on pv or singular nodes or when in check
         skip_whole_node_pruning:
 
 
         // check extensions
+
         if (inCheck && !inSingularity)
         {
             depth++;
         }
 
         // ToDo: Internal Iterative Reductions
-        // if (depth >= 4 && isPV && !ttHit) depth--;
 
-        // movegeneration, scoring and ordering is outsourced to the move-picker
+        // movegeneration, scoring and ordering
+        // outsourced to the move-picker
+
         Span<Move> moves = stackalloc Move[256];
         Span<int> scores = stackalloc int[256];
         MovePicker picker = new MovePicker(thread, ttMove, ref moves, ref scores, false);
@@ -233,13 +267,17 @@ public static partial class Search
         Move bestmove = Move.NullMove;
 
         // main move loop
+        
         for (Move m = picker.Next(ref p); m.NotNull; m = picker.Next(ref p))
         {
             Debug.Assert(m.NotNull);
 
             // skip the first move in singular confirmation search
+            // this has to be the ttmove and is most likely the best move
+
             if (m == ns->ExcludedMove)
             {
+                Debug.Assert(m == ttMove);
                 continue;
             }
 
@@ -249,34 +287,33 @@ public static partial class Search
             bool isCapture = p.IsCapture(m);
             bool isNoisy = isCapture || m.IsPromotion; // ToDo: GivesCheck()
 
-            int ButterflyScore = isCapture ? 0 : thread.history.Butterfly[p.Us, m];
+            ns->HistScore = isCapture ? 0 : thread.history.Butterfly[p.Us, m];
 
             // move loop pruning
-            if (!isRoot &&
-                !inSingularity &&
-                !isNoisy &&
-                notLoosing)
+            if (!isRoot
+                && !inSingularity
+                && !isNoisy
+                && notLoosing)
             {
 
                 // futility pruning 
-                if (nonPV &&
-                    !inCheck &&
-                    depth <= 4 &&
-                    ns->StaticEval + depth * 150 <= alpha)
+                if (nonPV
+                    && !inCheck
+                    && depth <= 4
+                    && ns->StaticEval + depth * 150 <= alpha)
                 {
                     continue;
                 }
 
                 // late move pruning
-                if (depth <= 4 &&
-                    movesPlayed >= 2 + depth * depth)
+                if (depth <= 4 && movesPlayed >= 2 + depth * depth)
                 {
                     continue;
                 }
 
                 // main-history pruning
                 if (depth <= 5 &&
-                    ButterflyScore < -(15 * depth + 9 * depth * depth))
+                    ns->HistScore < -(15 * depth + 9 * depth * depth))
                 {
                     continue;
                 }
@@ -287,9 +324,9 @@ public static partial class Search
 
             // pvs SEE pruning
             // ToDo: margin -= histScore / 8
-            if (!isRoot &&
-                notLoosing &&
-                !SEE.SEE_threshold(m, ref p, isCapture ? -150 * depth : -25 * depth * depth))
+            if (!isRoot
+                && notLoosing
+                && !SEE.SEE_threshold(m, ref p, isCapture ? -150 * depth : -25 * depth * depth))
             {
                 continue;
             }
@@ -298,13 +335,13 @@ public static partial class Search
             // singular extensions
             int extension = 0;
 
-            if (m == ttMove &&
-                !inSingularity &&
-                !isRoot &&
-                depth >= 8 &&
-                ttEntry.Depth >= depth - 3 &&
-                ttEntry.Flag > UPPER_BOUND &&
-                thread.ply < thread.completedDepth * 2)
+            if (m == ttMove
+                && !inSingularity
+                && !isRoot
+                && depth >= 8
+                && ttEntry.Depth >= depth - 3
+                && ttEntry.Flag > UPPER_BOUND
+                && thread.ply < thread.completedDepth * 2)
             {
 
                 int singularBeta = Math.Max(-SCORE_MATE + 1, ttEntry.Score - depth * 2);
@@ -326,20 +363,28 @@ public static partial class Search
                     }
                 }
             }
-            
+
             // skip illegal moves for obvious reasons
+
             if (!p.IsLegal(m))
             {
                 continue;
             }
 
             // make the move and update the boardstate
+
             Pos next = p;
             next.MakeMove(m, thread);
             thread.repTable.Push(next.ZobristKey);
 
             movesPlayed++;
             if (!isCapture) quietMoves[quitesCount++] = m;
+            
+            // late-move-reductions (LMR)
+            // assuming our move-ordering is good, the first played move should be the best
+            // all moves after that are expected to be worse. we will validate this thesis by 
+            // searching them at a cheaper shallower depth. if a move seems to beat the current best move,
+            // we need to re-search that move at full depth to confirm its the better move.
 
             if (movesPlayed > 1 && depth >= 2)
             {
@@ -347,21 +392,18 @@ public static partial class Search
 
                 if (!isCapture)
                 {
-                    // late-move-reductions (LMR)
-                    // assuming our move-ordering is good, the first played move should be the best
-                    // all moves after that are expected to be worse. we will validate this thesis by 
-                    // searching them at a cheaper shallower depth. if a move seems to beat the current best move,
-                    // we need to re-search that move at full depth to confirm its the better move.
+
                     R = Math.Max(Log_[Math.Min(movesPlayed, 63)] * Log_[Math.Min(depth, 63)] / 4, 2);
 
-                    // reduce more for bad history values, divisor = HIST_VAL_MAX / 3
-                    R += -ButterflyScore / 341;
+                    // reduce more for bad history values
+                    // divisor ~= HIST_VAL_MAX / 3
+                    R += -ns->HistScore / 341;
 
                     if (thread.ply > 1 && !improving) R++;
 
                     if (ttPV) R--;
 
-                    // ToDo: R += nonPV && !cutnode ? 2 : 1; // +1 if allnode
+                    // ToDo: R += isAllnode
                     if ((ns + 1)->CutoffCount > 2) R++;
 
                     if (m == ns->KillerMove) R--;
@@ -383,9 +425,11 @@ public static partial class Search
                 // to cause a lot more curoffs. the returned value will never be an exact score, but an upper-
                 // or lower-bound. if a move unexpectedly beats the pv, we need to re-search it at full depth,
                 // to confirm it is really better than the pv and obtain its exact value.
+
                 score = -Negamax<NonPVNode>(thread, next, -alpha - 1, -alpha, depth - R, ns + 1, true);
 
                 // re-search if LMR seems to beat the current best move
+
                 if (score > alpha && R > 1)
                 {
                     score = -Negamax<NonPVNode>(thread, next, -alpha - 1, -alpha, depth - 1, ns + 1, !cutnode);
@@ -393,13 +437,16 @@ public static partial class Search
             }
 
             // ZWS for moves that are not reduced by LMR
+            // aka only the first move of non-pv nodes
+
             else if (nonPV || movesPlayed > 1)
             {
                 score = -Negamax<NonPVNode>(thread, next, -alpha - 1, -alpha, depth + extension - 1, ns + 1, !cutnode);
             }
 
-            // full-window-search
-            // either the pv-line is searched fully at first, or a high-failing ZWS search needs to be confirmed.
+            // full-window-search (FWS)
+            // either the pv-line is searched fully at first, or a high-failing ZWS search needs to be confirmed
+
             if (isPV && (score > alpha || movesPlayed == 1))
             {
                 score = -Negamax<PVNode>(thread, next, -beta, -alpha, depth + extension - 1, ns + 1, false);
@@ -407,17 +454,19 @@ public static partial class Search
 
             thread.UndoMove();
 
-            // save move-data for e.g. soft-timeouts and other shenanigans
             if (isRoot)
             {
+                // save roo-move-data
+                // might be useful for time management
+
                 thread.rootPos.ReportBackMove(m, score, thread.nodeCount - startnodes, depth);
             }
 
             if (score > bestscore)
             {
-                // beating the best score does not mean we beat alpha
-                // all scores below alpha are upper bounds and we do not know what score it really is
-                // thus we dont know for sure what the best move is
+                // beating the best score does not mean we beat alpha (e.g. for the first move)
+                // all scores below alpha are just upper bounds and might actually be even smaller
+
                 bestscore = score;
                 flag = UPPER_BOUND;
 
@@ -428,12 +477,16 @@ public static partial class Search
                         thread.PV[depth] = bestscore;
                     }
 
+                    // still push the upper-bound move to the pv
+                    // so we always have a bestmove 
+
                     thread.PushToPV(m);
                 }
 
                 if (score > alpha)
                 {
-                    // now we have an exact score, so save relevant data
+                    // now we have an exact score and can confidently save a bestmove
+
                     alpha = score;
                     bestmove = m;
                     flag = EXACT_BOUND;
@@ -442,13 +495,17 @@ public static partial class Search
                     {
                         // fail high
                         // the opponent can already force a better line and will not allow us to
-                        // play the current one and we dont need to search further down this branch
+                        // play the current one, so we dont need to search this branch any further
+                        // the current bound is a lower bound and might actually be even bigger
+
                         flag = LOWER_BOUND;
 
                         if (!isCapture)
                         {
                             // update history
-                            // ToDo: increase Bonus for ttmoves -> (depth + 1) * depth
+                            // ToDo: Bonus = depth * (depth + (m == ttmove))
+                            // ToDo: Bonus = depth * (depth + (eval < alpha))
+
                             int HistDelta = depth * depth;
                             thread.history.UpdateQuietMoves(thread, ns, (short)HistDelta, (short)-HistDelta, ref p, ref quietMoves, quitesCount, m);
 
@@ -456,33 +513,44 @@ public static partial class Search
                             ns->KillerMove = m;
                         }
 
+                        // ToDo: update capture history (didnt pass yet, its cursed)
+
+                        // ToDo: CutoffCount += isPv || nonPV
                         ns->CutoffCount++;
 
                         break;
 
                     } // beta beaten
                 } // alpha beaten
-            } // best-score update
+            } // best beaten
 
             // check if we have time left
             // do this in the move-loop & after updaing the pv
             // otherwise we could end up without a best move
-            if (!thread.doSearch ||
-                 thread.IsMainThread && TimeManager.IsHardTimeout(thread))
+            // TODO: instantly return instead of breaking, the search results 
+            // are unfinished and unreliabla
+            // TODO: move this up earlier in the moveloop for earlier and more correct exits 
+
+            if (!thread.doSearch || thread.IsMainThread && TimeManager.IsHardTimeout(thread))
             {
                 break;
             }
-            
+
         } // move-loop
 
-        // stale-mate detection
-        // and dont save to the tt if this is a terminal node
+        // check-/stalemate detection
+        // if there are no legal moves in a position, it is terminal
+        // if we have no legal moves and are in check, its checkmate and we lost
+        // if we dont have legal moves and are not in check, its stalemate and a draw
+
         if (movesPlayed == 0)
         {
             return p.GetCheckers() == 0 ? SCORE_DRAW : -SCORE_MATE + thread.ply;
         }
+
+        // dont save mating-scores to the tt, it cant handle them at the moment
+        // TODO: fix mate-scores for tt
         
-        // dont save matin-scores to the tt, it cant handle them at the moment
         if (!IsTerminal(bestscore))
         {
             thread.tt.Write(
@@ -496,16 +564,24 @@ public static partial class Search
             );
         }
 
-        if (!inSingularity &&
-            !inCheck &&
-            !IsTerminal(bestscore) &&
-            (bestmove.IsNull || !p.IsCapture(bestmove) && !bestmove.IsPromotion) &&
-            (flag == EXACT_BOUND ||
-             flag == UPPER_BOUND && bestscore < ns->StaticEval ||
-             flag == LOWER_BOUND && bestscore > ns->StaticEval))
+        // if the position is quiet (best move is not tacitcal and not in check)
+        // and the static evaluation is out of bounds of the search result
+        // update the corection terms for the given position in the direction
+        // of the search result
+
+        if (!inSingularity
+            && !inCheck
+            && !IsTerminal(bestscore)
+            && (bestmove.IsNull || !p.IsCapture(bestmove) && !bestmove.IsPromotion)
+            && (flag == EXACT_BOUND
+                || flag == UPPER_BOUND && bestscore < ns->StaticEval
+                || flag == LOWER_BOUND && bestscore > ns->StaticEval))
         {
             thread.CorrHist.Update(thread, ref p, ns, bestscore, ns->StaticEval, depth);
         }
+
+        // when recieving exact scores (only in pv/root nodes)
+        // always stay in bounds of the syzygy probe result
 
         if (isPV)
         {

@@ -191,6 +191,12 @@ public unsafe partial struct Pos
 
     private bool IsInsufficientMaterial => (PieceBB[(int)PieceType.Pawn] | PieceBB[(int)PieceType.Rook] | PieceBB[(int)PieceType.Queen]) == 0
                                         && !Utils.MoreThanOne(PieceBB[(int)PieceType.Bishop] | PieceBB[(int)PieceType.Knight]);
+
+    public bool HasNonPawnMaterial(Color c)
+    {
+        Debug.Assert(c != Color.NONE);
+        return (ColorBB[(int)c] & ~PieceBB[(int)PieceType.Pawn & ~PieceBB[(int)PieceType.King]]) != 0;
+    }
     
     public bool IsDraw(SearchThread thread)
     {
