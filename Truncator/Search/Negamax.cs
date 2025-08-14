@@ -287,7 +287,10 @@ public static partial class Search
             bool isCapture = p.IsCapture(m);
             bool isNoisy = isCapture || m.IsPromotion; // ToDo: GivesCheck()
 
+            PieceType pt = p.PieceTypeOn(m.from);
             ns->HistScore = isCapture ? 0 : thread.history.Butterfly[p.Us, m];
+            ns->ContHist1ply = isCapture ? 0 : (*(ns - 1)->ContHist)[p.Us, pt, m.to];
+            ns->ContHist2ply = isCapture ? 0 : (*(ns - 1)->ContHist)[p.Us, pt, m.to];
 
             // move loop pruning
             if (!isRoot
@@ -398,6 +401,7 @@ public static partial class Search
                     // reduce more for bad history values
                     // divisor ~= HIST_VAL_MAX / 3
                     R += -ns->HistScore / 341;
+                    R += -ns->ContHist1ply / 341;
 
                     if (thread.ply > 1 && !improving) R++;
 
