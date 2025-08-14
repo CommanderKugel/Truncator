@@ -1,5 +1,6 @@
 
 using System.Diagnostics;
+using System.Security.Cryptography;
 
 public static partial class Search
 {
@@ -166,6 +167,36 @@ public static partial class Search
         {
             ns->UncorrectedStaticEval = Pesto.Evaluate(ref p);
             thread.CorrHist.Correct(thread, ref p, ns);
+        }
+
+        // policy history updates
+        // update the last quiet-moves histories 
+
+        if (!isRoot
+            && (ns - 1)->CapturedPieceType == PieceType.NONE
+            && (ns - 1)->move.NotNull
+            && !inCheck
+            && (ns - 1)->StaticEval != -SCORE_MATE)
+        {
+
+            int evalDelta = ns->StaticEval - (-(ns - 1)->StaticEval);
+            int policyDelta = Math.Clamp(evalDelta / 8, -depth * depth, depth * depth);
+
+            Color c = p.Them;
+            Move m = (ns - 1)->move;
+            PieceType pt = (ns - 1)->MovedPieceType;
+
+            thread.history.Butterfly[c, m].Update(policyDelta);
+            
+            if (thread.ply > 1 && (ns - 2)->move.NotNull)
+            {
+                (*(ns - 2)->ContHist)[c, pt, m.to].Update(policyDelta);
+            }
+
+            if (thread.ply > 2 && (ns - 3)->move.NotNull)
+            {
+                (*(ns - 3)->ContHist)[c, pt, m.to].Update(policyDelta);
+            }
         }
 
         // the past series of moves improved our static evaluation and indicates
