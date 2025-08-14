@@ -180,7 +180,7 @@ public static partial class Search
 
         // sometimes whole-node-pruning can be skipped entirely
 
-        if (inCheck || isPV || inSingularity)
+        if (inCheck || isPV || inSingularity || (ns - 1)->move.IsNull)
         {
             goto skip_whole_node_pruning;
         }
