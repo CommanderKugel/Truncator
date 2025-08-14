@@ -287,7 +287,7 @@ public static partial class Search
             bool isCapture = p.IsCapture(m);
             bool isNoisy = isCapture || m.IsPromotion; // ToDo: GivesCheck()
 
-            ns->HistScore = isCapture ? 0 : thread.history.Butterfly[p.Us, m];
+            ns->HistScore = isCapture ? 0 : thread.history.Butterfly[p.Threats, p.Us, m];
 
             // move loop pruning
             if (!isRoot
