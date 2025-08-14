@@ -1,4 +1,5 @@
 
+using System.ComponentModel;
 using System.Diagnostics;
 
 public static class TimeManager
@@ -126,11 +127,25 @@ public static class TimeManager
     {
         Debug.Assert(!IsSelfManaging || SoftTimeout != 0 && iteration > 0);
 
+        if (iteration < 4)
+        {
+            return false;
+        }
+
         // pv-tm
+
         // node-tm
+
+        double nonBmFraction = 1.0 - (double)thread.rootPos.RootMoves[thread.PV.BestMove].Nodes / (double)thread.nodeCount;
+        double nodeFactor = Math.Clamp(0.40 + nonBmFraction * 2, 0.5, 1.5);
+
         // score-tm
 
-        return IsSelfManaging && watch.ElapsedMilliseconds > SoftTimeout || thread.nodeCount >= softnodes;
+        // complexity-tm
+
+        double limit = Math.Min((double)HardTimeout, (double)SoftTimeout * nodeFactor);
+
+        return IsSelfManaging && (double)watch.ElapsedMilliseconds > limit || thread.nodeCount >= softnodes;
     }
 
     public static long ElapsedMilliseconds => Math.Max(watch.ElapsedMilliseconds, 1);
