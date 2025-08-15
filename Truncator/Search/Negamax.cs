@@ -296,11 +296,13 @@ public static partial class Search
                 && notLoosing)
             {
 
+                int mlpDepth = depth - (ttPV ? 1 : 0);
+
                 // futility pruning 
                 if (nonPV
                     && !inCheck
-                    && depth <= 4
-                    && ns->StaticEval + depth * 150 <= alpha)
+                    && mlpDepth <= 4
+                    && ns->StaticEval + mlpDepth * 150 <= alpha)
                 {
                     continue;
                 }
