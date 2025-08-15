@@ -296,6 +296,8 @@ public static partial class Search
                 && notLoosing)
             {
 
+                int mlpDepth = depth - (ttPV ? 1 : 0);
+
                 // futility pruning 
                 if (nonPV
                     && !inCheck
@@ -312,8 +314,8 @@ public static partial class Search
                 }
 
                 // main-history pruning
-                if (depth <= 5 &&
-                    ns->HistScore < -(15 * depth + 9 * depth * depth))
+                if (mlpDepth <= 5
+                    && ns->HistScore < -(15 * mlpDepth + 9 * mlpDepth * mlpDepth))
                 {
                     continue;
                 }
