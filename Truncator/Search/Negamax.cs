@@ -296,6 +296,8 @@ public static partial class Search
                 && notLoosing)
             {
 
+                int mlpDepth = depth - (ttPV ? 1 : 0);
+
                 // futility pruning 
                 if (nonPV
                     && !inCheck
@@ -306,7 +308,7 @@ public static partial class Search
                 }
 
                 // late move pruning
-                if (depth <= 4 && movesPlayed >= 2 + depth * depth)
+                if (mlpDepth <= 4 && movesPlayed >= 2 + mlpDepth * mlpDepth)
                 {
                     continue;
                 }
