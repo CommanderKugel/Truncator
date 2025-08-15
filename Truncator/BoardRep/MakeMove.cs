@@ -4,7 +4,7 @@ using System.Diagnostics;
 public unsafe partial struct Pos
 {
 
-    public bool IsPseudoLegal(Move m)
+    public bool IsPseudoLegal(SearchThread thread, Move m)
     {
         PieceType pt = PieceTypeOn(m.from);
 
@@ -34,8 +34,9 @@ public unsafe partial struct Pos
 
             return pt == PieceType.King
                 && HasCastlingRight(Us, m.from < m.to)
-                && m.from == Castling.GetKingStart(Us)
-                && m.to == Castling.GetKingCastlingTarget(Us, m.from < m.to)
+                && m.from == thread.castling.kingStart[(int)Us]
+                && m.to == thread.castling.kingTargets[Castling.GetCastlingIdx(Us, m.from < m.to)]
+                && (blocker & thread.castling.paths[Castling.GetCastlingIdx(Us, m.from < m.to)]) == 0
                 && PieceTypeOn(m.to) == PieceType.Rook
                 && ColorOn(m.to) == Us;
         }
@@ -88,7 +89,7 @@ public unsafe partial struct Pos
     }
 
 
-    public bool IsLegal(Move m)
+    public bool IsLegal(SearchThread thread, Move m)
     {
 
         // assumes positive IsPseudoLegal check
@@ -111,25 +112,25 @@ public unsafe partial struct Pos
         if (m.IsCastling)
         {
             block ^= 1ul << to;
+            int idx = Castling.GetCastlingIdx(Us, from < to);
 
             // check if we have the castling rights, the path is not blocked
             // and if we are currently in check
 
-            if (!HasCastlingRight(Us, from < to)
-                || (block & Castling.GetCastlingBlocker(Us, from < to)) != 0)
+            if (!HasCastlingRight(Us, from < to) || (block & thread.castling.paths[idx]) != 0)
             {
                 return false;
             }
 
-            var (kingEndSq, rookEndSq) = Castling.GetCastlingSquares(Us, from < to);
-            int target = Castling.GetKingDestination(Us, from < to);
+            int kingEnd = Castling.KingDestinations[idx];
+            int rookEnd = Castling.RookDestinations[idx];
 
-            block ^= (1ul << kingEndSq) | (1ul << rookEndSq);
+            block ^= (1ul << kingEnd) | (1ul << rookEnd);
             int dir = from < to ? 1 : -1;
 
             // check if we move through check
 
-            for (int sq = from; sq != target; sq += dir)
+            for (int sq = from; sq != kingEnd; sq += dir)
             {
                 if ((AttackerTo(sq, block) & ColorBB[(int)Them]) != 0)
                 {
@@ -139,7 +140,7 @@ public unsafe partial struct Pos
 
             // check if we would end in check
 
-            return (AttackerTo(target, block) & ColorBB[(int)Them]) == 0;
+            return (AttackerTo(kingEnd, block) & ColorBB[(int)Them]) == 0;
         }
 
         if (m.IsEnPassant)
@@ -244,7 +245,7 @@ public unsafe partial struct Pos
                 PieceBB[(int)promoPt] ^= toBB;
 
                 // update zobrist keys regarding the promoted pawn and piece 
-                
+
                 ulong promoKey = Zobrist.GetSinglePieceKey(Us, promoPt, to);
                 ulong pawnKey = Zobrist.GetSinglePieceKey(Us, PieceType.Pawn, to);
                 ZobristKey ^= promoKey ^ pawnKey;
@@ -274,7 +275,10 @@ public unsafe partial struct Pos
 
         if (m.IsCastling)
         {
-            var (kingEnd, rookEnd) = Castling.GetCastlingSquares(Us, from < to);
+
+            int idx = Castling.GetCastlingIdx(Us, from < to);
+            int kingEnd = Castling.KingDestinations[idx];
+            int rookEnd = Castling.RookDestinations[idx];
 
             // first, move the king to the correct square.
             // for (d)frc, castling is encoded as capturing the rook.
@@ -313,10 +317,10 @@ public unsafe partial struct Pos
         }
 
         // update castling rights
-        
+
         byte oldCastling = CastlingRights;
-        CastlingRights &= Castling.modifier[from];
-        CastlingRights &= Castling.modifier[to];
+        CastlingRights &= thread.castling.modifier[from];
+        CastlingRights &= thread.castling.modifier[to];
 
         if (CastlingRights != oldCastling)
         {
@@ -342,9 +346,8 @@ public unsafe partial struct Pos
 
         // push to rep-table only in search, because qsearch cant realistically cause repetitions
 
-        Debug.Assert(NonPawnKeys[(int)Color.White] == Zobrist.GetNonPawnKey(Color.White, ref this));
-        Debug.Assert(NonPawnKeys[(int)Color.Black] == Zobrist.GetNonPawnKey(Color.Black, ref this));
-        Debug.Assert(Utils.MoreThanOne(PieceBB[(int)PieceType.King]));
+        Debug.Assert(Utils.popcnt(GetPieces(Color.White, PieceType.King)) == 1);
+        Debug.Assert(Utils.popcnt(GetPieces(Color.Black, PieceType.King)) == 1);
     }
 
     public void MakeNullMove(SearchThread thread)

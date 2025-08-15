@@ -41,7 +41,6 @@ public static class Truncator
 
             Console.WriteLine("Disposing off miscellaeous stuff");
             Attacks.Dispose();
-            Castling.Dispose();
             Utils.Dispose();
             Zobrist.Dispose();
 

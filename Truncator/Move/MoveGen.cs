@@ -4,14 +4,14 @@ using static Utils;
 public static class MoveGen
 {
 
-    public static int GenerateLegaMoves(ref Span<Move> moves, ref Pos p)
+    public static int GenerateLegaMoves(SearchThread thread, ref Span<Move> moves, ref Pos p)
     {
-        int moveCount = GeneratePseudolegalMoves(ref moves, ref p, false);
+        int moveCount = GeneratePseudolegalMoves(thread, ref moves, ref p, false);
 
         // remove all illegal moves
         for (int i = 0; i < moveCount;)
         {
-            if (!p.IsLegal(moves[i]))
+            if (!p.IsLegal(thread, moves[i]))
             {
                 (moves[i], moves[moveCount - 1]) = (moves[moveCount - 1], moves[i]);
                 moveCount--;
@@ -24,7 +24,7 @@ public static class MoveGen
         return moveCount;
     }
 
-    public static unsafe int GeneratePseudolegalMoves(ref Span<Move> moves, ref Pos p, bool inQS)
+    public static unsafe int GeneratePseudolegalMoves(SearchThread thread, ref Span<Move> moves, ref Pos p, bool inQS)
     {
         int moveCount = 0;
         ulong captMask = inQS ? p.ColorBB[(int)p.Them] : ~p.ColorBB[(int)p.Us];
@@ -46,7 +46,7 @@ public static class MoveGen
 
             if (checkMask == ulong.MaxValue)
             {
-                GenerateCastling(ref moves, ref moveCount, ref p);
+                GenerateCastling(thread, ref moves, ref moveCount, ref p);
             }
         }
 
@@ -177,14 +177,14 @@ public static class MoveGen
         }
     }
 
-    private static unsafe void GenerateCastling(ref Span<Move> moves, ref int moveCount, ref Pos p)
+    private static unsafe void GenerateCastling(SearchThread thread, ref Span<Move> moves, ref int moveCount, ref Pos p)
     {
         // kingside castling
         if (p.HasCastlingRight(p.Us, true))
         {
             moves[moveCount++] = new Move(
                 p.KingSquares[(int)p.Us],
-                Castling.GetKingCastlingTarget(p.Us, true),
+                thread.castling.kingTargets[Castling.GetCastlingIdx(p.Us, true)],
                 MoveFlag.Castling
             );
         }
@@ -194,7 +194,7 @@ public static class MoveGen
         {
             moves[moveCount++] = new Move(
                 p.KingSquares[(int)p.Us],
-                Castling.GetKingCastlingTarget(p.Us, false),
+                thread.castling.kingTargets[Castling.GetCastlingIdx(p.Us, false)],
                 MoveFlag.Castling
             );
         }

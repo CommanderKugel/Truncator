@@ -366,7 +366,7 @@ public static partial class Search
 
             // skip illegal moves for obvious reasons
 
-            if (!p.IsLegal(m))
+            if (!p.IsLegal(thread, m))
             {
                 continue;
             }

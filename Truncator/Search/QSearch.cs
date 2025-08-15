@@ -99,7 +99,7 @@ public static partial class Search
 
             // only make legal moves
 
-            if (!p.IsLegal(m))
+            if (!p.IsLegal(thread, m))
             {
                 continue;
             }

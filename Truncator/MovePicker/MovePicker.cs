@@ -76,7 +76,7 @@ public ref struct MovePicker
                 {
                     stage = Stage.Generate;
 
-                    if (p.IsPseudoLegal(ttMove)
+                    if (p.IsPseudoLegal(thread, ttMove)
                         && (!inQS || p.IsCapture(ttMove)))
                     {
                         return ttMove;
@@ -89,7 +89,7 @@ public ref struct MovePicker
                 {
                     stage = Stage.Moves;
 
-                    this.moveCount = MoveGen.GeneratePseudolegalMoves(ref moves, ref p, inQS);
+                    this.moveCount = MoveGen.GeneratePseudolegalMoves(thread, ref moves, ref p, inQS);
                     this.ScoreMoves(thread, ref p);
 
                     continue;
