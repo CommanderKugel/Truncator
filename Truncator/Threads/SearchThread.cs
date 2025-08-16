@@ -14,6 +14,8 @@ public class SearchThread : IDisposable
     public volatile bool doSearch = false;
     public volatile bool die = false;
 
+    public bool IsDisposed = false;
+
 
     // search variables
     public RootPos rootPos;
@@ -60,6 +62,8 @@ public class SearchThread : IDisposable
         myThread = new Thread(ThreadMainLoop);
         myThread.Name = $"SearchThread_{id}";
         myThread.Start();
+
+        IsDisposed = false;
     }
 
     private unsafe void ThreadMainLoop()
@@ -165,7 +169,6 @@ public class SearchThread : IDisposable
         doSearch = true;
         Reset();
 
-        PV.Clear();
         history.Clear();
         CorrHist.Clear();
     }
@@ -175,19 +178,43 @@ public class SearchThread : IDisposable
     /// </summary>
     public void Join()
     {
-        this.die = true;
-        Stop();
+        // set flags for thread to stop the search-loop
+        // and then stop the main loop when woken up again
+
+        die = true;
+        doSearch = false;
+
+        // wake thread up again to then break the main loop 
+        // Dispose() will be called from the main loop method already
+        // so no need to dispose of multiple times
+
         myResetEvent.Set();
-        Dispose();
-        this.myThread.Join();
     }
 
+    /// <summary>
+    /// Free all allocated memory and kill the thread
+    /// </summary>
     public void Dispose()
     {
-        this.PV.Dispose();
-        this.repTable.Dispose();
-        this.history.Dispose();
-        this.CorrHist.Dispose();
+        Debug.WriteLine($"attempt to dispose of this thread: {id}, IsDisposed: {IsDisposed}");
+
+        if (!IsDisposed)
+        {
+            // free all allocated memory
+            
+            PV.Dispose();
+            repTable.Dispose();
+            history.Dispose();
+            CorrHist.Dispose();
+
+            // kill the thread
+
+            myThread.Join();
+
+            // make sure to not dispose of this multiple times
+
+            IsDisposed = true;
+        }
     }
 
     public unsafe void RunBench()

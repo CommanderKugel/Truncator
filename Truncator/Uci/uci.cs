@@ -89,8 +89,6 @@ public static partial class UCI
 
             else if (tokens[0] == "quit")
             {
-                ThreadPool.StopAll();
-                ThreadPool.Join();
                 return;
             }
 

@@ -197,10 +197,12 @@ public static class ThreadPool
     /// </summary>
     public static void Join()
     {
+        Debug.WriteLine("disposing of threadpools TT");
         tt.Dispose();
 
         foreach (var thread in pool)
         {
+            Debug.WriteLine($"joining thread {thread.id}");
             thread.Join();
         }
     }
