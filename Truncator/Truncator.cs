@@ -41,22 +41,21 @@ public static class Truncator
         }
         finally
         {
-            Debug.WriteLine("\n\t1) Disposing Fathom Dll and deleting File");
+            Debug.WriteLine("\n\t1) Disposing Fathom Dll and trying to delete File");
             Fathom.Dispose();
             BindingHandler.Dispose();
 
-            Debug.WriteLine("\n\t2) Stopping and Disposing of the Threadpool");
-            ThreadPool.StopAll();
-            ThreadPool.Join();
-
-            Debug.WriteLine("\n\t3) Disposing off miscellaeous stuff");
+            Debug.WriteLine("\n\t2) Disposing off miscellaeous stuff");
             Attacks.Dispose();
+            Debug.WriteLine("attacks done");
             Castling.Dispose();
+            Debug.WriteLine("castling done");
             Utils.Dispose();
+            Debug.WriteLine("utils done");
             Zobrist.Dispose();
+            Debug.WriteLine("zobrist done");
 
-            Debug.WriteLine("\n\t4) Disposing of all Threads");
-            ThreadPool.StopAll();
+            Debug.WriteLine("\n\t3) Stopping and Disposing of the Threadpool");
             ThreadPool.Join();
         }
     }

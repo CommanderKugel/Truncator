@@ -207,10 +207,6 @@ public class SearchThread : IDisposable
             history.Dispose();
             CorrHist.Dispose();
 
-            // kill the thread
-
-            myThread.Join();
-
             // make sure to not dispose of this multiple times
 
             IsDisposed = true;

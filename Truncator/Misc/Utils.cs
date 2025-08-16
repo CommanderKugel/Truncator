@@ -76,7 +76,7 @@ public static class Utils
 
     static unsafe Utils()
     {
-        Rays = (ulong*)NativeMemory.AlignedAlloc(sizeof(ulong) * 64 * 64, sizeof(ulong) * 64);
+        Rays = (ulong*)NativeMemory.Alloc(sizeof(ulong) * 64 * 64, sizeof(ulong) * 64);
 
         for (int ksq = 0; ksq < 64; ksq++)
         {

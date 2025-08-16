@@ -12,9 +12,9 @@ public static class Zobrist
 
     static unsafe Zobrist()
     {
-        PieceKeys = (ulong*)NativeMemory.AlignedAlloc(sizeof(ulong) * 2 * 6 * 64, sizeof(ulong) * 64);
-        CastlingKeys = (ulong*)NativeMemory.AlignedAlloc(sizeof(ulong) * 16, sizeof(ulong) * 16);
-        EpKeys = (ulong*)NativeMemory.AlignedAlloc(sizeof(ulong) * 8, sizeof(ulong) * 8);
+        PieceKeys = (ulong*)NativeMemory.Alloc(sizeof(ulong) * 2 * 6 * 64);
+        CastlingKeys = (ulong*)NativeMemory.Alloc(sizeof(ulong) * 16);
+        EpKeys = (ulong*)NativeMemory.Alloc(sizeof(ulong) * 8);
 
         var rng = new Random(3398300);
 
