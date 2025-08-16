@@ -27,6 +27,8 @@ public static partial class UCI
 
                 Console.WriteLine($"option name Hash type spin default {TranspositionTable.DEFAULT_SIZE} min {TranspositionTable.MIN_SIZE} max {TranspositionTable.MAX_SIZE}");
                 Console.WriteLine($"option name Threads type spin default 1 min 1 max {ThreadPool.MAX_THREAD_COUNT}");
+
+                Console.WriteLine($"option name UCI_Chess960 type check default false");
                 Console.WriteLine($"option name UCI_ShowWDL type check default false");
 
                 Console.WriteLine($"option name SyzygyPath type string default <empty>");

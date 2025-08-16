@@ -31,6 +31,11 @@ public static partial class UCI
             throw new NotImplementedException("setting move overhead is not impleented yet");
         }
 
+        if (tokens[2] == "UCI_Chess960")
+        {
+            UCI.IsChess960 = tokens[4] == "true";
+        }
+
         if (tokens[2] == "UCI_ShowWDL" && tokens.Length >= 5)
         {
             WDL.UCI_showWDL = tokens[4] == "true";
