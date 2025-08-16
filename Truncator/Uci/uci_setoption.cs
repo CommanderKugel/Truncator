@@ -34,11 +34,13 @@ public static partial class UCI
         if (tokens[2] == "UCI_Chess960")
         {
             UCI.IsChess960 = tokens[4] == "true";
+            Console.WriteLine($"info string set UCI_Chess960 to {UCI.IsChess960}");
         }
 
         if (tokens[2] == "UCI_ShowWDL" && tokens.Length >= 5)
         {
             WDL.UCI_showWDL = tokens[4] == "true";
+            Console.WriteLine($"into string set UCI_ShowWDL to {WDL.UCI_showWDL}");
         }
 
         if (tokens[2] == "SyzygyPath" && tokens.Length >= 5)
