@@ -16,7 +16,7 @@ public static partial class Search
             int score = AspirationWindows(thread, depth);
             thread.completedDepth = depth;
 
-            if (thread.IsMainThread && !isBench)
+            if (thread.IsMainThread)// && !isBench)
             {
                 ThreadPool.ReportToUci();
             }

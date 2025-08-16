@@ -58,7 +58,17 @@ public static class Perft
     public static unsafe void SplitPerft(Pos p, int depth)
     {
         Span<Move> moves = stackalloc Move[256];
-        int moveCount = MoveGen.GeneratePseudolegalMoves(ref moves, ref p, false);
+        int moveCount = 0;
+        if ((p.Threats & p.GetPieces(p.Us, PieceType.King)) == 0)
+        {
+            MoveGen.GeneratePseudolegalMoves<Captures>(ref moves, ref moveCount, ref p);
+            MoveGen.GeneratePseudolegalMoves<Quiets>(ref moves, ref moveCount, ref p);
+        }
+        else
+        {
+            MoveGen.GeneratePseudolegalMoves<CaptureEvasions>(ref moves, ref moveCount, ref p);
+            MoveGen.GeneratePseudolegalMoves<QuietEvasions>(ref moves, ref moveCount, ref p);
+        }
         Console.WriteLine("num pseudolegal moves: " + moveCount);
 
         var thread = ThreadPool.MainThread;
@@ -73,7 +83,6 @@ public static class Perft
                 Move m = moves[i];
                 if (!p.IsLegal(m))
                 {
-                    //Console.WriteLine($"{m} - illegal");
                     continue;
                 }
 
@@ -101,7 +110,17 @@ public static class Perft
         }
 
         Span<Move> moves = stackalloc Move[256];
-        int moveCount = MoveGen.GeneratePseudolegalMoves(ref moves, ref p, false);
+        int moveCount = 0;
+        if ((p.Threats & p.GetPieces(p.Us, PieceType.King)) == 0)
+        {
+            MoveGen.GeneratePseudolegalMoves<Captures>(ref moves, ref moveCount, ref p);
+            MoveGen.GeneratePseudolegalMoves<Quiets>(ref moves, ref moveCount, ref p);
+        }
+        else
+        {
+            MoveGen.GeneratePseudolegalMoves<CaptureEvasions>(ref moves, ref moveCount, ref p);
+            MoveGen.GeneratePseudolegalMoves<QuietEvasions>(ref moves, ref moveCount, ref p);
+        }
 
         long nodes = 0;
         for (int i = 0; i < moveCount; i++)

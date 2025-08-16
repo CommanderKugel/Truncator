@@ -72,7 +72,7 @@ public static partial class Search
         
         Span<Move> moves = stackalloc Move[256];
         Span<int> scores = stackalloc int[256];
-        MovePicker picker = new MovePicker(thread, ttMove, ref moves, ref scores, !inCheck);
+        MovePicker<QSPicker> picker = new (thread, ttMove, ref moves, ref scores, inCheck);
 
         // main move loop
 

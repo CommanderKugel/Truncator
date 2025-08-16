@@ -6,7 +6,17 @@ public static class MoveGen
 
     public static int GenerateLegaMoves(ref Span<Move> moves, ref Pos p)
     {
-        int moveCount = GeneratePseudolegalMoves(ref moves, ref p, false);
+        int moveCount = 0;
+        if ((p.Threats & p.GetPieces(p.Us, PieceType.King)) == 0)
+        {
+            GeneratePseudolegalMoves<Captures>(ref moves, ref moveCount, ref p);
+            GeneratePseudolegalMoves<Quiets>(ref moves, ref moveCount, ref p);
+        }
+        else
+        {
+            GeneratePseudolegalMoves<CaptureEvasions>(ref moves, ref moveCount, ref p);
+            GeneratePseudolegalMoves<QuietEvasions>(ref moves, ref moveCount, ref p);
+        }
 
         // remove all illegal moves
         for (int i = 0; i < moveCount;)
@@ -24,34 +34,55 @@ public static class MoveGen
         return moveCount;
     }
 
-    public static unsafe int GeneratePseudolegalMoves(ref Span<Move> moves, ref Pos p, bool inQS)
+    public static unsafe void GeneratePseudolegalMoves<Type>(ref Span<Move> moves, ref int moveCount, ref Pos p)
+        where Type : GenType
     {
-        int moveCount = 0;
-        ulong captMask = inQS ? p.ColorBB[(int)p.Them] : ~p.ColorBB[(int)p.Us];
-        ulong checkMask = GenerateCheckMask(ref p);
-        ulong mask = checkMask == ulong.MaxValue ? captMask : checkMask & ~p.ColorBB[(int)p.Us];
+
+        bool captures = typeof(Type) == typeof(Captures) || typeof(Type) == typeof(CaptureEvasions);
+        bool evasions = typeof(Type) == typeof(QuietEvasions) || typeof(Type) == typeof(CaptureEvasions);
+        ulong checker = evasions ? p.GetCheckers() : 0;
+
+        // double checks only allow king moves
+
+        if (evasions && MoreThanOne(checker))
+        {
+            GeneratePieceMoves(ref moves, ref moveCount, ref p, ~p.Threats & (captures ? p.ColorBB[(int)p.Them] : ~p.blocker), PieceType.King);
+            return;
+        }
+
+        ulong mask = captures && !evasions ? p.ColorBB[(int)p.Them]
+            : !captures && !evasions ? ~p.blocker
+            : captures && evasions ? checker
+            : !captures && evasions ? GetRay(p.KingSquares[(int)p.Us], lsb(checker))
+            : throw new Exception("Unexpected Gentype");
 
         GeneratePieceMoves(ref moves, ref moveCount, ref p, mask, PieceType.Knight);
         GeneratePieceMoves(ref moves, ref moveCount, ref p, mask, PieceType.Bishop);
         GeneratePieceMoves(ref moves, ref moveCount, ref p, mask, PieceType.Rook);
         GeneratePieceMoves(ref moves, ref moveCount, ref p, mask, PieceType.Queen);
-        GeneratePieceMoves(ref moves, ref moveCount, ref p, captMask, PieceType.King);
 
-        GeneratePawnCaptures(ref moves, ref moveCount, ref p, mask);
-        GenerateEnPassantCapture(ref moves, ref moveCount, ref p);
+        // king moves dont need to block checks
 
-        if (!inQS)
+        ulong kingMask = captures ? p.ColorBB[(int)p.Them] : ~p.blocker;
+        GeneratePieceMoves(ref moves, ref moveCount, ref p, kingMask, PieceType.King);
+
+        if (captures)
         {
-            GeneratePawnPushes(ref moves, ref moveCount, ref p, checkMask);
-
-            if (checkMask == ulong.MaxValue)
-            {
-                GenerateCastling(ref moves, ref moveCount, ref p);
-            }
+            GeneratePawnCaptures(ref moves, ref moveCount, ref p, mask);
+            GenerateEnPassantCapture(ref moves, ref moveCount, ref p);
         }
 
-        return moveCount;
+        if (!captures)
+        {
+            GeneratePawnPushes(ref moves, ref moveCount, ref p, mask);
+        }
+        
+        if (!captures && !evasions)
+        {
+            GenerateCastling(ref moves, ref moveCount, ref p);
+        }
     }
+
 
 
     public static unsafe ulong GenerateCheckMask(ref Pos p)
