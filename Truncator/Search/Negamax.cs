@@ -295,8 +295,12 @@ public static partial class Search
                 && !isNoisy
                 && notLoosing)
             {
+                PieceType pt = p.PieceTypeOn(m.from);
+                int ch1ply = (*(ns - 1)->ContHist)[p.Us, pt, m.to];
+                int ch2ply = (*(ns - 2)->ContHist)[p.Us, pt, m.to];
 
                 // futility pruning 
+
                 if (nonPV
                     && !ns->InCheck
                     && depth <= 4
@@ -306,19 +310,25 @@ public static partial class Search
                 }
 
                 // late move pruning
+
                 if (depth <= 4 && movesPlayed >= 2 + depth * depth)
                 {
                     continue;
                 }
 
-                // main-history pruning
+                // main history pruning
+
                 if (depth <= 5 && ns->HistScore < -(15 * depth + 9 * depth * depth))
                 {
                     continue;
                 }
 
-                // ToDo: Continuation Pruning
+                // continuation history pruning
 
+                if (depth <= 3 && Math.Min(ch1ply, ch2ply) < -HistVal.HIST_VAL_MAX / 2)
+                {
+                    continue;
+                }
             }
 
             // pvs SEE pruning
