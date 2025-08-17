@@ -105,7 +105,7 @@ public static partial class UCI
             {
                 Debug.Assert(tokens.Length >= 2, "forgot to write the move?");
                 string mvstr = tokens[1];
-                Move m = new(mvstr, ref ThreadPool.MainThread.rootPos.p);
+                Move m = new(ThreadPool.MainThread, ref ThreadPool.MainThread.rootPos.p, mvstr);
                 Console.WriteLine(m);
                 Console.WriteLine($"castling - {m.IsCastling}");
                 Console.WriteLine($"ep       - {m.IsEnPassant}");

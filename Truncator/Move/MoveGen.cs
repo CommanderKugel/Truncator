@@ -4,24 +4,24 @@ using static Utils;
 public static class MoveGen
 {
 
-    public static int GenerateLegaMoves(ref Span<Move> moves, ref Pos p)
+    public static int GenerateLegaMoves(SearchThread thread, ref Span<Move> moves, ref Pos p)
     {
         int moveCount = 0;
         if ((p.Threats & p.GetPieces(p.Us, PieceType.King)) == 0)
         {
-            GeneratePseudolegalMoves<Captures>(ref moves, ref moveCount, ref p);
-            GeneratePseudolegalMoves<Quiets>(ref moves, ref moveCount, ref p);
+            GeneratePseudolegalMoves<Captures>(thread, ref moves, ref moveCount, ref p);
+            GeneratePseudolegalMoves<Quiets>(thread, ref moves, ref moveCount, ref p);
         }
         else
         {
-            GeneratePseudolegalMoves<CaptureEvasions>(ref moves, ref moveCount, ref p);
-            GeneratePseudolegalMoves<QuietEvasions>(ref moves, ref moveCount, ref p);
+            GeneratePseudolegalMoves<CaptureEvasions>(thread, ref moves, ref moveCount, ref p);
+            GeneratePseudolegalMoves<QuietEvasions>(thread, ref moves, ref moveCount, ref p);
         }
 
         // remove all illegal moves
         for (int i = 0; i < moveCount;)
         {
-            if (!p.IsLegal(moves[i]))
+            if (!p.IsLegal(thread, moves[i]))
             {
                 (moves[i], moves[moveCount - 1]) = (moves[moveCount - 1], moves[i]);
                 moveCount--;
@@ -34,7 +34,7 @@ public static class MoveGen
         return moveCount;
     }
 
-    public static unsafe void GeneratePseudolegalMoves<Type>(ref Span<Move> moves, ref int moveCount, ref Pos p)
+    public static unsafe void GeneratePseudolegalMoves<Type>(SearchThread thread, ref Span<Move> moves, ref int moveCount, ref Pos p)
         where Type : GenType
     {
 
@@ -79,7 +79,7 @@ public static class MoveGen
         
         if (!captures && !evasions)
         {
-            GenerateCastling(ref moves, ref moveCount, ref p);
+            GenerateCastling(thread,ref moves, ref moveCount, ref p);
         }
     }
 
@@ -208,14 +208,14 @@ public static class MoveGen
         }
     }
 
-    private static unsafe void GenerateCastling(ref Span<Move> moves, ref int moveCount, ref Pos p)
+    private static unsafe void GenerateCastling(SearchThread thread, ref Span<Move> moves, ref int moveCount, ref Pos p)
     {
         // kingside castling
         if (p.HasCastlingRight(p.Us, true))
         {
             moves[moveCount++] = new Move(
                 p.KingSquares[(int)p.Us],
-                Castling.GetKingCastlingTarget(p.Us, true),
+                thread.castling.kingTargets[Castling.GetCastlingIdx(p.Us, true)],
                 MoveFlag.Castling
             );
         }
@@ -225,7 +225,7 @@ public static class MoveGen
         {
             moves[moveCount++] = new Move(
                 p.KingSquares[(int)p.Us],
-                Castling.GetKingCastlingTarget(p.Us, false),
+                thread.castling.kingTargets[Castling.GetCastlingIdx(p.Us, false)],
                 MoveFlag.Castling
             );
         }

@@ -75,7 +75,7 @@ public ref struct MovePicker<Type> where Type : PickerType
                 case Stage.TTMove:
                     {
                         stage = Stage.GenerateCaptures;
-                        if (p.IsPseudoLegal(ttMove) && (typeof(Type) == typeof(PVSPicker) || p.IsCapture(ttMove)))
+                        if (p.IsPseudoLegal(thread, ttMove) && (typeof(Type) == typeof(PVSPicker) || p.IsCapture(ttMove)))
                         {
                             return ttMove;
                         }
@@ -87,8 +87,8 @@ public ref struct MovePicker<Type> where Type : PickerType
                         stage = Stage.GoodCaptures;
                         captureCount = captureIndex = 0;
 
-                        if (!evasions) MoveGen.GeneratePseudolegalMoves<Captures>(ref moves, ref captureCount, ref p);
-                        else MoveGen.GeneratePseudolegalMoves<CaptureEvasions>(ref moves, ref captureCount, ref p);
+                        if (!evasions) MoveGen.GeneratePseudolegalMoves<Captures>(thread, ref moves, ref captureCount, ref p);
+                        else MoveGen.GeneratePseudolegalMoves<CaptureEvasions>(thread, ref moves, ref captureCount, ref p);
 
                         ScoreMoves<Captures>(0, captureCount, thread, ref p);
                         continue;
@@ -134,8 +134,8 @@ public ref struct MovePicker<Type> where Type : PickerType
                         stage = Stage.Quiets;
                         quietCount = quietIndex = captureCount;
 
-                        if (!evasions) MoveGen.GeneratePseudolegalMoves<Quiets>(ref moves, ref quietCount, ref p);
-                        else MoveGen.GeneratePseudolegalMoves<QuietEvasions>(ref moves, ref quietCount, ref p);
+                        if (!evasions) MoveGen.GeneratePseudolegalMoves<Quiets>(thread, ref moves, ref quietCount, ref p);
+                        else MoveGen.GeneratePseudolegalMoves<QuietEvasions>(thread, ref moves, ref quietCount, ref p);
 
                         ScoreMoves<Quiets>(quietIndex, quietCount, thread, ref p);
                         continue;
