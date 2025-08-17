@@ -40,11 +40,10 @@ public static class MoveGen
 
         bool captures = typeof(Type) == typeof(Captures) || typeof(Type) == typeof(CaptureEvasions);
         bool evasions = typeof(Type) == typeof(QuietEvasions) || typeof(Type) == typeof(CaptureEvasions);
-        ulong checker = evasions ? p.GetCheckers() : 0;
 
         // double checks only allow king moves
 
-        if (evasions && MoreThanOne(checker))
+        if (evasions && MoreThanOne(p.Checkers))
         {
             GeneratePieceMoves(ref moves, ref moveCount, ref p, ~p.Threats & (captures ? p.ColorBB[(int)p.Them] : ~p.blocker), PieceType.King);
             return;
@@ -52,8 +51,8 @@ public static class MoveGen
 
         ulong mask = captures && !evasions ? p.ColorBB[(int)p.Them]
             : !captures && !evasions ? ~p.blocker
-            : captures && evasions ? checker
-            : !captures && evasions ? GetRay(p.KingSquares[(int)p.Us], lsb(checker))
+            : captures && evasions ? p.Checkers
+            : !captures && evasions ? GetRay(p.KingSquares[(int)p.Us], lsb(p.Checkers))
             : throw new Exception("Unexpected Gentype");
 
         GeneratePieceMoves(ref moves, ref moveCount, ref p, mask, PieceType.Knight);
@@ -80,29 +79,6 @@ public static class MoveGen
         if (!captures && !evasions)
         {
             GenerateCastling(ref moves, ref moveCount, ref p);
-        }
-    }
-
-
-
-    public static unsafe ulong GenerateCheckMask(ref Pos p)
-    {
-        ulong checker = p.GetCheckers();
-
-        if (checker == 0) // no checkers
-        {
-            return ulong.MaxValue;
-        }
-        else if (!MoreThanOne(checker)) // only one checker
-        {
-            int ksq = p.KingSquares[(int)p.Us];
-            int csq = lsb(checker);
-            ulong mask = GetRay(ksq, csq) | (1ul << csq);
-            return mask;
-        }
-        else // double check
-        {
-            return 0;
         }
     }
 

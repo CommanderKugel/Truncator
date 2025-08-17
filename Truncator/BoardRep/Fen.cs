@@ -80,6 +80,7 @@ public partial struct Pos
         FiftyMoveRule = 0;
 
         Threats = ComputeThreats();
+        Checkers = GetCheckers();
 
         Castling.UpdateNewPosition(ref this);
         Zobrist.ComputeFromZero(ref this);
