@@ -253,7 +253,7 @@ public static partial class Search
 
         Span<Move> moves = stackalloc Move[256];
         Span<int> scores = stackalloc int[256];
-        MovePicker picker = new MovePicker(thread, ttMove, ref moves, ref scores, false);
+        MovePicker<PVSPicker> picker = new (thread, ttMove, ref moves, ref scores, inCheck);
 
 
         int bestscore = -SCORE_MATE;
@@ -413,8 +413,7 @@ public static partial class Search
                 else // isCapture
                 {
 
-                    // bad captures
-                    if (picker.CurrentScore < 0) R++;
+                    if (picker.stage == Stage.BadCaptures) R++;
 
                 }
 
