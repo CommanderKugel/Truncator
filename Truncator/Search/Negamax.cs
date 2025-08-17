@@ -343,12 +343,21 @@ public static partial class Search
                 && thread.ply < thread.completedDepth * 2)
             {
 
+                // if the ttMove seems really strong in this position and
+                // if no other move seems to be as good as the ttMove, the ttMove
+                // is deemed 'singular', the only playable move in this position
+                // so: test if any move is as good as the ttMove at highly reduced depth
+
                 int singularBeta = Math.Max(-SCORE_MATE + 1, ttEntry.Score - depth * 2);
                 int singularDepth = (depth - 1) / 2;
 
                 ns->ExcludedMove = m;
                 int singularScore = Negamax<NonPVNode>(thread, p, singularBeta - 1, singularBeta, singularDepth, ns, cutnode);
                 ns->ExcludedMove = Move.NullMove;
+
+                // confirmed singular move
+                // extend the only good move in the position, the rest will be refuted easily anyways
+                // extend more if the singular move better than the rest by a large margin
 
                 if (singularScore < singularBeta)
                 {
@@ -360,6 +369,14 @@ public static partial class Search
                     {
                         extension = 1;
                     }
+                }
+
+                // multi cut
+                // ttMove + at least one other move seem to beat beta, so skip this node entirely
+
+                else if (singularBeta >= beta && !IsTerminal(singularScore))
+                {
+                    return singularScore;
                 }
             }
 
