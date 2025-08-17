@@ -10,6 +10,7 @@ public static class Truncator
 
         try
         {
+            ThreadPool.Resize(1);
 
             if (args.Length == 0)
             {

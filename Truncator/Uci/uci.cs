@@ -9,10 +9,6 @@ public static partial class UCI
 
     public static void MainLoop()
     {
-        // wake up main thread
-        ThreadPool.Resize(1);
-        ThreadPool.MainThread.ply = 0;
-
         while (true)
         {
             string command = Console.ReadLine() ?? "quit";
