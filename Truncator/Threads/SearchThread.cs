@@ -19,6 +19,8 @@ public class SearchThread : IDisposable
 
     // search variables
     public RootPos rootPos;
+    public Castling castling;
+    public RepetitionTable repTable;
 
     public volatile int ply;
     public volatile int seldepth;
@@ -34,7 +36,6 @@ public class SearchThread : IDisposable
     public void PushToPV(Move m) => PV.Push(m, ply);
 
     public TranspositionTable tt = ThreadPool.tt;
-    public RepetitionTable repTable;
     public volatile unsafe Node* nodeStack = null;
 
     public History history;
@@ -52,9 +53,10 @@ public class SearchThread : IDisposable
     public SearchThread(int id)
     {
         this.id = id;
-        PV = new();
-        repTable = new RepetitionTable();
+        PV = new PV();
         rootPos = new RootPos();
+        repTable = new RepetitionTable();
+        castling = new Castling();
 
         history = new();
         CorrHist = new();
@@ -234,8 +236,8 @@ public class SearchThread : IDisposable
                 ThreadPool.tt.Clear();
                 TimeManager.PrepareBench(TimeManager.maxDepth);
 
-                rootPos.SetNewFen(fen);
-                rootPos.InitRootMoves();
+                rootPos.SetNewFen(this, fen);
+                rootPos.InitRootMoves(this);
 
                 Search.IterativeDeepen(this, isBench: true);
                 totalNodes += nodeCount;

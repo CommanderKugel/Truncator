@@ -4,12 +4,12 @@ using System.Diagnostics;
 
 public partial struct Pos
 {
-    public Pos(string fen) 
+    public Pos(SearchThread thread, string fen) 
     {
-        ParseFen(fen);
+        ParseFen(thread, fen);
     }
 
-    public unsafe void ParseFen(string fen)
+    public unsafe void ParseFen(SearchThread thread, string fen)
     {
         PieceBB[0] = PieceBB[1] = PieceBB[2] =
         PieceBB[3] = PieceBB[4] = PieceBB[5] = 0;
@@ -92,7 +92,9 @@ public partial struct Pos
         // miscellaneous stuff not included in the fen itself
         
         Threats = ComputeThreats();
-        Castling.UpdateNewPosition(ref this);
+        Checkers = GetCheckers();
+
+        thread.castling.UpdateNewPosition(ref this);
         Zobrist.ComputeFromZero(ref this);
     }
 
@@ -192,7 +194,6 @@ public partial struct Pos
         fen += "wb"[(int)Us] + " ";
 
         // castling rights 
-
         if (HasCastlingRight(Color.White, true)) fen += 'K';
         if (HasCastlingRight(Color.White, false)) fen += 'Q';
         if (HasCastlingRight(Color.Black, true )) fen += 'k';

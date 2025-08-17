@@ -32,7 +32,7 @@ public static class Perft
         foreach (var (fen, nodes, depth) in PerftPositions)
         {
             Console.WriteLine($"{fen}; depth {depth}");
-            Pos p = new(fen);
+            Pos p = new(thread, fen);
 
 #pragma warning disable CA2014 // Do not use stackalloc in loops
             Span<Node> NodeSpan = stackalloc Node[256];
@@ -57,11 +57,21 @@ public static class Perft
 
     public static unsafe void SplitPerft(Pos p, int depth)
     {
-        Span<Move> moves = stackalloc Move[256];
-        int moveCount = MoveGen.GeneratePseudolegalMoves(ref moves, ref p, false);
-        Console.WriteLine("num pseudolegal moves: " + moveCount);
-
         var thread = ThreadPool.MainThread;
+
+        Span<Move> moves = stackalloc Move[256];
+        int moveCount = 0;
+        if (p.Checkers == 0)
+        {
+            MoveGen.GeneratePseudolegalMoves<Captures>(thread, ref moves, ref moveCount, ref p);
+            MoveGen.GeneratePseudolegalMoves<Quiets>(thread, ref moves, ref moveCount, ref p);
+        }
+        else
+        {
+            MoveGen.GeneratePseudolegalMoves<CaptureEvasions>(thread, ref moves, ref moveCount, ref p);
+            MoveGen.GeneratePseudolegalMoves<QuietEvasions>(thread, ref moves, ref moveCount, ref p);
+        }
+        Console.WriteLine("num pseudolegal moves: " + moveCount);
 
         Span<Node> NodeSpan = stackalloc Node[256];
         fixed (Node* NodePtr = NodeSpan)
@@ -71,9 +81,8 @@ public static class Perft
             for (int i = 0; i < moveCount; i++)
             {
                 Move m = moves[i];
-                if (!p.IsLegal(m))
+                if (!p.IsLegal(thread, m))
                 {
-                    //Console.WriteLine($"{m} - illegal");
                     continue;
                 }
 
@@ -87,10 +96,10 @@ public static class Perft
     }
     
     public static void SplitPerft(string fen, int depth)
-        => SplitPerft(new Pos(fen), depth);
+        => SplitPerft(new Pos(ThreadPool.MainThread, fen), depth);
 
     public static void SplitPerft(int idx, int depth)
-        => SplitPerft(new Pos(PerftPositions[idx].Item1), depth);
+        => SplitPerft(new Pos(ThreadPool.MainThread, PerftPositions[idx].Item1), depth);
 
 
     public static long Recurse(SearchThread thread, ref Pos p, int depth)
@@ -101,13 +110,23 @@ public static class Perft
         }
 
         Span<Move> moves = stackalloc Move[256];
-        int moveCount = MoveGen.GeneratePseudolegalMoves(ref moves, ref p, false);
+        int moveCount = 0;
+        if (p.Checkers == 0)
+        {
+            MoveGen.GeneratePseudolegalMoves<Captures>(thread, ref moves, ref moveCount, ref p);
+            MoveGen.GeneratePseudolegalMoves<Quiets>(thread, ref moves, ref moveCount, ref p);
+        }
+        else
+        {
+            MoveGen.GeneratePseudolegalMoves<CaptureEvasions>(thread, ref moves, ref moveCount, ref p);
+            MoveGen.GeneratePseudolegalMoves<QuietEvasions>(thread, ref moves, ref moveCount, ref p);
+        }
 
         long nodes = 0;
         for (int i = 0; i < moveCount; i++)
         {
             Move m = moves[i];
-            if (!p.IsLegal(m))
+            if (!p.IsLegal(thread, m))
                 continue;
 
             Pos next = p;

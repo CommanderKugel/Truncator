@@ -23,7 +23,7 @@ public static partial class UCI
 
             if (command == "uci")
             {
-                Console.WriteLine("id name Truncator 0.69");
+                Console.WriteLine("id name Truncator 0.71");
                 Console.WriteLine("id author CommanderKugel");
 
                 Console.WriteLine($"option name Hash type spin default {TranspositionTable.DEFAULT_SIZE} min {TranspositionTable.MIN_SIZE} max {TranspositionTable.MAX_SIZE}");
@@ -104,7 +104,7 @@ public static partial class UCI
             {
                 Debug.Assert(tokens.Length >= 2, "forgot to write the move?");
                 string mvstr = tokens[1];
-                Move m = new(mvstr, ref ThreadPool.MainThread.rootPos.p);
+                Move m = new(ThreadPool.MainThread, ref ThreadPool.MainThread.rootPos.p, mvstr);
                 Console.WriteLine(m);
                 Console.WriteLine($"castling - {m.IsCastling}");
                 Console.WriteLine($"ep       - {m.IsEnPassant}");

@@ -151,14 +151,14 @@ public static partial class Search
         }
 
         
-        bool inCheck = p.GetCheckers() != 0;
+        ns->InCheck = p.Checkers != 0;
 
         // static evaluaton
         // although this might be a noisy position and we have to distrust the static
         // evaluation of the current node to an extend, we can still draw some conclusion from it
         // most importantly, big/unnecessary material shifts can be measured
 
-        if (inCheck)
+        if (ns->InCheck)
         {
             ns->StaticEval = ns->UncorrectedStaticEval = -SCORE_MATE;
         }
@@ -174,13 +174,13 @@ public static partial class Search
         // (not in check now and 2 plies ago)
 
         bool improving = thread.ply > 1
-            && !inCheck
+            && !ns->InCheck
             && (ns - 2)->StaticEval != -SCORE_MATE
             && ns->StaticEval >= (ns - 2)->StaticEval;
 
         // sometimes whole-node-pruning can be skipped entirely
 
-        if (inCheck || isPV || inSingularity)
+        if (ns->InCheck || isPV || inSingularity)
         {
             goto skip_whole_node_pruning;
         }
@@ -241,7 +241,7 @@ public static partial class Search
 
         // check extensions
 
-        if (inCheck && !inSingularity)
+        if (ns->InCheck && !inSingularity)
         {
             depth++;
         }
@@ -253,7 +253,7 @@ public static partial class Search
 
         Span<Move> moves = stackalloc Move[256];
         Span<int> scores = stackalloc int[256];
-        MovePicker picker = new MovePicker(thread, ttMove, ref moves, ref scores, false);
+        MovePicker<PVSPicker> picker = new (thread, ttMove, ref moves, ref scores, ns->InCheck);
 
 
         int bestscore = -SCORE_MATE;
@@ -287,7 +287,7 @@ public static partial class Search
             bool isCapture = p.IsCapture(m);
             bool isNoisy = isCapture || m.IsPromotion; // ToDo: GivesCheck()
 
-            ns->HistScore = isCapture ? 0 : thread.history.Butterfly[p.Us, m];
+            ns->HistScore = isCapture ? 0 : thread.history.Butterfly[p.Threats, p.Us, m];
 
             // move loop pruning
             if (!isRoot
@@ -298,7 +298,7 @@ public static partial class Search
 
                 // futility pruning 
                 if (nonPV
-                    && !inCheck
+                    && !ns->InCheck
                     && depth <= 4
                     && ns->StaticEval + depth * 150 <= alpha)
                 {
@@ -312,8 +312,7 @@ public static partial class Search
                 }
 
                 // main-history pruning
-                if (depth <= 5 &&
-                    ns->HistScore < -(15 * depth + 9 * depth * depth))
+                if (depth <= 5 && ns->HistScore < -(15 * depth + 9 * depth * depth))
                 {
                     continue;
                 }
@@ -366,7 +365,7 @@ public static partial class Search
 
             // skip illegal moves for obvious reasons
 
-            if (!p.IsLegal(m))
+            if (!p.IsLegal(thread, m))
             {
                 continue;
             }
@@ -414,8 +413,7 @@ public static partial class Search
                 else // isCapture
                 {
 
-                    // bad captures
-                    if (picker.CurrentScore < 0) R++;
+                    if (picker.stage == Stage.BadCaptures) R++;
 
                 }
 
@@ -545,7 +543,7 @@ public static partial class Search
 
         if (movesPlayed == 0)
         {
-            return p.GetCheckers() == 0 ? SCORE_DRAW : -SCORE_MATE + thread.ply;
+            return !ns->InCheck ? SCORE_DRAW : -SCORE_MATE + thread.ply;
         }
 
         // dont save mating-scores to the tt, it cant handle them at the moment
@@ -570,7 +568,7 @@ public static partial class Search
         // of the search result
 
         if (!inSingularity
-            && !inCheck
+            && !ns->InCheck
             && !IsTerminal(bestscore)
             && (bestmove.IsNull || !p.IsCapture(bestmove) && !bestmove.IsPromotion)
             && (flag == EXACT_BOUND

@@ -11,15 +11,15 @@ public class RootPos
 
     public RootPos() => RootMoves = new();
 
-    public RootPos(string fen)
+    public RootPos(SearchThread thread, string fen)
     {
         RootMoves = new();
-        SetNewFen(fen);
+        SetNewFen(thread, fen);
     }
 
     public void MakeMove(string movestr, SearchThread thread)
     {
-        Move m = new(movestr, ref p);
+        Move m = new(thread, ref p, movestr);
         Debug.Assert(m.NotNull);
 
         // make move on board representation
@@ -55,16 +55,16 @@ public class RootPos
         RootMoves[m] = new(m, score, nodes);
     }
 
-    public void SetNewFen(string fen)
+    public void SetNewFen(SearchThread thread, string fen)
     {
         Clear();
-        p = new(fen);
+        p = new(thread, fen);
     }
 
-    public void InitRootMoves()
+    public void InitRootMoves(SearchThread thread)
     {
         Span<Move> moves = stackalloc Move[256];
-        moveCount = MoveGen.GenerateLegaMoves(ref moves, ref p);
+        moveCount = MoveGen.GenerateLegaMoves(thread, ref moves, ref p);
         Debug.Assert(moveCount < 256);
 
         for (int i = 0; i < moveCount && i < 256; i++)

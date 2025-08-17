@@ -4,14 +4,24 @@ using static Utils;
 public static class MoveGen
 {
 
-    public static int GenerateLegaMoves(ref Span<Move> moves, ref Pos p)
+    public static int GenerateLegaMoves(SearchThread thread, ref Span<Move> moves, ref Pos p)
     {
-        int moveCount = GeneratePseudolegalMoves(ref moves, ref p, false);
+        int moveCount = 0;
+        if ((p.Threats & p.GetPieces(p.Us, PieceType.King)) == 0)
+        {
+            GeneratePseudolegalMoves<Captures>(thread, ref moves, ref moveCount, ref p);
+            GeneratePseudolegalMoves<Quiets>(thread, ref moves, ref moveCount, ref p);
+        }
+        else
+        {
+            GeneratePseudolegalMoves<CaptureEvasions>(thread, ref moves, ref moveCount, ref p);
+            GeneratePseudolegalMoves<QuietEvasions>(thread, ref moves, ref moveCount, ref p);
+        }
 
         // remove all illegal moves
         for (int i = 0; i < moveCount;)
         {
-            if (!p.IsLegal(moves[i]))
+            if (!p.IsLegal(thread, moves[i]))
             {
                 (moves[i], moves[moveCount - 1]) = (moves[moveCount - 1], moves[i]);
                 moveCount--;
@@ -24,54 +34,51 @@ public static class MoveGen
         return moveCount;
     }
 
-    public static unsafe int GeneratePseudolegalMoves(ref Span<Move> moves, ref Pos p, bool inQS)
+    public static unsafe void GeneratePseudolegalMoves<Type>(SearchThread thread, ref Span<Move> moves, ref int moveCount, ref Pos p)
+        where Type : GenType
     {
-        int moveCount = 0;
-        ulong captMask = inQS ? p.ColorBB[(int)p.Them] : ~p.ColorBB[(int)p.Us];
-        ulong checkMask = GenerateCheckMask(ref p);
-        ulong mask = checkMask == ulong.MaxValue ? captMask : checkMask & ~p.ColorBB[(int)p.Us];
+
+        bool captures = typeof(Type) == typeof(Captures) || typeof(Type) == typeof(CaptureEvasions);
+        bool evasions = typeof(Type) == typeof(QuietEvasions) || typeof(Type) == typeof(CaptureEvasions);
+
+        // double checks only allow king moves
+
+        if (evasions && MoreThanOne(p.Checkers))
+        {
+            GeneratePieceMoves(ref moves, ref moveCount, ref p, ~p.Threats & (captures ? p.ColorBB[(int)p.Them] : ~p.blocker), PieceType.King);
+            return;
+        }
+
+        ulong mask = captures && !evasions ? p.ColorBB[(int)p.Them]
+            : !captures && !evasions ? ~p.blocker
+            : captures && evasions ? p.Checkers
+            : !captures && evasions ? GetRay(p.KingSquares[(int)p.Us], lsb(p.Checkers))
+            : throw new Exception("Unexpected Gentype");
 
         GeneratePieceMoves(ref moves, ref moveCount, ref p, mask, PieceType.Knight);
         GeneratePieceMoves(ref moves, ref moveCount, ref p, mask, PieceType.Bishop);
         GeneratePieceMoves(ref moves, ref moveCount, ref p, mask, PieceType.Rook);
         GeneratePieceMoves(ref moves, ref moveCount, ref p, mask, PieceType.Queen);
-        GeneratePieceMoves(ref moves, ref moveCount, ref p, captMask, PieceType.King);
 
-        GeneratePawnCaptures(ref moves, ref moveCount, ref p, mask);
-        GenerateEnPassantCapture(ref moves, ref moveCount, ref p);
+        // king moves dont need to block checks
 
-        if (!inQS)
+        ulong kingMask = captures ? p.ColorBB[(int)p.Them] : ~p.blocker;
+        GeneratePieceMoves(ref moves, ref moveCount, ref p, kingMask, PieceType.King);
+
+        if (captures)
         {
-            GeneratePawnPushes(ref moves, ref moveCount, ref p, checkMask);
-
-            if (checkMask == ulong.MaxValue)
-            {
-                GenerateCastling(ref moves, ref moveCount, ref p);
-            }
+            GeneratePawnCaptures(ref moves, ref moveCount, ref p, mask);
+            GenerateEnPassantCapture(ref moves, ref moveCount, ref p);
         }
 
-        return moveCount;
-    }
-
-
-    public static unsafe ulong GenerateCheckMask(ref Pos p)
-    {
-        ulong checker = p.GetCheckers();
-
-        if (checker == 0) // no checkers
+        if (!captures)
         {
-            return ulong.MaxValue;
+            GeneratePawnPushes(ref moves, ref moveCount, ref p, mask);
         }
-        else if (!MoreThanOne(checker)) // only one checker
+        
+        if (!captures && !evasions)
         {
-            int ksq = p.KingSquares[(int)p.Us];
-            int csq = lsb(checker);
-            ulong mask = GetRay(ksq, csq) | (1ul << csq);
-            return mask;
-        }
-        else // double check
-        {
-            return 0;
+            GenerateCastling(thread,ref moves, ref moveCount, ref p);
         }
     }
 
@@ -177,14 +184,14 @@ public static class MoveGen
         }
     }
 
-    private static unsafe void GenerateCastling(ref Span<Move> moves, ref int moveCount, ref Pos p)
+    private static unsafe void GenerateCastling(SearchThread thread, ref Span<Move> moves, ref int moveCount, ref Pos p)
     {
         // kingside castling
         if (p.HasCastlingRight(p.Us, true))
         {
             moves[moveCount++] = new Move(
                 p.KingSquares[(int)p.Us],
-                Castling.GetKingCastlingTarget(p.Us, true),
+                thread.castling.kingTargets[Castling.GetCastlingIdx(p.Us, true)],
                 MoveFlag.Castling
             );
         }
@@ -194,7 +201,7 @@ public static class MoveGen
         {
             moves[moveCount++] = new Move(
                 p.KingSquares[(int)p.Us],
-                Castling.GetKingCastlingTarget(p.Us, false),
+                thread.castling.kingTargets[Castling.GetCastlingIdx(p.Us, false)],
                 MoveFlag.Castling
             );
         }

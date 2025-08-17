@@ -48,8 +48,6 @@ public static class Truncator
             Debug.WriteLine("\n\t2) Disposing off miscellaeous stuff");
             Attacks.Dispose();
             Debug.WriteLine("attacks done");
-            Castling.Dispose();
-            Debug.WriteLine("castling done");
             Utils.Dispose();
             Debug.WriteLine("utils done");
             Zobrist.Dispose();
