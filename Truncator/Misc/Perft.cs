@@ -61,7 +61,7 @@ public static class Perft
 
         Span<Move> moves = stackalloc Move[256];
         int moveCount = 0;
-        if ((p.Threats & p.GetPieces(p.Us, PieceType.King)) == 0)
+        if (p.Checkers == 0)
         {
             MoveGen.GeneratePseudolegalMoves<Captures>(thread, ref moves, ref moveCount, ref p);
             MoveGen.GeneratePseudolegalMoves<Quiets>(thread, ref moves, ref moveCount, ref p);
@@ -111,7 +111,7 @@ public static class Perft
 
         Span<Move> moves = stackalloc Move[256];
         int moveCount = 0;
-        if ((p.Threats & p.GetPieces(p.Us, PieceType.King)) == 0)
+        if (p.Checkers == 0)
         {
             MoveGen.GeneratePseudolegalMoves<Captures>(thread, ref moves, ref moveCount, ref p);
             MoveGen.GeneratePseudolegalMoves<Quiets>(thread, ref moves, ref moveCount, ref p);

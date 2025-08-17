@@ -334,6 +334,7 @@ public unsafe partial struct Pos
         ZobristKey ^= Zobrist.stmKey;
 
         Threats = ComputeThreats();
+        Checkers = GetCheckers();
 
         // update thread and search-stack data
 
