@@ -160,7 +160,8 @@ public static partial class Search
 
         if (ns->InCheck)
         {
-            ns->StaticEval = ns->UncorrectedStaticEval = -SCORE_MATE;
+            ns->StaticEval = (ns - 2)->StaticEval;
+            ns->UncorrectedStaticEval = (ns - 2)->UncorrectedStaticEval;
         }
         else
         {
@@ -172,11 +173,10 @@ public static partial class Search
         // that we should take a deeper look at this position than on others
         // only applicable if we have usable evaluations 
         // (not in check now and 2 plies ago)
+        // implicitly false for when in check
 
-        bool improving = thread.ply > 1
-            && !ns->InCheck
-            && (ns - 2)->StaticEval != -SCORE_MATE
-            && ns->StaticEval >= (ns - 2)->StaticEval;
+        bool improving = ns->StaticEval > (ns - 2)->StaticEval;
+        bool worsening = ns->StaticEval > -(ns - 1)->StaticEval;
 
         // sometimes whole-node-pruning can be skipped entirely
 
