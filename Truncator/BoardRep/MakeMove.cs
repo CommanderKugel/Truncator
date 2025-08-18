@@ -342,6 +342,7 @@ public unsafe partial struct Pos
         thread.nodeStack[thread.ply].CapturedPieceType = victimPt;
         thread.nodeStack[thread.ply].move = m;
         thread.nodeStack[thread.ply].ContHist = thread.history.ContHist[Them, movingPt, m.to];
+        thread.nodeStack[thread.ply].ContCorrHist = thread.CorrHist.ContHist[Them, movingPt, m.to];
         thread.nodeCount++;
         thread.ply++;
 
@@ -374,6 +375,7 @@ public unsafe partial struct Pos
         thread.nodeStack[thread.ply].CapturedPieceType = PieceType.NONE;
         thread.nodeStack[thread.ply].move = Move.NullMove;
         thread.nodeStack[thread.ply].ContHist = thread.history.ContHist.NullHist;
+        thread.nodeStack[thread.ply].ContCorrHist = thread.CorrHist.ContHist.NullHist;
         thread.nodeCount++;
         thread.ply++;
     }

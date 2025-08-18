@@ -20,6 +20,7 @@ public struct CorrectionHistory : IDisposable
     private unsafe HistVal* ThreatTable;
 
     public PieceToHistory MoveTable;
+    public ContinuationHistory ContHist;
 
 
     public unsafe CorrectionHistory()
@@ -32,6 +33,7 @@ public struct CorrectionHistory : IDisposable
         ThreatTable = (HistVal*)NativeMemory.AllocZeroed((nuint)sizeof(HistVal) * SIZE * 2);
 
         MoveTable = new();
+        ContHist = new();
     }
 
     private ulong MakeKey(Color c, ulong key)
@@ -56,10 +58,18 @@ public struct CorrectionHistory : IDisposable
         int major = 12 * MajorTable[MakeKey(p.Us, p.MajorKey)];
         int threat = 12 * ThreatTable[MakeKey(p.Us, Utils.murmurHash(p.Threats & p.ColorBB[(int)p.Us]))];
 
-        int prevPiece = (thread.ply > 0 && (n - 1)->move.NotNull) ?
-            12 * MoveTable[p.Us, (n - 1)->MovedPieceType, (n - 1)->move.to] : 0;
+        int movecorr = 0;
+        if (thread.ply > 0 && (n - 1)->move.NotNull)
+        {
+            Color c = p.Us;
+            PieceType pt = (n - 1)->MovedPieceType;
+            Move m = (n - 1)->move;
+
+            movecorr = 12 * MoveTable[p.Us, pt, m.to];
+            movecorr += 8 * (*(n - 2)->ContCorrHist)[c, pt, m.to];
+        }
         
-        int CorrectionValue = (pawn + npwhite + npblack + minor + major + threat + prevPiece) / HistVal.HIST_VAL_MAX;
+        int CorrectionValue = (pawn + npwhite + npblack + minor + major + threat + movecorr) / HistVal.HIST_VAL_MAX;
         n->StaticEval = Math.Clamp(n->UncorrectedStaticEval + CorrectionValue, -Search.SCORE_EVAL_MAX, Search.SCORE_EVAL_MAX);
 
         return CorrectionValue;
