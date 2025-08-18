@@ -9,9 +9,6 @@ public static partial class UCI
 
     public static void MainLoop()
     {
-        // wake up main thread
-        ThreadPool.MainThread.ply = 0;
-
         while (true)
         {
             string command = Console.ReadLine() ?? "quit";
@@ -89,8 +86,6 @@ public static partial class UCI
 
             else if (tokens[0] == "quit")
             {
-                ThreadPool.StopAll();
-                ThreadPool.Join();
                 return;
             }
 

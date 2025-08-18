@@ -13,7 +13,9 @@ public unsafe partial struct Pos
 
     public byte CastlingRights;
     public int EnPassantSquare;
+
     public int FiftyMoveRule;
+    public int FullMoveCounter;
 
     public Color Us;
     public readonly Color Them => 1 - Us;

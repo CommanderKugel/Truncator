@@ -76,7 +76,7 @@ public static class Utils
 
     static unsafe Utils()
     {
-        Rays = (ulong*)NativeMemory.AlignedAlloc(sizeof(ulong) * 64 * 64, sizeof(ulong) * 64);
+        Rays = (ulong*)NativeMemory.Alloc(sizeof(ulong) * 64 * 64, sizeof(ulong) * 64);
 
         for (int ksq = 0; ksq < 64; ksq++)
         {
@@ -118,13 +118,13 @@ public static class Utils
 
     public static int LetterToFile(char c)
     {
-        Debug.Assert("abcdefgh".Contains(c), "Invalid char parsed for File");
+        Debug.Assert("abcdefgh".Contains(c), $"Invalid char parsed for File: {c}");
         return c - 'a';
     }
 
     public static int NumberToRank(char c)
     {
-        Debug.Assert("12345678".Contains(c), "Invalid char parsed for Rank");
+        Debug.Assert("12345678".Contains(c), $"Invalid char parsed for Rank: {c}");
         return c - '1';
     }
 
@@ -187,7 +187,7 @@ public static class Utils
             Console.WriteLine(str);
         }
         Console.WriteLine("--+-----------------+");
-        Console.WriteLine(p.get_fen());
+        Console.WriteLine(p.GetFen());
 
         string CastlingRights = "";
         if (p.HasCastlingRight(Color.White, true )) CastlingRights += 'K';
