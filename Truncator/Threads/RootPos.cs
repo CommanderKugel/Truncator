@@ -8,6 +8,9 @@ public class RootPos
     public Pos p;
     public int moveCount;
 
+    public Move bestMove;
+    public int pvStability;
+
 
     public RootPos() => RootMoves = new();
 
@@ -15,6 +18,9 @@ public class RootPos
     {
         RootMoves = new();
         SetNewFen(thread, fen);
+
+        bestMove = Move.NullMove;
+        pvStability = 0;
     }
 
     public void MakeMove(string movestr, SearchThread thread)
@@ -78,6 +84,9 @@ public class RootPos
         p = new();
         moveCount = 0;
         RootMoves.Clear();
+
+        bestMove = Move.NullMove;
+        pvStability = 0;
     }
 
     public void CopyFrom(RootPos Parent)
@@ -85,6 +94,9 @@ public class RootPos
         RootMoves = new Dictionary<Move, RootMove>(Parent.RootMoves);
         p = Parent.p;
         moveCount = Parent.moveCount;
+
+        bestMove = Parent.bestMove;
+        pvStability = Parent.pvStability;
     }
 
 }

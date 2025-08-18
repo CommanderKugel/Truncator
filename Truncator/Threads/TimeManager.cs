@@ -127,10 +127,18 @@ public static class TimeManager
         Debug.Assert(!IsSelfManaging || SoftTimeout != 0 && iteration > 0);
 
         // pv-tm
+        // factor becomes 1.0 for a stability of 5 moves in a row
+        // the more insatble the bestmove is, the more time we need to spend searching
+        // max 1.2 min 0.8
+
+        double pvSigmoid = 0.4 / (1.0 + Math.Exp((-thread.rootPos.pvStability + 5) / 1.0));
+        double pvStabilityFactor = 1.2 - pvSigmoid;
+
         // node-tm
         // score-tm
 
-        return IsSelfManaging && watch.ElapsedMilliseconds > SoftTimeout || thread.nodeCount >= softnodes;
+        return IsSelfManaging && (double)watch.ElapsedMilliseconds > (double)SoftTimeout * pvStabilityFactor
+            || thread.nodeCount >= softnodes;
     }
 
     public static long ElapsedMilliseconds => Math.Max(watch.ElapsedMilliseconds, 1);

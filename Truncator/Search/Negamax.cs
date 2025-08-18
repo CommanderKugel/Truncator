@@ -473,6 +473,9 @@ public static partial class Search
                     if (isRoot)
                     {
                         thread.PV[depth] = bestscore;
+
+                        thread.rootPos.pvStability = thread.rootPos.bestMove == m ? thread.rootPos.pvStability + 1 : 1;
+                        thread.rootPos.bestMove = m;
                     }
 
                     // still push the upper-bound move to the pv
