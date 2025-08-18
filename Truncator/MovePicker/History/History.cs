@@ -5,12 +5,14 @@ public struct History : IDisposable
 {
     public bool isDisposed;
 
+    public CaptureHistory CaptHist;
     public ButterflyHistory Butterfly;
     public ContinuationHistory ContHist;
 
     public History()
     {
         isDisposed = false;
+        CaptHist = new();
         Butterfly = new();
         ContHist = new();
     }
@@ -39,8 +41,23 @@ public struct History : IDisposable
         }
     }
 
+    public unsafe void UpdateCaptuerMoves(int bonus, int penalty, ref Pos p, ref Span<Move> capts, int count, Move bestmove)
+    {
+        for (int i = 0; i < count; i++)
+        {
+            ref Move m = ref capts[i];
+            var delta = (m == bestmove) ? bonus : penalty;
+
+            PieceType att = p.PieceTypeOn(m.from);
+            PieceType vict = p.GetCapturedPieceType(m);
+
+            CaptHist[p.Us, att, vict, m].Update(delta);
+        }
+    }
+
     public void Clear()
     {
+        CaptHist.Clear();
         Butterfly.Clear();
         ContHist.Clear();
     }
@@ -49,6 +66,7 @@ public struct History : IDisposable
     {
         if (!isDisposed)
         {
+            CaptHist.Dispose();
             Butterfly.Dispose();
             ContHist.Dispose();
             isDisposed = true;
