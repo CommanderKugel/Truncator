@@ -135,6 +135,7 @@ public static class TimeManager
         double pvStabilityFactor = 1.2 - pvSigmoid;
 
         // node-tm
+        
         // score-tm
 
         return IsSelfManaging && (double)watch.ElapsedMilliseconds > (double)SoftTimeout * pvStabilityFactor
