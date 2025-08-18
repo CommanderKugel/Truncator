@@ -216,6 +216,7 @@ public static partial class Search
 
         if ((ns - 1)->move.NotNull
             && ns->StaticEval >= beta
+            && ns->StaticEval - 130 + 13 * depth >= beta
             && p.HasNonPawnMaterial(p.Us)
             && (!ttHit || ttEntry.Flag > UPPER_BOUND || ttEntry.Score >= beta))
         {
