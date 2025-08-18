@@ -217,6 +217,7 @@ public static partial class Search
         if ((ns - 1)->move.NotNull
             && ns->StaticEval >= beta
             && p.HasNonPawnMaterial(p.Us)
+            && ((ns-1)->CapturedPieceType != PieceType.NONE || (ns-1)->HistScore < HistVal.HIST_VAL_MAX / 2)
             && (!ttHit || ttEntry.Flag > UPPER_BOUND || ttEntry.Score >= beta))
         {
             Pos PosAfterNull = p;
