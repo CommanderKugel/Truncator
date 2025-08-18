@@ -190,7 +190,7 @@ public static partial class Search
 
         {
             int rfpDepth = improving ? depth - 1 : depth;
-            int margin = 75;
+            int margin = cutnode ? 60 : 75;
 
             if (depth <= 5 && ns->StaticEval - margin * rfpDepth >= beta)
             {
