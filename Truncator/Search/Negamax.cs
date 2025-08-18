@@ -192,7 +192,9 @@ public static partial class Search
             int rfpDepth = improving ? depth - 1 : depth;
             int margin = 75;
 
-            if (depth <= 5 && ns->StaticEval - margin * rfpDepth >= beta)
+            if (depth <= 5
+                && ns->StaticEval >= beta
+                && ns->StaticEval - margin * rfpDepth - (ns-1)->HistScore / 64 >= beta)
             {
                 return ns->StaticEval;
             }
