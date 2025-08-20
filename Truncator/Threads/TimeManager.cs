@@ -12,7 +12,6 @@ public static class TimeManager
     private static long SoftTimeout = 0;
     private static bool IsSelfManaging = true;
     public  static int  maxDepth = 128;
-    public  static long maxNodes = long.MaxValue;
 
     public static int MoveOverhead = 10;
 
@@ -32,7 +31,7 @@ public static class TimeManager
 
     public static void Start(Color Us)
     {
-        IsSelfManaging = hardnodes == long.MaxValue
+        IsSelfManaging = softnodes == long.MaxValue
                       && softnodes == long.MaxValue
                       && depth == -1;
 
@@ -44,12 +43,16 @@ public static class TimeManager
 
             // #1.1 searching should be completed after n nodes
             // this is very helpfull for recreating bugs and datageneration
-            if (hardnodes != long.MaxValue)
+            if (softnodes != long.MaxValue)
             {
                 HardTimeout = int.MaxValue;
                 SoftTimeout = int.MaxValue;
-                maxNodes = softnodes = hardnodes;
-                Console.WriteLine($"nodes: max-nodes = {hardnodes}");
+
+                // assume soft and hardnodes have been set proberly already
+                // for "go nodes 5000", softnodes is assumed
+                // for hardnodes, "go hardnodes 5000" is required to be sent
+
+                Console.WriteLine($"nodes: softnodes = {softnodes}, hardnodes = {hardnodes}");
             }
 
             // #1.2 search for N ID iterations
