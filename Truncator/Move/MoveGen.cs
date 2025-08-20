@@ -30,7 +30,6 @@ public static class MoveGen
             i++;
         }
 
-        moves = moves.Slice(0, moveCount);
         return moveCount;
     }
 

@@ -14,7 +14,7 @@ public static class Truncator
 
             if (args.Length == 0)
             {
-                Console.WriteLine("no args given, starting UCI protocol");
+                Debug.WriteLine("no args given, starting UCI protocol");
                 UCI.MainLoop();
             }
 
@@ -26,6 +26,11 @@ public static class Truncator
             else if (args.Length == 1 && args[0] == "perft")
             {
                 Perft.RunPerft();
+            }
+
+            else if (args[0].StartsWith("genfens"))
+            {
+                GenFens.Generate(args[0].Split(' '));
             }
 
             else
