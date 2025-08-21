@@ -1,48 +1,64 @@
 
+#pragma warning disable CA2211 // Non-constant fields should not be visible
 public static class Tunables
 {
-    public static int AspDelta = 30;
+    /* new(<Name>, <Default>, <Min>, <Max>, <C_end=Default/20>, <R_end=0.002>) */
 
-    public static int RfpDepth = 5;
-    public static int RfpMult = 75;
-    public static int RfpMargin = 0;
+    // Aspiration Windows
+    public static SpsaValue AspDelta = new("AspDelta", 30, 5, 50);
 
-    public static int Razoringdepth = 4;
-    public static int RazoringMult = 300;
-    public static int RazoringMargin = 0;
+    // Reverse Futility Pruning
+    public static SpsaValue RfpDepth = new("RfpDepth", 5, 1, 16);
+    public static SpsaValue RfpMult = new("RfpMult", 75, 25, 150);
+    public static SpsaValue RfpMargin = new("RfpMargin", 0, -50, 250);
 
-    public static int NmpBaseReduction = 3;
-    public static int NmpDepthDivisor = 6;
-    public static int NmpEvalDivisor = 256;
+    // Razoring
+    public static SpsaValue RazoringDepth = new("RazoringDepth", 4, 1, 16);
+    public static SpsaValue RazoringMult = new("RazoringMult", 300, 1, 500);
+    public static SpsaValue RazoringMargin = new("RazoringMargin", 0, -50, 250);
 
-    public static int FpDepth = 4;
-    public static int FpMatgin = 0;
-    public static int FpMult = 150;
+    // Null Move Pruning
+    public static SpsaValue NmpBaseReduction = new("NmpBaseReduction", 3, 2, 6);
+    public static SpsaValue NmpDepthDivisor = new("NmpDepthDivisor", 6, 3, 10);
+    public static SpsaValue NmpEvalDivisor = new("NmpEvalDivisor", 256, 64, 512);
 
-    public static int LmpDepth = 4;
-    public static int LmpBase = 2;
+    // Futility Pruning
+    public static SpsaValue FpDepth = new("FpDepth", 4, 1, 16);
+    public static SpsaValue FpMargin = new("FpMargin", 0, -50, 250);
+    public static SpsaValue FpMult = new("FpMult", 150, 1, 250);
+    
+    // Late Move Pruning
+    public static SpsaValue LmpDepth = new("LmpDepth", 4, 1, 16);
+    public static SpsaValue LmpBase = new("LmpBase", 2, 1, 32);
 
-    public static int HpDepth = 5;
-    public static int HpBase = 0;
-    public static int HpLinMult = 15;
-    public static int HpSqrMult = 9;
+    // History Pruning
+    public static SpsaValue HpDepth = new("HpDepth", 5, 1, 16);
+    public static SpsaValue HpBase = new("HpBase", 0, -256, 256);
+    public static SpsaValue HpLinMult = new("HpLinMult", 15, 1, 64);
+    public static SpsaValue HpSqrMult = new("HpSqrMult", 9, 1, 64);
 
-    public static int SEENoisyMult = -150;
-    public static int SEEQuietMult = -25;
-    public static int SEEQsThreshold = 0;
+    // Static Exchange Evaluation
+    public static SpsaValue SEENoisyMult = new("SEENoisyMult", -150, -1, -512);
+    public static SpsaValue SEEQuietMult = new("SEEQuietMult", -25, -1, -128);
+    public static SpsaValue SEEQsThreshold = new("SEEQsThreshold", 0, -256, 128);
 
-    public static int SEBetaDepthMult = 2;
-    public static int SEDoubleMargin = 12;
+    // Singular Extensions
+    public static SpsaValue SEBetaDepthMult = new("SEBetaDepthMult", 2, 1, 16);
+    public static SpsaValue SEDoubleMargin = new("SEDoubleMargin", 12, 1, 128);
 
-    public static int LmrBaseBase = 0;
-    public static int LmrBaseMult = 1024;
-    public static int LmrHistDiv = 341;
+    // Late Move Reductions
+    public static SpsaValue LmrBaseBase = new("LmrBaseBase", 0, 0, 1024 * 4);
+    public static SpsaValue LmrBaseMult = new("LmrBaseMult", 1024, 1, 1024 * 4);
+    public static SpsaValue LmrHistDiv = new("LmrHistDiv", 341, 1, 1024);
 
-    public static int PawnCorrhistWeight = 16;
-    public static int NpCorrhistWeight = 12;
-    public static int MinorCorrhistWeight = 12;
-    public static int MajorCorrhistWeight = 12;
-    public static int ThreatCorrhistWeight = 12;
-    public static int PrevpieceCorrhistWeight = 12;
+    // Correction History
+    public static SpsaValue PawnCorrhistWeight = new("PawnCorrhistWeight", 16, 1, 64);
+    public static SpsaValue NpCorrhistWeight = new("NpCorrhistWeight", 12, 1, 64);
+    public static SpsaValue MinorCorrhistWeight = new("MinorCorrhistWeight", 12, 1, 64);
+    public static SpsaValue MajorCorrhistWeight = new("MajorCorrhistWeight", 12, 1, 64);
+    public static SpsaValue ThreatCorrhistWeight = new("ThreatCorrhistWeight", 12, 1, 64);
+    public static SpsaValue PrevPieceCorrhistWeight = new("PrevPieceCorrhistWeight", 12, 1, 64);
 
 }
+#pragma warning restore CA2211 // Non-constant fields should not be visible
+

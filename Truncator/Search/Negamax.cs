@@ -197,7 +197,7 @@ public static partial class Search
 
         // razoring
 
-        if (depth <= Razoringdepth
+        if (depth <= RazoringDepth
             && !IsTerminal(alpha)
             && ns->StaticEval + RazoringMargin + RazoringMult * depth <= alpha)
         {
@@ -303,7 +303,7 @@ public static partial class Search
                 if (nonPV
                     && !ns->InCheck
                     && depth <= FpDepth
-                    && ns->StaticEval + FpMatgin + depth * FpMult <= alpha)
+                    && ns->StaticEval + FpMargin + depth * FpMult <= alpha)
                 {
                     continue;
                 }
