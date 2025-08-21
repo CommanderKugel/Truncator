@@ -9,9 +9,6 @@ public static partial class UCI
 
     public static void MainLoop()
     {
-        // wake up main thread
-        ThreadPool.MainThread.ply = 0;
-
         while (true)
         {
             string command = Console.ReadLine() ?? "quit";
@@ -22,7 +19,7 @@ public static partial class UCI
 
             if (command == "uci")
             {
-                Console.WriteLine("id name Truncator 0.71");
+                Console.WriteLine("id name Truncator 0.75");
                 Console.WriteLine("id author CommanderKugel");
 
                 Console.WriteLine($"option name Hash type spin default {TranspositionTable.DEFAULT_SIZE} min {TranspositionTable.MIN_SIZE} max {TranspositionTable.MAX_SIZE}");
@@ -89,8 +86,6 @@ public static partial class UCI
 
             else if (tokens[0] == "quit")
             {
-                ThreadPool.StopAll();
-                ThreadPool.Join();
                 return;
             }
 

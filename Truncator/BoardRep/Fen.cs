@@ -19,12 +19,13 @@ public partial struct Pos
         EnPassantSquare = 0;
         FiftyMoveRule = 0;
 
-        int r = 7, f = 0, idx = 0;
-        char c = 'x';
+        string[] tokens = fen.Split(' ');
+        
+        // place pieces on the bitboards
 
-        for (; c != ' '; idx++)
+        int r = 7, f = 0;
+        foreach (char c in tokens[0])
         {
-            c = fen[idx];
             int sq = 8 * r + f;
             f++;
 
@@ -53,19 +54,28 @@ public partial struct Pos
         KingSquares[(int)Color.Black] = lsb(GetPieces(Color.Black, PieceType.King));
 
         // Side to move (stm)
-        Us = fen[idx++] == 'w' ? Color.White : Color.Black;
+
+        Us = (tokens[1] == "w") ? Color.White : Color.Black;
 
         // castling rights
-        for (char cr = fen[++idx]; cr != ' ' && cr != '-'; cr = fen[++idx])
+
+        foreach (char c in tokens[2])
         {
-            SetCastlingRight(cr);
+            if (c == '-')
+            {
+                break;
+            }
+
+            SetCastlingRight(c);
         }
 
         // en passant
-        if (fen[++idx] != '-' && fen[idx] != ' ')
+
+        if (tokens[3] != "-")
         {
-            int file = LetterToFile(fen[idx++]);
-            int rank = NumberToRank(fen[idx++]);
+            int file = LetterToFile(tokens[3][0]);
+            int rank = NumberToRank(tokens[3][1]);
+
             EnPassantSquare = 8 * rank + file + (Us == Color.White ? -8 : 8);
             Debug.Assert(EnPassantSquare >= 0 && EnPassantSquare < 64);
         }
@@ -74,10 +84,12 @@ public partial struct Pos
             EnPassantSquare = (int)Square.NONE;
         }
 
-        // ToDo: half-move and full-move counters
+        // fifty move rule and full move counter
 
-        // fifty move rule
-        FiftyMoveRule = 0;
+        FullMoveCounter = int.Parse(tokens[4]);
+        FiftyMoveRule = int.Parse(tokens[5]);
+
+        // miscellaneous stuff not included in the fen itself
 
         Threats = ComputeThreats();
         Checkers = GetCheckers();
@@ -86,20 +98,40 @@ public partial struct Pos
         Zobrist.ComputeFromZero(ref this);
     }
 
+    /// <summary>
+    /// place a piece on the bitboards
+    /// </summary>
     private unsafe void SetPiece(Color c, PieceType pt, int sq)
     {
         PieceBB[(int)pt] |= 1ul << sq;
-        ColorBB[(int)c ] |= 1ul << sq;
+        ColorBB[(int)c] |= 1ul << sq;
     }
 
+    /// <summary>
+    /// check for a castling right
+    /// use this to read from a fen
+    /// allowed inputs:
+    /// 'KQkq' for Kingside/Queenside and color
+    /// 'ABCDEFGHabcdefgh' for (d)frc castling file and 
+    /// implicid Kingside/Queenside and color
+    /// dont pass '-'
+    /// </summary>
+    /// <param name="cr"></param>
     private unsafe void SetCastlingRight(char cr)
     {
-        Debug.Assert(cr >= 'a' && cr <= 'h'
-            || cr >= 'A' && cr <= 'H'
-            || "KQkq".Contains(cr),
-            "Invalid char to set castling right from");
+        Debug.Assert("KQkqABCDEFGHabcdefgh".Contains(cr),
+            $"Invalid char {cr} to set castling right from");
+
+        // upper case chars represent whites castling rights
+        // lower case chars represent blacks castling rights
 
         Color c = char.IsUpper(cr) ? Color.White : Color.Black;
+
+        // Kk always means kingside and Qq always means queenside
+        // furthermore, kingside/queenside is always implicitly given by the 
+        // king and rook files
+        // even in (d)frc, there will always be a rook on the left and right 
+        // of the king to allow for kingside and queenside castling
 
         int kingFile = FileOf(KingSquares[(int)c]);
         int castleFile = cr switch
@@ -109,19 +141,24 @@ public partial struct Pos
             _ => LetterToFile(char.ToLower(cr)),
         };
 
-        bool kingside = castleFile > kingFile;
+        // if the king moves towards a bigger fileindex, its kingside
+        // if the king moves towards a smller fileindex, its queenside
+        // (a_file = 0) < (h_file = 7)
 
+        bool kingside = castleFile > kingFile;
         CastlingRights |= Castling.GetCastlingRightMask(c, kingside);
     }
     
-    public string get_fen()
+    public string GetFen()
     {
         string fen = "";
 
         // Piece Representation
+
         for (int rank = 7; rank >= 0; rank--)
         {
             // count squares between pieces on a rank
+
             int cnt = 0;
 
             for (int file = 0; file < 8; file++)
@@ -153,6 +190,7 @@ public partial struct Pos
         }
 
         // stm
+
         fen += "wb"[(int)Us] + " ";
 
         // castling rights 
@@ -175,7 +213,8 @@ public partial struct Pos
         }
 
         // approximation for full-move-counter and half-move-counter
-        fen += $" {FiftyMoveRule / 2} {FiftyMoveRule}";
+
+        fen += $" {FiftyMoveRule} {FullMoveCounter}";
 
         return fen;
     }
