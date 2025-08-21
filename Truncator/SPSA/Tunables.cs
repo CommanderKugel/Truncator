@@ -2,7 +2,7 @@
 #pragma warning disable CA2211 // Non-constant fields should not be visible
 public static class Tunables
 {
-    /* new(<Name>, <Default>, <Min>, <Max>, <C_end=Default/20>, <R_end=0.002>) */
+    /* new(<Name>, <Default>, <Min>, <Max>, <C_end=Max/20>, <R_end=0.002>) */
 
     // Aspiration Windows
     public static SpsaValue AspDelta = new("AspDelta", 30, 5, 50);
@@ -19,7 +19,7 @@ public static class Tunables
 
     // Null Move Pruning
     public static SpsaValue NmpBaseReduction = new("NmpBaseReduction", 3, 2, 6);
-    public static SpsaValue NmpDepthDivisor = new("NmpDepthDivisor", 6, 3, 10);
+    public static SpsaValue NmpDepthDivisor = new("NmpDepthDivisor", 6, 3, 9);
     public static SpsaValue NmpEvalDivisor = new("NmpEvalDivisor", 256, 64, 512);
 
     // Futility Pruning

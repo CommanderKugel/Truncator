@@ -21,7 +21,7 @@ public struct SpsaValue
         Min = min;
         Max = max;
 
-        this.C_end = C_end ?? Math.Max(Value / 20, 0.5);
+        this.C_end = C_end ?? Math.Max(Max / 20, 0.5);
         this.R_end = R_end ?? 0.002;
     }
 
