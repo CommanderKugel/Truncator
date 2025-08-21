@@ -221,6 +221,12 @@ public static partial class Search
             thread.repTable.Push(PosAfterNull.ZobristKey);
 
             int R = NmpBaseReduction + depth / NmpDepthDivisor;
+
+            if (!IsTerminal(beta))
+            {
+                R += Math.Min((ns->StaticEval - beta) / NmpEvalDivisor, 3);
+            }
+
             int ScoreAfterNull = -Negamax<NonPVNode>(thread, PosAfterNull, -beta, -alpha, depth - R, ns + 1, !cutnode);
 
             thread.UndoMove();

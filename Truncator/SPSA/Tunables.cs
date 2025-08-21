@@ -13,6 +13,7 @@ public static class Tunables
 
     public static int NmpBaseReduction = 3;
     public static int NmpDepthDivisor = 6;
+    public static int NmpEvalDivisor = 256;
 
     public static int FpDepth = 4;
     public static int FpMatgin = 0;
