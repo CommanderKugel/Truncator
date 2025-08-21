@@ -11,6 +11,7 @@ public static class Truncator
         try
         {
             ThreadPool.Resize(1);
+            Search.ComputeLmrTable();
 
             if (args.Length == 0)
             {
@@ -58,6 +59,8 @@ public static class Truncator
             Debug.WriteLine("utils done");
             Zobrist.Dispose();
             Debug.WriteLine("zobrist done");
+            Search.Dispose();
+            Debug.WriteLine("search done");
 
             Debug.WriteLine("\n\t3) Stopping and Disposing of the Threadpool");
             ThreadPool.Join();

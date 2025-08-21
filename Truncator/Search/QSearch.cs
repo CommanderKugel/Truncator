@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using static Tunables;
 
 public static partial class Search
 {
@@ -92,7 +93,7 @@ public static partial class Search
 
             // simply prune all bad captures
 
-            if (nonPV && !SEE.SEE_threshold(m, ref p, 0))
+            if (nonPV && !SEE.SEE_threshold(m, ref p, SEEQsThreshold))
             {
                 continue;
             }

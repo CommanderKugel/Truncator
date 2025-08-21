@@ -1,5 +1,6 @@
 
 using System.Diagnostics;
+using static Tunables;
 
 public static partial class Search
 {
@@ -188,21 +189,17 @@ public static partial class Search
 
         // reverse futility pruning (RFP)
 
+        if (depth <= RfpDepth
+            && ns->StaticEval - RfpMargin - RfpMult * (improving ? depth - 1 : depth) >= beta)
         {
-            int rfpDepth = improving ? depth - 1 : depth;
-            int margin = 75;
-
-            if (depth <= 5 && ns->StaticEval - margin * rfpDepth >= beta)
-            {
-                return ns->StaticEval;
-            }
+            return ns->StaticEval;   
         }
 
         // razoring
 
-        if (!IsTerminal(alpha)
-            && depth <= 4
-            && ns->StaticEval + 300 * depth <= alpha)
+        if (depth <= Razoringdepth
+            && !IsTerminal(alpha)
+            && ns->StaticEval + RazoringMargin + RazoringMult * depth <= alpha)
         {
             int RazoringScore = QSearch<NonPVNode>(thread, p, alpha, beta, ns);
 
@@ -223,7 +220,7 @@ public static partial class Search
             PosAfterNull.MakeNullMove(thread);
             thread.repTable.Push(PosAfterNull.ZobristKey);
 
-            int R = 3 + depth / 6;
+            int R = NmpBaseReduction + depth / NmpDepthDivisor;
             int ScoreAfterNull = -Negamax<NonPVNode>(thread, PosAfterNull, -beta, -alpha, depth - R, ns + 1, !cutnode);
 
             thread.UndoMove();
@@ -299,20 +296,22 @@ public static partial class Search
                 // futility pruning 
                 if (nonPV
                     && !ns->InCheck
-                    && depth <= 4
-                    && ns->StaticEval + depth * 150 <= alpha)
+                    && depth <= FpDepth
+                    && ns->StaticEval + FpMatgin + depth * FpMult <= alpha)
                 {
                     continue;
                 }
 
                 // late move pruning
-                if (depth <= 4 && movesPlayed >= 2 + depth * depth)
+                if (depth <= LmpDepth
+                    && movesPlayed >= LmpBase + depth * depth)
                 {
                     continue;
                 }
 
                 // main-history pruning
-                if (depth <= 5 && ns->HistScore < -(15 * depth + 9 * depth * depth))
+                if (depth <= HpDepth
+                    && ns->HistScore < -(HpBase + HpLinMult * depth + HpSqrMult * depth * depth))
                 {
                     continue;
                 }
@@ -325,7 +324,7 @@ public static partial class Search
             // ToDo: margin -= histScore / 8
             if (!isRoot
                 && notLoosing
-                && !SEE.SEE_threshold(m, ref p, isCapture ? -150 * depth : -25 * depth * depth))
+                && !SEE.SEE_threshold(m, ref p, isCapture ? SEENoisyMult * depth : SEEQuietMult * depth * depth))
             {
                 continue;
             }
@@ -343,7 +342,7 @@ public static partial class Search
                 && thread.ply < thread.completedDepth * 2)
             {
 
-                int singularBeta = Math.Max(-SCORE_MATE + 1, ttEntry.Score - depth * 2);
+                int singularBeta = Math.Max(-SCORE_MATE + 1, ttEntry.Score - depth * SEBetaDepthMult);
                 int singularDepth = (depth - 1) / 2;
 
                 ns->ExcludedMove = m;
@@ -352,7 +351,7 @@ public static partial class Search
 
                 if (singularScore < singularBeta)
                 {
-                    if (!isPV && singularScore < singularBeta - 12)
+                    if (!isPV && singularScore < singularBeta - SEDoubleMargin)
                     {
                         extension = 2;
                     }
@@ -392,11 +391,11 @@ public static partial class Search
                 if (!isCapture)
                 {
 
-                    R = Math.Max(Log_[Math.Min(movesPlayed, 63)] * Log_[Math.Min(depth, 63)] / 4, 2);
+                    R = GetBaseLmr(depth, movesPlayed);
 
                     // reduce more for bad history values
                     // divisor ~= HIST_VAL_MAX / 3
-                    R += -ns->HistScore / 341;
+                    R += -ns->HistScore / LmrHistDiv;
 
                     if (thread.ply > 1 && !improving) R++;
 
@@ -410,11 +409,9 @@ public static partial class Search
                     R = Math.Max(1, R);
                 }
 
-                else // isCapture
+                else if (picker.stage == Stage.BadCaptures) // isCapture
                 {
-
-                    if (picker.stage == Stage.BadCaptures) R++;
-
+                    R++;
                 }
 
                 // zero-window-search (ZWS)
