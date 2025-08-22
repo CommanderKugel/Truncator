@@ -413,6 +413,8 @@ public static partial class Search
 
                     if (m == ns->KillerMove) R--;
 
+                    if (ttMove.IsNull) R++;
+
                     R = Math.Max(1, R);
                 }
 
