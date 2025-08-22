@@ -6,6 +6,7 @@ public static class TimeManager
     public static int wtime, btime, winc, binc;
     public static int movestogo, movetime;
     public static int depth;
+
     public static long softnodes, hardnodes;
 
     private static long HardTimeout = 0;
@@ -21,18 +22,26 @@ public static class TimeManager
     public static void Reset()
     {
         watch.Restart();
-        wtime = btime = int.MaxValue;
-        winc = binc = -1;
+
+        wtime = int.MaxValue;
+        btime = int.MaxValue;
+
+        winc = -1;
+        binc = -1;
+
         movestogo = -1;
         movetime = -1;
+
         depth = -1;
-        softnodes = hardnodes = long.MaxValue;
+        
+        softnodes = long.MaxValue;
+        hardnodes = long.MaxValue;
     }
 
     public static void Start(Color Us)
     {
         IsSelfManaging = softnodes == long.MaxValue
-            && softnodes == long.MaxValue
+            && hardnodes == long.MaxValue
             && depth == -1;
 
         maxDepth = 128;
@@ -52,9 +61,9 @@ public static class TimeManager
                 // for "go nodes 5000", softnodes is assumed
                 // for hardnodes, "go hardnodes 5000" is required to be sent
 
-                if (hardnodes == -1)
+                if (hardnodes == long.MaxValue)
                 {
-                    hardnodes = softnodes * 100;
+                    hardnodes = softnodes * 20; // go nodes 5000 -> implicit 100k hardnodes
                 }
 
                 Debug.WriteLine($"nodes: softnodes = {softnodes}, hardnodes = {hardnodes}");
@@ -114,12 +123,18 @@ public static class TimeManager
     {
         watch.Restart();
 
-        wtime = btime = int.MaxValue;
+        wtime = int.MaxValue;
+        btime = int.MaxValue;
+
         winc = binc = -1;
         movestogo = -1;
         movetime = -1;
-        maxDepth = depth = depth_;
-        softnodes = hardnodes = long.MaxValue;
+
+        maxDepth = depth_;
+        depth = depth_;
+
+        softnodes = long.MaxValue;
+        hardnodes = long.MaxValue;
 
         IsSelfManaging = false;
     }
