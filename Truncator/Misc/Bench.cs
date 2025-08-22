@@ -1,7 +1,7 @@
 public static class Bench
 {
     public const int BenchDepth = 12;
-    public const long BenchNodes = 15384872;
+    public const long BenchNodes = 14274911;
     
 
     public static readonly string[] Positions = {

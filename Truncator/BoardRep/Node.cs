@@ -19,6 +19,7 @@ public struct Node
 
     public unsafe PieceToHistory* ContHist;
     public int HistScore;
+    public int ContHistScore;
 
     public int CutoffCount;
 
