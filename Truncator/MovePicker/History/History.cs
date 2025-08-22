@@ -1,6 +1,4 @@
 
-using System.Diagnostics;
-
 public struct History : IDisposable
 {
     public bool isDisposed;
