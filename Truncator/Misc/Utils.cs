@@ -143,6 +143,22 @@ public static class Utils
     ];
     
 
+    public static PieceType CharToPt(char pt)
+    {
+        Debug.Assert("PNBRQKpnbrqk".Contains(pt));
+        return pt switch
+        {
+            'p' or 'P' => PieceType.Pawn,
+            'n' or 'N' => PieceType.Knight,
+            'b' or 'B' => PieceType.Bishop,
+            'r' or 'R' => PieceType.Rook,
+            'q' or 'Q' => PieceType.Queen,
+            'k' or 'K' => PieceType.King,
+            _ => throw new ArgumentException($"cant convert {pt} to a PieceType!"),
+        };
+    }
+    
+
 
     public static Piece MakePiece(PieceType pt, Color c)
         => (Piece)(((int)c << 3) | (int)pt);
@@ -165,6 +181,12 @@ public static class Utils
         Debug.Assert(pt != PieceType.NONE);
         Debug.Assert(c != Color.NONE);
         return "PNBRQKpnbrqk"[(int)c * 6 + (int)pt];
+    }
+
+    public static char PieceTypeChar(PieceType pt)
+    {
+        Debug.Assert(pt != PieceType.NONE);
+        return "PNBRQK"[(int)pt];
     }
 
 
@@ -190,9 +212,9 @@ public static class Utils
         Console.WriteLine(p.GetFen());
 
         string CastlingRights = "";
-        if (p.HasCastlingRight(Color.White, true )) CastlingRights += 'K';
+        if (p.HasCastlingRight(Color.White, true)) CastlingRights += 'K';
         if (p.HasCastlingRight(Color.White, false)) CastlingRights += 'Q';
-        if (p.HasCastlingRight(Color.Black, true )) CastlingRights += 'k';
+        if (p.HasCastlingRight(Color.Black, true)) CastlingRights += 'k';
         if (p.HasCastlingRight(Color.Black, false)) CastlingRights += 'q';
         Console.WriteLine("Castling Rights: " + (CastlingRights == "" ? "-" : CastlingRights));
     }

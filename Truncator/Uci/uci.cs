@@ -117,23 +117,16 @@ public static partial class UCI
             else if (command == "perft")
             {
                 Debug.Assert(state == UciState.Idle, "command only available, when engine is idle!");
+                Perft.RunPerft();
+            }
 
-                if (tokens.Length == 1)
-                {
-                    Perft.RunPerft();
-                }
-
-                else if (tokens.Length == 3)
-                {
-                    try
-                    {
-                        Perft.SplitPerft(tokens[1], int.Parse(tokens[2]));
-                    }
-                    catch
-                    {
-                        Console.WriteLine("An error occured when executing 'perft <fen> <depth>' command!");
-                    }
-                }
+            else if (tokens[0] == "pgn")
+            {
+                Debug.Assert(tokens.Length == 3);
+                var c = tokens[1] == "white" ? Color.White : tokens[1] == "black" ? Color.Black :
+                    throw new Exception($"could not read color '{tokens[1]}', expected 'white' or 'black'");
+                var pgn = new Pgn(ThreadPool.MainThread, new(tokens[2]));
+                pgn.Replay(c);
             }
 
         }
