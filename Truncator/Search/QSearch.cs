@@ -90,7 +90,19 @@ public static partial class Search
                 continue;
             }
 
-            // simply prune all bad captures
+            // futility pruning
+
+            int futilityValue = ns->StaticEval + 300 + SEE.SEEMaterial[(int)p.GetCapturedPieceType(m)];
+
+            if (!ns->InCheck
+                && !IsLoss(bestscore)
+                && futilityValue <= alpha)
+            {
+                bestscore = Math.Max(futilityValue, bestscore);
+                continue;
+            }
+
+            // simply prune all bad captures/moves
 
             if (nonPV && !SEE.SEE_threshold(m, ref p, 0))
             {
