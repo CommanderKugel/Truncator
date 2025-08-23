@@ -460,11 +460,14 @@ public static partial class Search
 
             if (isRoot)
             {
-                // save roo-move-data
-                // might be useful for time management
-
                 thread.rootPos.ReportBackMove(m, score, thread.nodeCount - startnodes, depth);
+
+                if (movesPlayed == 1 || score > alpha)
+                {
+                    thread.PV[depth] = score;
+                }
             }
+
 
             if (score > bestscore)
             {
@@ -474,59 +477,47 @@ public static partial class Search
                 bestscore = score;
                 flag = UPPER_BOUND;
 
-                if (isPV)
+                if ((isPV && score > alpha) || (isRoot && movesPlayed == 1))
                 {
-                    if (isRoot)
-                    {
-                        thread.PV[depth] = bestscore;
-                    }
-
-                    // still push the upper-bound move to the pv
-                    // so we always have a bestmove 
-
                     thread.PushToPV(m);
                 }
-
-                if (score > alpha)
-                {
-                    // now we have an exact score and can confidently save a bestmove
-
-                    alpha = score;
-                    bestmove = m;
-                    flag = EXACT_BOUND;
-
-                    if (score >= beta)
-                    {
-                        // fail high
-                        // the opponent can already force a better line and will not allow us to
-                        // play the current one, so we dont need to search this branch any further
-                        // the current bound is a lower bound and might actually be even bigger
-
-                        flag = LOWER_BOUND;
-
-                        if (!isCapture)
-                        {
-                            // update history
-                            // ToDo: Bonus = depth * (depth + (m == ttmove))
-                            // ToDo: Bonus = depth * (depth + (eval < alpha))
-
-                            int HistDelta = depth * depth;
-                            thread.history.UpdateQuietMoves(thread, ns, (short)HistDelta, (short)-HistDelta, ref p, ref quietMoves, quitesCount, m);
-
-                            // update killer-move
-                            ns->KillerMove = m;
-                        }
-
-                        // ToDo: update capture history (didnt pass yet, its cursed)
-
-                        // ToDo: CutoffCount += isPv || nonPV
-                        ns->CutoffCount++;
-
-                        break;
-
-                    } // beta beaten
-                } // alpha beaten
             } // best beaten
+
+            if (score > alpha)
+            {
+                // now we have an exact score and can confidently save a bestmove
+
+                alpha = score;
+                bestmove = m;
+                flag = EXACT_BOUND;
+            }
+
+            if (score >= beta)
+            {
+                // fail high
+                // the opponent can already force a better, so we dont need to search this branch any further
+                // we have a lower bound now, the score might be even better
+
+                flag = LOWER_BOUND;
+
+                if (!isCapture)
+                {
+                    // update history
+                    // ToDo: Bonus = depth * (depth + (m == ttmove))
+                    // ToDo: Bonus = depth * (depth + (eval < alpha))
+
+                    int HistDelta = depth * depth;
+                    thread.history.UpdateQuietMoves(thread, ns, (short)HistDelta, (short)-HistDelta, ref p, ref quietMoves, quitesCount, m);
+
+                    // update killer-move
+                    ns->KillerMove = m;
+                }
+
+                // ToDo: CutoffCount += isPv || nonPV
+                ns->CutoffCount++;
+                break;
+
+            }
 
             // check if we have time left
             // do this in the move-loop & after updaing the pv
