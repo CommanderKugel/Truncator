@@ -39,7 +39,7 @@ public struct SpsaValue
     /// 6. (C_end) Step Size
     /// 7. (R_enc) Learning Rate
     /// </summary>
-    public readonly string ToOBFormat
-        => $"{Name}, int, {Value}, {Min}, {Max}, {C_end}, {R_end}";
+    public static string ToOBFormat(SpsaValue v)
+        => $"{v.Name}, int, {v.Value}, {v.Min}, {v.Max}, {v.C_end}, {v.R_end}";
 
 }

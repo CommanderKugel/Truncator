@@ -1,9 +1,13 @@
+using System.Diagnostics;
 using System.Reflection;
 
+/// <summary>
+/// https://github.com/AndyGrant/OpenBench/wiki/SPSA-Tuning-Workloads
+/// </summary>
 public static class SpsaUciOption
 {
 
-    private static Dictionary<string, FieldInfo> SpsaDict = [];
+    public static Dictionary<string, FieldInfo> SpsaDict = null;
 
     /// <summary>
     /// Fills the SpsaDict with all the fields of the 'Tunables' class
@@ -12,23 +16,42 @@ public static class SpsaUciOption
     /// </summary>
     public static void CollectOptions()
     {
+        SpsaDict = [];
+
         foreach (var field in typeof(Tunables).GetFields(BindingFlags.Public | BindingFlags.Static))
         {
             SpsaDict[field.Name] = field;
         }
     }
 
+    /// <summary>
+    /// Prints all SPSA tunable values to the Console
+    /// and exposes them as UCI options.
+    /// Changes to values are set via UCI options
+    /// </summary>
+    public static void PrintOptionsToUCI()
+    {
+        if (SpsaDict == null)
+        {
+            CollectOptions();
+        }
+
+        foreach (var field in SpsaDict.Values)
+        {
+            Console.WriteLine(field.GetValue(null));
+        }
+    }
 
     /// <summary>
     /// Changes the value of a static Spsa tunable value
     /// </summary>
-    public static void ChangeField(string name, int Value)
+    public static void ChangeField(string Name, int Value)
     {
         // try and get the Value we want to change
 
-        if (!SpsaDict.TryGetValue(name, out var field))
+        if (!SpsaDict.TryGetValue(Name, out var field))
         {
-            Console.WriteLine($"info string field {name} not found! cant update its value.");
+            Console.WriteLine($"info string field {Name} not found! cant update its value.");
             return;
         }
 
@@ -44,7 +67,7 @@ public static class SpsaUciOption
         object? copy = field.GetValue(null);
         if (copy == null)
         {
-            Console.WriteLine($"info string field {name} not found! cant update its value.");
+            Console.WriteLine($"info string field {Name} not found! cant update its value.");
             return;
         }
 
@@ -54,7 +77,7 @@ public static class SpsaUciOption
 
         if (subfield == null)
         {
-            Console.WriteLine($"info string field {name} not found! cant update its value.");
+            Console.WriteLine($"info string field {Name} not found! cant update its value.");
             return;
         }
 
@@ -64,7 +87,29 @@ public static class SpsaUciOption
         subfield.SetValue(copy, Value);
         field.SetValue(null, copy);
 
-        Console.WriteLine(field.GetValue(null));
+        Console.WriteLine($"info string set {Name} to {Value}");
+    }
+
+
+    /// <summary>
+    /// Helper Method for setting up an OB spsa tune.
+    /// Finds all tunable values and prints the input for the "SPSA input" box
+    /// when creating a tuning workload
+    /// https://commanderkugel.pythonanywhere.com/tune/new/
+    /// </summary>
+    public static void PrintValuesInOBFormat()
+    {
+        if (SpsaDict == null)
+        {
+            CollectOptions();
+        }
+
+        foreach (var field in SpsaDict.Values)
+        {
+            var value = field.GetValue(null);
+            var ToOBFormat = typeof(SpsaValue).GetMethod("ToOBFormat", BindingFlags.Public | BindingFlags.Static);
+            Console.WriteLine(ToOBFormat.Invoke(null, [value]));
+        }
     }
 
 }
