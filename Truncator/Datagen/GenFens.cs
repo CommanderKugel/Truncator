@@ -1,6 +1,4 @@
 
-using System.Diagnostics;
-
 public static class GenFens
 {
 
