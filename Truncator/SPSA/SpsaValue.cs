@@ -1,3 +1,5 @@
+using System.Globalization;
+
 public struct SpsaValue
 {
 
@@ -40,6 +42,6 @@ public struct SpsaValue
     /// 7. (R_enc) Learning Rate
     /// </summary>
     public static string ToOBFormat(SpsaValue v)
-        => $"{v.Name}, int, {v.Value}, {v.Min}, {v.Max}, {v.C_end}, {v.R_end}";
+        => $"{v.Name}, int, {v.Value}, {v.Min}, {v.Max}, {v.C_end.ToString(CultureInfo.InvariantCulture)}, {v.R_end.ToString(CultureInfo.InvariantCulture)}";
 
 }
