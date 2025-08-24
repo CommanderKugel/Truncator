@@ -39,7 +39,7 @@ public static class Tunables
 
     // Static Exchange Evaluation
     public static SpsaValue SEENoisyMult = new("SEENoisyMult", -150, -256, -1);
-    public static SpsaValue SEEQuietMult = new("SEEQuietMult", -25, 128, -1);
+    public static SpsaValue SEEQuietMult = new("SEEQuietMult", -25, -128, -1);
     public static SpsaValue SEEQsThreshold = new("SEEQsThreshold", 0, -256, 128);
 
     // Singular Extensions
