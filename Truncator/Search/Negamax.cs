@@ -356,14 +356,20 @@ public static partial class Search
                 ns->ExcludedMove = Move.NullMove;
 
                 if (singularScore < singularBeta)
-                {
+                {   
+                    // move is singular -> extension
+                    extension = 1;
+
+                    // double extensions
                     if (!isPV && singularScore < singularBeta - SEDoubleMargin)
                     {
-                        extension = 2;
+                        extension++;
                     }
-                    else
+
+                    // triple extensions
+                    if (singularScore < singularBeta - 40)
                     {
-                        extension = 1;
+                        extension++;
                     }
                 }
             }
