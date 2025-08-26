@@ -10,45 +10,59 @@ public static partial class UCI
 
         // setoption name <ID> [value <X>]
 
-        if (tokens[2] == "Threads")
+        string nameStr = tokens[2];
+        string valueStr = tokens.Length == 5 ? tokens[4] : "";
+
+        if (nameStr == "Threads")
         {
             Debug.Assert(tokens.Length == 5);
-            int value = int.Parse(tokens[4]);
+            int value = int.Parse(valueStr);
             ThreadPool.Resize(value);
         }
 
-        if (tokens[2] == "Hash")
+        else if (nameStr == "Hash")
         {
             Debug.Assert(tokens.Length == 5);
-            int sizemb = int.Parse(tokens[4]);
+            int sizemb = int.Parse(valueStr);
             ThreadPool.tt.Resize(sizemb);
         }
 
-        if (tokens[2] == "Move" && tokens[3] == "Overhead")
+        else if (nameStr == "Move" && tokens[3] == "Overhead")
         {
             Debug.Assert(tokens.Length == 6);
             int overhead = int.Parse(tokens[5]);
             throw new NotImplementedException("setting move overhead is not impleented yet");
         }
 
-        if (tokens[2] == "UCI_ShowWDL" && tokens.Length >= 5)
+        else if (nameStr == "UCI_ShowWDL" && tokens.Length >= 5)
         {
-            WDL.UCI_showWDL = tokens[4] == "true";
+            WDL.UCI_showWDL = valueStr == "true";
         }
 
-        if (tokens[2] == "SyzygyPath" && tokens.Length >= 5)
+        else if (nameStr == "SyzygyPath" && tokens.Length >= 5)
         {
             Debug.Assert(tokens.Length == 5);
-            var path = tokens[4];
+            var path = valueStr;
             Fathom.Init(path);
         }
 
-        if (tokens[2] == "SyzygyProbePly")
+        else if (nameStr == "SyzygyProbePly")
         {
             Debug.Assert(tokens.Length == 5);
-            int ply = int.Parse(tokens[4]);
+            int ply = int.Parse(valueStr);
             Fathom.SyzygyProbePly = ply;
             Console.WriteLine($"SyzygyProbePly set to {ply}");
+        }
+
+        else if (SpsaUciOption.SpsaDict != null
+            && SpsaUciOption.SpsaDict.ContainsKey(nameStr))
+        {
+            SpsaUciOption.ChangeField(nameStr, int.Parse(valueStr));
+        }
+
+        else
+        {
+            Console.WriteLine($"info string {nameStr} was not found, setoption unsuccessfull");
         }
 
     }

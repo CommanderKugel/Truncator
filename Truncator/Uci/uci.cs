@@ -1,3 +1,6 @@
+
+//#define SPSA
+
 using System.Diagnostics;
 
 public static partial class UCI
@@ -28,6 +31,11 @@ public static partial class UCI
 
                 Console.WriteLine($"option name SyzygyPath type string default <empty>");
                 //Console.WriteLine($"option name SyzygyProbePly type spin default 40 min 1 max 128");
+
+#if SPSA
+                SpsaUciOption.CollectOptions();
+                SpsaUciOption.PrintOptionsToUCI();
+#endif
 
                 Console.WriteLine("uciok");
             }
@@ -127,6 +135,11 @@ public static partial class UCI
                     throw new Exception($"could not read color '{tokens[1]}', expected 'white' or 'black'");
                 var pgn = new Pgn(ThreadPool.MainThread, new(tokens[2]));
                 pgn.Replay(c);
+            }
+
+            else if (command == "spsainput")
+            {
+                SpsaUciOption.PrintValuesInOBFormat();
             }
 
         }
