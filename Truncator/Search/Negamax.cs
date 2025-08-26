@@ -357,7 +357,7 @@ public static partial class Search
 
                 if (singularScore < singularBeta)
                 {
-                    if (!isPV && singularScore < singularBeta - SEDoubleMargin)
+                    if (singularScore < singularBeta - (isPV ? SEDoubleMargin + 20 : SEDoubleMargin))
                     {
                         extension = 2;
                     }
