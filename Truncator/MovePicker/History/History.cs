@@ -1,6 +1,4 @@
 
-using System.Diagnostics;
-
 public struct History : IDisposable
 {
     public bool isDisposed;
@@ -34,7 +32,7 @@ public struct History : IDisposable
 
             if ((n - 2)->ContHist != NullHist)
             {
-                (*(n - 2)->ContHist)[p.Them, pt, m.to].Update(delta);
+                (*(n - 2)->ContHist)[p.Us, pt, m.to].Update(delta);
             }
         }
     }

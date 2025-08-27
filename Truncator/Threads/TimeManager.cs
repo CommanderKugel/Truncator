@@ -6,13 +6,13 @@ public static class TimeManager
     public static int wtime, btime, winc, binc;
     public static int movestogo, movetime;
     public static int depth;
+
     public static long softnodes, hardnodes;
 
     private static long HardTimeout = 0;
     private static long SoftTimeout = 0;
     private static bool IsSelfManaging = true;
     public  static int  maxDepth = 128;
-    public  static long maxNodes = long.MaxValue;
 
     public static int MoveOverhead = 10;
 
@@ -22,19 +22,27 @@ public static class TimeManager
     public static void Reset()
     {
         watch.Restart();
-        wtime = btime = int.MaxValue;
-        winc = binc = -1;
+
+        wtime = int.MaxValue;
+        btime = int.MaxValue;
+
+        winc = -1;
+        binc = -1;
+
         movestogo = -1;
         movetime = -1;
+
         depth = -1;
-        softnodes = hardnodes = long.MaxValue;
+        
+        softnodes = long.MaxValue;
+        hardnodes = long.MaxValue;
     }
 
     public static void Start(Color Us)
     {
-        IsSelfManaging = hardnodes == long.MaxValue
-                      && softnodes == long.MaxValue
-                      && depth == -1;
+        IsSelfManaging = softnodes == long.MaxValue
+            && hardnodes == long.MaxValue
+            && depth == -1;
 
         maxDepth = 128;
 
@@ -44,12 +52,21 @@ public static class TimeManager
 
             // #1.1 searching should be completed after n nodes
             // this is very helpfull for recreating bugs and datageneration
-            if (hardnodes != long.MaxValue)
+            if (softnodes != long.MaxValue)
             {
                 HardTimeout = int.MaxValue;
                 SoftTimeout = int.MaxValue;
-                maxNodes = softnodes = hardnodes;
-                Console.WriteLine($"nodes: max-nodes = {hardnodes}");
+
+                // assume soft and hardnodes have been set proberly already
+                // for "go nodes 5000", softnodes is assumed
+                // for hardnodes, "go hardnodes 5000" is required to be sent
+
+                if (hardnodes == long.MaxValue)
+                {
+                    hardnodes = softnodes * 20; // go nodes 5000 -> implicit 100k hardnodes
+                }
+
+                Debug.WriteLine($"nodes: softnodes = {softnodes}, hardnodes = {hardnodes}");
             }
 
             // #1.2 search for N ID iterations
@@ -59,7 +76,7 @@ public static class TimeManager
                 HardTimeout = int.MaxValue;
                 SoftTimeout = int.MaxValue;
                 maxDepth = depth;
-                Console.WriteLine($"depth: max-depth = {depth}");
+                Debug.WriteLine($"depth: max-depth = {depth}");
             }
 
             else
@@ -81,7 +98,7 @@ public static class TimeManager
             {
                 HardTimeout = movetime;
                 SoftTimeout = movetime;
-                Console.WriteLine($"movetime: hard- & softlimit = {HardTimeout}");
+                Debug.WriteLine($"movetime: hard- & softlimit = {HardTimeout}");
             }
 
             // #2.2 Play N moves in M time + o per move, then get time bonus for next N moves
@@ -89,7 +106,7 @@ public static class TimeManager
             {
                 HardTimeout = time / Math.Min(movestogo, 2) + inc / 2;
                 SoftTimeout = time / movestogo + inc / 2;
-                Console.WriteLine($"movestogo: mtg = {movestogo}, hardlimit = {HardTimeout}, softlimit = {SoftTimeout}");
+                Debug.WriteLine($"movestogo: mtg = {movestogo}, hardlimit = {HardTimeout}, softlimit = {SoftTimeout}");
             }
 
             // #2.3 Play whole game in M time
@@ -97,7 +114,7 @@ public static class TimeManager
             {
                 HardTimeout = time / 5 + inc / 2;
                 SoftTimeout = time / 30 + inc / 2;
-                Console.WriteLine($"normal: hardlimit = {HardTimeout}, softlimit = {SoftTimeout}");
+                Debug.WriteLine($"normal: hardlimit = {HardTimeout}, softlimit = {SoftTimeout}");
             }
         }
     }
@@ -106,12 +123,18 @@ public static class TimeManager
     {
         watch.Restart();
 
-        wtime = btime = int.MaxValue;
+        wtime = int.MaxValue;
+        btime = int.MaxValue;
+
         winc = binc = -1;
         movestogo = -1;
         movetime = -1;
-        maxDepth = depth = depth_;
-        softnodes = hardnodes = long.MaxValue;
+
+        maxDepth = depth_;
+        depth = depth_;
+
+        softnodes = long.MaxValue;
+        hardnodes = long.MaxValue;
 
         IsSelfManaging = false;
     }
@@ -119,7 +142,8 @@ public static class TimeManager
     public static bool IsHardTimeout(SearchThread thread)
     {
         Debug.Assert(!IsSelfManaging || HardTimeout != 0);
-        return IsSelfManaging && watch.ElapsedMilliseconds > HardTimeout || thread.nodeCount >= hardnodes;
+        return IsSelfManaging && watch.ElapsedMilliseconds > HardTimeout
+            || thread.nodeCount >= hardnodes;
     }
 
     public static bool IsSoftTimeout(SearchThread thread, int iteration)

@@ -61,7 +61,7 @@ public ref struct MovePicker<Type> where Type : PickerType
 
                 scores[i] = thread.history.Butterfly[p.Threats, p.Us, m];
                 scores[i] += (*ContHist1ply)[p.Us, pt, m.to];
-                scores[i] += (*ContHist2ply)[p.Them, pt, m.to];
+                scores[i] += (*ContHist2ply)[p.Us, pt, m.to];
             }
         }
     }

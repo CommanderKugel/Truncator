@@ -24,8 +24,10 @@ public class RootPos
     }
 
     public void MakeMove(string movestr, SearchThread thread)
+        => MakeMove(new Move(thread, ref p, movestr), thread);
+
+    public void MakeMove(Move m, SearchThread thread)
     {
-        Move m = new(thread, ref p, movestr);
         Debug.Assert(m.NotNull);
 
         // make move on board representation

@@ -86,11 +86,11 @@ public partial struct Pos
 
         // fifty move rule and full move counter
 
-        FiftyMoveRule = int.Parse(tokens[4]);
-        FullMoveCounter = int.Parse(tokens[5]);
+        FullMoveCounter = int.Parse(tokens[4]);
+        FiftyMoveRule = int.Parse(tokens[5]);
 
         // miscellaneous stuff not included in the fen itself
-        
+
         Threats = ComputeThreats();
         Checkers = GetCheckers();
 
@@ -214,7 +214,7 @@ public partial struct Pos
 
         // approximation for full-move-counter and half-move-counter
 
-        fen += $" {FullMoveCounter} {FiftyMoveRule}";
+        fen += $" {FiftyMoveRule} {FullMoveCounter}";
 
         return fen;
     }
