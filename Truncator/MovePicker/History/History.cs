@@ -1,6 +1,4 @@
 
-using System.Diagnostics;
-
 public struct History : IDisposable
 {
     public bool isDisposed;
@@ -25,7 +23,7 @@ public struct History : IDisposable
             var delta = (m == bestmove) ? bonus : penalty;
             PieceType pt = p.PieceTypeOn(m.from);
 
-            Butterfly[p.Us, m].Update(delta);
+            Butterfly[p.Threats, p.Us, m].Update(delta);
 
             if ((n - 1)->ContHist != NullHist)
             {
@@ -34,7 +32,7 @@ public struct History : IDisposable
 
             if ((n - 2)->ContHist != NullHist)
             {
-                (*(n - 2)->ContHist)[p.Them, pt, m.to].Update(delta);
+                (*(n - 2)->ContHist)[p.Us, pt, m.to].Update(delta);
             }
         }
     }

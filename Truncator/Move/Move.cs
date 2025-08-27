@@ -62,7 +62,7 @@ public readonly struct Move
     private readonly int CastlingDestination() => (Utils.RankOf(from) == 7 ? 56 : 0) ^ (from < to ? (int)Square.G1 : (int)Square.C1);
 
 
-    public unsafe Move(string movestr, ref Pos p)
+    public unsafe Move(SearchThread thread, ref Pos p, string movestr)
     {
         Debug.Assert(movestr.Length == 4 || movestr.Length == 5 && "nbrq".Contains(movestr[4]), "invalid movestring!");
         int from = Utils.LetterToFile(movestr[0]) + 8 * Utils.NumberToRank(movestr[1]);
@@ -85,11 +85,15 @@ public readonly struct Move
             };
         }
 
-        else if (pt == PieceType.King &&
-            p.HasCastlingRight(p.Us, from < to) &&
-            Castling.IsUCICastlingMove(from, to, ref p))
+        else if (pt == PieceType.King
+            && p.HasCastlingRight(p.Us, from < to)
+            && thread.castling.IsUCICastlingMove(from, to, ref p))
         {
-            this = Castling.MakeCastingMove(p.Us, from < to);
+            this = new Move(
+                from,
+                thread.castling.kingTargets[Castling.GetCastlingIdx(p.Us, from < to)],
+                MoveFlag.Castling
+            );
             return;
         }
 

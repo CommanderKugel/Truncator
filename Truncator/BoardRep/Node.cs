@@ -9,6 +9,8 @@ public struct Node
     public PieceType CapturedPieceType;
     public Move move;
 
+    public bool InCheck;
+
     public int UncorrectedStaticEval;
     public int StaticEval;
 

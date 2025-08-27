@@ -1,53 +1,58 @@
 ﻿
+using System.Diagnostics;
 
 public static class Truncator
 {
     public static void Main(string[] args)
     {
-#if !DEBUG
-        try
-#endif
+        Console.WriteLine("Truncator Chess Engine");
+
+        ThreadPool.Resize(1);
+        Search.ComputeLmrTable();
+
+        if (args.Length == 0)
         {
-
-            if (args.Length == 0)
-            {
-                UCI.MainLoop();
-            }
-
-            if (args.Length == 1 && args[0] == "bench")
-            {
-                Bench.runBench(Bench.BenchDepth);
-            }
-
-            if (args.Length == 1 && args[0] == "perft")
-            {
-                Perft.RunPerft();
-            }
+            Debug.WriteLine("no args given, starting UCI protocol");
+            UCI.MainLoop();
         }
 
-#if !DEBUG
-        catch (Exception e)
+        else if (args.Length == 1 && args[0] == "bench")
         {
-            Console.WriteLine(e.Message);
-            Console.WriteLine(e.StackTrace);
+            Bench.runBench(Bench.BenchDepth);
         }
-        finally
-#endif
 
+        else if (args.Length == 1 && args[0] == "perft")
         {
-            Console.WriteLine("Disposing Fathom Dll and deleting File");
-            Fathom.Dispose();
-            BindingHandler.Dispose();
-
-            Console.WriteLine("Disposing off miscellaeous stuff");
-            Attacks.Dispose();
-            Castling.Dispose();
-            Utils.Dispose();
-            Zobrist.Dispose();
-
-            Console.WriteLine("Dosposing of all Threads");
-            ThreadPool.StopAll();
-            ThreadPool.Join();
+            Perft.RunPerft();
         }
+
+        else if (args[0].StartsWith("genfens"))
+        {
+            GenFens.Generate(args[0].Split(' '));
+        }
+
+        else
+        {
+            Console.WriteLine($"unknown args, shutting down...");
+            return;
+        }
+
+
+        Debug.WriteLine("\n\t1) Disposing Fathom Dll and trying to delete File");
+        Fathom.Dispose();
+        BindingHandler.Dispose();
+
+        Debug.WriteLine("\n\t2) Disposing off miscellaeous stuff");
+        Attacks.Dispose();
+        Debug.WriteLine("attacks done");
+        Utils.Dispose();
+        Debug.WriteLine("utils done");
+        Zobrist.Dispose();
+        Debug.WriteLine("zobrist done");
+        Search.Dispose();
+        Debug.WriteLine("search done");
+
+        Debug.WriteLine("\n\t3) Stopping and Disposing of the Threadpool");
+        ThreadPool.Join();
     }
 }

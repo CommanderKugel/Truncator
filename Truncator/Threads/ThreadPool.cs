@@ -13,26 +13,31 @@ public static class ThreadPool
     public static TranspositionTable tt = new TranspositionTable();
 
 
-    static ThreadPool()
-    {
-        pool = [ new SearchThread(0) ];
-    }
-
     /// <summary>
     /// Call this via uci options
     /// Changes the amount of threads used to search 
     /// </summary>
-    /// <param name="count"></param>
     public static void Resize(int count)
     {
         Debug.Assert(count > 0, "there needs to be at least one thread!");
         count = Math.Clamp(count, MIN_THREAD_COUNT, MAX_THREAD_COUNT);
 
-        // clear all threads
-        Array.Clear(pool);
-        GC.Collect();
+        // clear and dispose of all current threads
+        // skip if the pool is not initialized yet
 
-        // fill with new threads
+        if (pool != null)
+        {
+            foreach (var thread in pool)
+            {
+                thread.Join();
+            }
+
+            Array.Clear(pool);
+            GC.Collect();
+        }
+
+        // just create some new threads
+
         pool = new SearchThread[count];
         for (int i = 0; i < count; i++)
         {
@@ -197,10 +202,12 @@ public static class ThreadPool
     /// </summary>
     public static void Join()
     {
+        Debug.WriteLine("disposing of threadpools TT");
         tt.Dispose();
 
         foreach (var thread in pool)
         {
+            Debug.WriteLine($"joining thread {thread.id}");
             thread.Join();
         }
     }

@@ -37,7 +37,7 @@ public static partial class Search
             return Negamax<RootNode>(thread, thread.rootPos.p, -SCORE_MATE, SCORE_MATE, depth, &thread.nodeStack[thread.ply], false);
         }
 
-        int delta = 30;
+        int delta = Tunables.AspDelta;
         int alpha = thread.PV[thread.completedDepth] - delta;
         int beta = thread.PV[thread.completedDepth] + delta;
 

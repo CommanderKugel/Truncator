@@ -9,10 +9,13 @@ public unsafe partial struct Pos
     public fixed ulong ColorBB[2];
 
     public fixed int KingSquares[2];
+    public ulong Checkers;
 
     public byte CastlingRights;
     public int EnPassantSquare;
+
     public int FiftyMoveRule;
+    public int FullMoveCounter;
 
     public Color Us;
     public readonly Color Them => 1 - Us;
@@ -172,8 +175,12 @@ public unsafe partial struct Pos
     /// returns a bitboard containing all opponents pieces that attack our kingsquare
     /// does not differentiate between the PieceTypes that attach the square
     /// </summary>
-    public ulong GetCheckers()
-        => AttackerTo(KingSquares[(int)Us], blocker) & ColorBB[(int)Them];
+    private ulong GetCheckers()
+    {
+        Debug.Assert(Utils.popcnt(GetPieces(Us, PieceType.King)) == 1);
+        return ((Threats >> KingSquares[(int)Us]) & 1) == 0 ? 0ul
+            : AttackerTo(KingSquares[(int)Us], blocker) & ColorBB[(int)Them];
+    }
 
     /// <summary>
     /// returns true if a piece is diagonally or orthogonally aligned with the king

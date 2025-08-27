@@ -76,7 +76,7 @@ public static class Utils
 
     static unsafe Utils()
     {
-        Rays = (ulong*)NativeMemory.AlignedAlloc(sizeof(ulong) * 64 * 64, sizeof(ulong) * 64);
+        Rays = (ulong*)NativeMemory.Alloc(sizeof(ulong) * 64 * 64, sizeof(ulong) * 64);
 
         for (int ksq = 0; ksq < 64; ksq++)
         {
@@ -118,13 +118,13 @@ public static class Utils
 
     public static int LetterToFile(char c)
     {
-        Debug.Assert("abcdefgh".Contains(c), "Invalid char parsed for File");
+        Debug.Assert("abcdefgh".Contains(c), $"Invalid char parsed for File: {c}");
         return c - 'a';
     }
 
     public static int NumberToRank(char c)
     {
-        Debug.Assert("12345678".Contains(c), "Invalid char parsed for Rank");
+        Debug.Assert("12345678".Contains(c), $"Invalid char parsed for Rank: {c}");
         return c - '1';
     }
 
@@ -141,6 +141,22 @@ public static class Utils
         'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h',
         '1', '2', '3', '4', '5', '6', '7', '8',
     ];
+    
+
+    public static PieceType CharToPt(char pt)
+    {
+        Debug.Assert("PNBRQKpnbrqk".Contains(pt));
+        return pt switch
+        {
+            'p' or 'P' => PieceType.Pawn,
+            'n' or 'N' => PieceType.Knight,
+            'b' or 'B' => PieceType.Bishop,
+            'r' or 'R' => PieceType.Rook,
+            'q' or 'Q' => PieceType.Queen,
+            'k' or 'K' => PieceType.King,
+            _ => throw new ArgumentException($"cant convert {pt} to a PieceType!"),
+        };
+    }
     
 
 
@@ -167,6 +183,12 @@ public static class Utils
         return "PNBRQKpnbrqk"[(int)c * 6 + (int)pt];
     }
 
+    public static char PieceTypeChar(PieceType pt)
+    {
+        Debug.Assert(pt != PieceType.NONE);
+        return "PNBRQK"[(int)pt];
+    }
+
 
     public static void print(Pos p)
     {
@@ -187,12 +209,12 @@ public static class Utils
             Console.WriteLine(str);
         }
         Console.WriteLine("--+-----------------+");
-        Console.WriteLine(p.get_fen());
+        Console.WriteLine(p.GetFen());
 
         string CastlingRights = "";
-        if (p.HasCastlingRight(Color.White, true )) CastlingRights += 'K';
+        if (p.HasCastlingRight(Color.White, true)) CastlingRights += 'K';
         if (p.HasCastlingRight(Color.White, false)) CastlingRights += 'Q';
-        if (p.HasCastlingRight(Color.Black, true )) CastlingRights += 'k';
+        if (p.HasCastlingRight(Color.Black, true)) CastlingRights += 'k';
         if (p.HasCastlingRight(Color.Black, false)) CastlingRights += 'q';
         Console.WriteLine("Castling Rights: " + (CastlingRights == "" ? "-" : CastlingRights));
     }

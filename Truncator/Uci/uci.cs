@@ -1,3 +1,6 @@
+
+//#define SPSA
+
 using System.Diagnostics;
 
 public static partial class UCI
@@ -9,9 +12,6 @@ public static partial class UCI
 
     public static void MainLoop()
     {
-        // wake up main thread
-        ThreadPool.MainThread.ply = 0;
-
         while (true)
         {
             string command = Console.ReadLine() ?? "quit";
@@ -22,7 +22,7 @@ public static partial class UCI
 
             if (command == "uci")
             {
-                Console.WriteLine("id name Truncator 0.69");
+                Console.WriteLine("id name Truncator 0.76");
                 Console.WriteLine("id author CommanderKugel");
 
                 Console.WriteLine($"option name Hash type spin default {TranspositionTable.DEFAULT_SIZE} min {TranspositionTable.MIN_SIZE} max {TranspositionTable.MAX_SIZE}");
@@ -31,6 +31,11 @@ public static partial class UCI
 
                 Console.WriteLine($"option name SyzygyPath type string default <empty>");
                 //Console.WriteLine($"option name SyzygyProbePly type spin default 40 min 1 max 128");
+
+#if SPSA
+                SpsaUciOption.CollectOptions();
+                SpsaUciOption.PrintOptionsToUCI();
+#endif
 
                 Console.WriteLine("uciok");
             }
@@ -89,8 +94,6 @@ public static partial class UCI
 
             else if (tokens[0] == "quit")
             {
-                ThreadPool.StopAll();
-                ThreadPool.Join();
                 return;
             }
 
@@ -105,7 +108,7 @@ public static partial class UCI
             {
                 Debug.Assert(tokens.Length >= 2, "forgot to write the move?");
                 string mvstr = tokens[1];
-                Move m = new(mvstr, ref ThreadPool.MainThread.rootPos.p);
+                Move m = new(ThreadPool.MainThread, ref ThreadPool.MainThread.rootPos.p, mvstr);
                 Console.WriteLine(m);
                 Console.WriteLine($"castling - {m.IsCastling}");
                 Console.WriteLine($"ep       - {m.IsEnPassant}");
@@ -122,23 +125,21 @@ public static partial class UCI
             else if (command == "perft")
             {
                 Debug.Assert(state == UciState.Idle, "command only available, when engine is idle!");
+                Perft.RunPerft();
+            }
 
-                if (tokens.Length == 1)
-                {
-                    Perft.RunPerft();
-                }
+            else if (tokens[0] == "pgn")
+            {
+                Debug.Assert(tokens.Length == 3);
+                var c = tokens[1] == "white" ? Color.White : tokens[1] == "black" ? Color.Black :
+                    throw new Exception($"could not read color '{tokens[1]}', expected 'white' or 'black'");
+                var pgn = new Pgn(ThreadPool.MainThread, new(tokens[2]));
+                pgn.Replay(c);
+            }
 
-                else if (tokens.Length == 3)
-                {
-                    try
-                    {
-                        Perft.SplitPerft(tokens[1], int.Parse(tokens[2]));
-                    }
-                    catch
-                    {
-                        Console.WriteLine("An error occured when executing 'perft <fen> <depth>' command!");
-                    }
-                }
+            else if (command == "spsainput")
+            {
+                SpsaUciOption.PrintValuesInOBFormat();
             }
 
         }

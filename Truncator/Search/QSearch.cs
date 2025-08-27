@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using static Tunables;
 
 public static partial class Search
 {
@@ -35,11 +36,11 @@ public static partial class Search
             return ttEntry.Score;
         }
 
-        bool inCheck = p.GetCheckers() != 0;
+        ns->InCheck = p.Checkers != 0;
 
         // stand pat logic
         // stop captureing pieces (& return) if it does not increase evaluation
-        if (inCheck)
+        if (ns->InCheck)
         {
             ns->StaticEval = ns->UncorrectedStaticEval = -SCORE_MATE + thread.ply;
         }
@@ -54,7 +55,7 @@ public static partial class Search
         // Stand pat logic
         // sometimes we can simply do nothing and enjoy having beta already beaten
 
-        if (!inCheck)
+        if (!ns->InCheck)
         {
             if (ns->StaticEval >= beta)
             {
@@ -72,7 +73,7 @@ public static partial class Search
         
         Span<Move> moves = stackalloc Move[256];
         Span<int> scores = stackalloc int[256];
-        MovePicker picker = new MovePicker(thread, ttMove, ref moves, ref scores, !inCheck);
+        MovePicker<QSPicker> picker = new (thread, ttMove, ref moves, ref scores, ns->InCheck);
 
         // main move loop
 
@@ -83,7 +84,7 @@ public static partial class Search
             // skip quiets if there is a non-loosing line already
             // quiets are only generated when in check anyways
 
-            if (inCheck
+            if (ns->InCheck
                 && !p.IsCapture(m)
                 && !IsLoss(bestscore))
             {
@@ -92,14 +93,14 @@ public static partial class Search
 
             // simply prune all bad captures
 
-            if (nonPV && !SEE.SEE_threshold(m, ref p, 0))
+            if (nonPV && !SEE.SEE_threshold(m, ref p, SEEQsThreshold))
             {
                 continue;
             }
 
             // only make legal moves
 
-            if (!p.IsLegal(m))
+            if (!p.IsLegal(thread, m))
             {
                 continue;
             }

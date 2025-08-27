@@ -16,14 +16,14 @@ public static partial class UCI
         }
 
         string fen = tokens[1] == "startpos" ? Utils.startpos : string.Join(' ', SkipPast(tokens, "fen").Take(6));
-        thread.rootPos.SetNewFen(fen);
+        thread.rootPos.SetNewFen(ThreadPool.MainThread, fen);
 
         foreach (string movestr in SkipPast(tokens, "moves"))
         {
             thread.rootPos.MakeMove(movestr, thread);
         }
 
-        thread.rootPos.InitRootMoves();
+        thread.rootPos.InitRootMoves(ThreadPool.MainThread);
     }
 
 }

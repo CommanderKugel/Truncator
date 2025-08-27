@@ -12,7 +12,7 @@ public struct RepetitionTable : IDisposable
     public unsafe RepetitionTable()
     {
         idx = 0;
-        table_ = (ulong*)NativeMemory.AlignedAlloc(sizeof(ulong) * SIZE, sizeof(ulong) * SIZE);
+        table_ = (ulong*)NativeMemory.Alloc(sizeof(ulong) * SIZE);
     }
 
     public unsafe void CopyFrom(ref RepetitionTable src)
