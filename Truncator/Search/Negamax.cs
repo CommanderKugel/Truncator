@@ -406,6 +406,8 @@ public static partial class Search
 
                     if (ttPV) R--;
 
+                    if (isPV) R--;
+
                     // ToDo: R += isAllnode
                     if ((ns + 1)->CutoffCount > 2) R++;
 
