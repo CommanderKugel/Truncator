@@ -20,6 +20,7 @@ public struct CorrectionHistory : IDisposable
     private unsafe HistVal* ThreatTable;
 
     public PieceToHistory MoveTable;
+    public ContinuationHistory ContHist;
 
 
     public unsafe CorrectionHistory()
@@ -32,6 +33,7 @@ public struct CorrectionHistory : IDisposable
         ThreatTable = (HistVal*)NativeMemory.AllocZeroed((nuint)sizeof(HistVal) * SIZE * 2);
 
         MoveTable = new();
+        ContHist = new();
     }
 
     private ulong MakeKey(Color c, ulong key)
@@ -54,12 +56,31 @@ public struct CorrectionHistory : IDisposable
         int npblack = 12 * BlackNonPawnTable[MakeKey(p.Us, p.NonPawnMaterialKey(Color.Black))];
         int minor = 12 * MinorTable[MakeKey(p.Us, p.MinorKey)];
         int major = 12 * MajorTable[MakeKey(p.Us, p.MajorKey)];
+        
         int threat = 12 * ThreatTable[MakeKey(p.Us, Utils.murmurHash(p.Threats & p.ColorBB[(int)p.Us]))];
 
-        int prevPiece = (thread.ply > 0 && (n - 1)->move.NotNull) ?
-            12 * MoveTable[p.Us, (n - 1)->MovedPieceType, (n - 1)->move.to] : 0;
+        int cont = 0;
+
+        if ((n - 1)->move.NotNull)
+        {
+            Color c = p.Us;
+            PieceType pt = (n - 1)->MovedPieceType;
+            int to = (n - 1)->move.to;
+
+            // Previous Piece Corrhist
+
+            cont += 12 * MoveTable[c, pt, to];
+
+            // Continuation Corrhist
+            // indexed by Color-Piece-To of n and 1 ply ago (with n > 1)
+
+            if ((n - 2)->move.NotNull)
+            {
+                cont += 12 * (*(n - 2)->ContCorrHist)[c, pt, to];
+            }
+        }
         
-        int CorrectionValue = (pawn + npwhite + npblack + minor + major + threat + prevPiece) / HistVal.HIST_VAL_MAX;
+        int CorrectionValue = (pawn + npwhite + npblack + minor + major + threat + cont) / HistVal.HIST_VAL_MAX;
         n->StaticEval = Math.Clamp(n->UncorrectedStaticEval + CorrectionValue, -Search.SCORE_EVAL_MAX, Search.SCORE_EVAL_MAX);
 
         return CorrectionValue;
@@ -82,9 +103,18 @@ public struct CorrectionHistory : IDisposable
 
         ThreatTable[MakeKey(p.Us, Utils.murmurHash(p.Threats & p.ColorBB[(int)p.Us]))].Update(delta);
 
-        if (thread.ply > 0 && (n - 1)->move.NotNull)
+        if ((n - 1)->move.NotNull)
         {
-            MoveTable[p.Us, (n - 1)->MovedPieceType, (n - 1)->move.to].Update(delta);
+            Color c = p.Us;
+            PieceType pt = (n - 1)->MovedPieceType;
+            int to = (n - 1)->move.to;
+
+            MoveTable[c, pt, to].Update(delta);
+
+            if ((n - 2)->move.NotNull)
+            {
+                (*(n - 2)->ContCorrHist)[c, pt, to].Update(delta);
+            }
         }
     }
 
@@ -101,6 +131,7 @@ public struct CorrectionHistory : IDisposable
         NativeMemory.Clear(MajorTable, (nuint)sizeof(HistVal) * SIZE * 2);
         NativeMemory.Clear(ThreatTable, (nuint)sizeof(HistVal) * SIZE * 2);
         MoveTable.Clear();
+        ContHist.Clear();
     }
 
     /// <summary>
@@ -121,5 +152,6 @@ public struct CorrectionHistory : IDisposable
         }
 
         MoveTable.Dispose();
+        ContHist.Dispose();
     }
 }

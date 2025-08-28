@@ -75,10 +75,12 @@ public class SearchThread : IDisposable
         Span<Node> NodeSpan = stackalloc Node[256 + 8];
         fixed (Node* NodePtr = NodeSpan)
         {
-            this.nodeStack = NodePtr + 8;
+            nodeStack = NodePtr + 8;
             for (int i = 0; i < 8; i++)
             {
-                (NodePtr + i)->ContHist = this.history.ContHist.NullHist;
+                (NodePtr + i)->ContHist = history.ContHist.NullHist;
+                (NodePtr + i)->ContCorrHist = CorrHist.ContHist.NullHist;
+                (NodePtr + i)->move = Move.NullMove;
             }
 
             try

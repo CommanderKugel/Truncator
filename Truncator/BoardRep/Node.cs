@@ -11,6 +11,7 @@ public struct Node
 
     public bool InCheck;
 
+    public unsafe PieceToHistory* ContCorrHist;
     public int UncorrectedStaticEval;
     public int StaticEval;
 
