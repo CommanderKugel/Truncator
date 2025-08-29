@@ -56,7 +56,7 @@ public static partial class Search
 
             if (score <= alpha)
             {
-                alpha = IsLoss(score) ? -SCORE_MATE : alpha + delta;
+                alpha = IsLoss(score) ? -SCORE_MATE : alpha - delta;
                 delta += delta / 2;
                 continue;
             }
