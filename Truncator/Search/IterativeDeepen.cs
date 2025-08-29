@@ -47,7 +47,8 @@ public static partial class Search
 
             // dont retry if the search already timed out
 
-            if (!thread.doSearch || thread.IsMainThread && TimeManager.IsSoftTimeout(thread, depth))
+            if (!thread.doSearch
+                || thread.IsMainThread && TimeManager.IsSoftTimeout(thread, depth))
             {
                 return score;
             }
