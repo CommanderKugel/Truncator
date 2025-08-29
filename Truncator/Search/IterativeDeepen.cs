@@ -52,14 +52,21 @@ public static partial class Search
                 return score;
             }
 
-            // if the score falls outside the window, widen the window gradually
+            // lower alpha on fail-lows
 
-            if (score <= alpha || score >= beta)
+            if (score <= alpha)
             {
-                alpha -= delta;
-                beta += delta;
+                alpha = IsLoss(score) ? -SCORE_MATE : alpha + delta;
+                delta += delta / 2;
+                continue;
+            }
 
-                delta += delta;
+            // increase beta on fail-highs
+
+            if (score >= beta)
+            {
+                beta = IsWin(score) ? SCORE_MATE : beta + delta;
+                delta += delta / 2;
                 continue;
             }
 

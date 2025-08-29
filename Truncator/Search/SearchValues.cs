@@ -17,6 +17,7 @@ public static partial class Search
 
     public static bool IsTerminal(int score) => Math.Abs(score) > SCORE_EVAL_MAX;
     public static bool IsLoss(int score) => score < -SCORE_EVAL_MAX;
+    public static bool IsWin(int score) => score > SCORE_EVAL_MAX;
     public static bool IsMate(int score) => Math.Abs(score) >= SCORE_MATE_IN_MAX;
     public static bool IsTbScore(int score) => Math.Abs(score) >= SCORE_TB_WIN_IN_MAX && !IsMate(score);
 
