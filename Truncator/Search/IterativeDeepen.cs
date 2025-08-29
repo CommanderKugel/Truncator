@@ -46,21 +46,25 @@ public static partial class Search
             int score = Negamax<RootNode>(thread, thread.rootPos.p, alpha, beta, depth, &thread.nodeStack[thread.ply], false);
 
             // dont retry if the search already timed out
+
             if (!thread.doSearch || thread.IsMainThread && TimeManager.IsSoftTimeout(thread, depth))
             {
                 return score;
             }
 
-            // if the score falls outside the window
-            // widen the window and try again 
+            // if the score falls outside the window, widen the window gradually
+
             if (score <= alpha || score >= beta)
             {
-                alpha = -SCORE_MATE;
-                beta = SCORE_MATE;
+                alpha -= delta;
+                beta += delta;
+
+                delta += delta;
                 continue;
             }
 
-            // return an exact score
+            // only return exact scores
+
             return score;
         }
     }
