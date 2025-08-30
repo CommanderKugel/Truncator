@@ -59,6 +59,9 @@ public static partial class Search
         Move ttMove = ttHit ? new(ttEntry.MoveValue) : Move.NullMove;
         bool ttPV = ttHit && ttEntry.PV == 1 || isPV;
 
+        bool ttCapture = ttHit && ttMove.NotNull && p.IsCapture(ttMove);
+        int ttHist = ttMove.IsNull ? 0 : ttCapture ? 0 : thread.history.Butterfly[p.Threats, p.Us, ttMove];
+
         // return the tt-score if the entry is sufficient
 
         if (nonPV
@@ -190,7 +193,7 @@ public static partial class Search
         // reverse futility pruning (RFP)
 
         if (depth <= RfpDepth
-            && ns->StaticEval - RfpMargin - RfpMult * (improving ? depth - 1 : depth) >= beta)
+            && ns->StaticEval - RfpMargin - (RfpMult + ttHist * 16 / HistVal.HIST_VAL_MAX) * (improving ? depth - 1 : depth) >= beta)
         {
             return ns->StaticEval;   
         }
