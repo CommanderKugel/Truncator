@@ -401,6 +401,7 @@ public static partial class Search
 
                     // reduce more for bad history values
                     R += -ns->HistScore / LmrHistDiv;
+                    R += -(*(ns - 1)->ContHist)[p.Us, p.PieceTypeOn(m.from), m.to] / (HistVal.HIST_VAL_MAX / 2);
 
                     if (thread.ply > 1 && !improving) R++;
 
