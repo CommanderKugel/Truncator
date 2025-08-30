@@ -61,15 +61,21 @@ public static partial class Search
 
         // return the tt-score if the entry is sufficient
 
-        if (nonPV
-            && ttHit
+        if (ttHit
             && ttEntry.Depth >= depth
             && !inSingularity
             && (ttEntry.Flag == LOWER_BOUND && ttEntry.Score >= beta
                 || ttEntry.Flag == UPPER_BOUND && ttEntry.Score <= alpha
                 || ttEntry.Flag == EXACT_BOUND))
         {
-            return ttEntry.Score;
+            if (isPV)
+            {
+                depth--;
+            }
+            else
+            {
+                return ttEntry.Score;
+            }
         }
 
         // tablebase probing
