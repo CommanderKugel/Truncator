@@ -357,13 +357,16 @@ public static partial class Search
 
                 if (singularScore < singularBeta)
                 {
-                    if (!isPV && singularScore < singularBeta - SEDoubleMargin)
+                    // move is proven singular -> extend
+
+                    extension = !isPV && singularScore < singularBeta - SEDoubleMargin ? 2 :
+                        1;  
+
+                    // low depth extensions
+
+                    if (depth <= 10)
                     {
-                        extension = 2;
-                    }
-                    else
-                    {
-                        extension = 1;
+                        depth++;
                     }
                 }
             }
