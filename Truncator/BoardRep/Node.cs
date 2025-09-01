@@ -20,6 +20,7 @@ public struct Node
     public unsafe PieceToHistory* ContHist;
     public int HistScore;
 
+    public int Reduction;
     public int CutoffCount;
 
 }

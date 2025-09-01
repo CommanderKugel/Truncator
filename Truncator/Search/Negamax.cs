@@ -242,6 +242,20 @@ public static partial class Search
         skip_whole_node_pruning:
 
 
+        // hindsight extension
+        // extend this node if it was reduced by a lot but now doesnt look that bad
+
+        if (!isRoot
+            && !ns->InCheck
+            && !(ns - 1)->InCheck
+            && !inSingularity
+            && (ns - 1)->Reduction >= 3
+            && (ns->StaticEval + (ns - 1)->StaticEval) > 75)
+        {
+            depth++;
+        }
+
+
         // check extensions
 
         if (ns->InCheck && !inSingularity)
@@ -426,7 +440,9 @@ public static partial class Search
                 // or lower-bound. if a move unexpectedly beats the pv, we need to re-search it at full depth,
                 // to confirm it is really better than the pv and obtain its exact value.
 
+                ns->Reduction = R - 1;
                 score = -Negamax<NonPVNode>(thread, next, -alpha - 1, -alpha, depth - R, ns + 1, true);
+                ns->Reduction = 0;
 
                 // re-search if LMR seems to beat the current best move
 
