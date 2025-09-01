@@ -357,14 +357,10 @@ public static partial class Search
 
                 if (singularScore < singularBeta)
                 {
-                    if (singularScore < singularBeta - (isPV ? SEDoubleMargin + 20 : SEDoubleMargin))
-                    {
-                        extension = 2;
-                    }
-                    else
-                    {
-                        extension = 1;
-                    }
+                    int doubleMargin = isPV ? SEDoubleMargin + 150 : SEDoubleMargin;
+
+                    extension = singularScore < singularBeta - doubleMargin ? 2
+                        : 1;
                 }
             }
 
@@ -456,10 +452,20 @@ public static partial class Search
 
             if (isRoot)
             {
-                // save roo-move-data
-                // might be useful for time management
-
                 thread.rootPos.ReportBackMove(m, score, thread.nodeCount - startnodes, depth);
+            }
+
+            if (isPV && (score > alpha || movesPlayed == 1))
+            {
+                if (isRoot)
+                {
+                    thread.PV[depth] = bestscore;
+                }
+
+                // dont replace previous root bestmove on a fail-low
+                // no low failing move can really be trusted to be better than the last best move
+
+                thread.PushToPV(m);
             }
 
             if (score > bestscore)
@@ -469,19 +475,6 @@ public static partial class Search
 
                 bestscore = score;
                 flag = UPPER_BOUND;
-
-                if (isPV)
-                {
-                    if (isRoot)
-                    {
-                        thread.PV[depth] = bestscore;
-                    }
-
-                    // still push the upper-bound move to the pv
-                    // so we always have a bestmove 
-
-                    thread.PushToPV(m);
-                }
 
                 if (score > alpha)
                 {
