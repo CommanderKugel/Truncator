@@ -366,6 +366,14 @@ public static partial class Search
                         extension = 1;
                     }
                 }
+
+                // multi cut
+                // ttMove + at least one other move seem to beat beta, so skip this node entirely
+
+                else if (singularBeta >= beta && !IsTerminal(singularScore))
+                {
+                    return singularScore;
+                }
             }
 
             // skip illegal moves for obvious reasons
@@ -548,7 +556,7 @@ public static partial class Search
         // dont save mating-scores to the tt, it cant handle them at the moment
         // TODO: fix mate-scores for tt
         
-        if (!IsTerminal(bestscore))
+        if (!IsTerminal(bestscore) && !inSingularity)
         {
             thread.tt.Write(
                 p.ZobristKey,
