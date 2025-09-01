@@ -250,7 +250,7 @@ public static partial class Search
             && !(ns - 1)->InCheck
             && !inSingularity
             && (ns - 1)->Reduction >= 3
-            && (ns->StaticEval + (ns - 1)->StaticEval) > 75)
+            && (ns->StaticEval + (ns - 1)->StaticEval) < 0)
         {
             depth++;
         }
