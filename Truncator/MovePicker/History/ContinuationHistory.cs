@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 public struct ContinuationHistory : IDisposable
 {
 
-    public const int SIZE = 2 * 6 * 64;
+    public const int SIZE = 2 * 2 * 6 * 64;
 
     private unsafe PieceToHistory* table_ = null;
 
@@ -19,7 +19,7 @@ public struct ContinuationHistory : IDisposable
         }
     }
 
-    public unsafe PieceToHistory* this[Color c, PieceType pt, int sq]
+    public unsafe PieceToHistory* this[Color c, PieceType pt, int sq, bool capture]
     {
         get
         {
@@ -27,7 +27,12 @@ public struct ContinuationHistory : IDisposable
             Debug.Assert(c != Color.NONE);
             Debug.Assert(pt != PieceType.NONE);
             Debug.Assert(sq >= 0 && sq < 64);
-            return &table_[(int)c * 6 * 64 + (int)pt * 64 + sq];
+            return &table_[
+                +(int)c * 2 * 6 * 64
+                + (int)pt * 2 * 64
+                + sq * 2
+                + (capture ? 1 : 0)
+            ];
         }
     }
 
