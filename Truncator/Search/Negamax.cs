@@ -237,6 +237,76 @@ public static partial class Search
             }
         }
 
+    // probcut
+    // 'inspired' by Stockfish
+    // https://github.com/official-stockfish/Stockfish/blob/adfddd2c984fac5f2ac02d87575af821ec118fa8/src/search.cpp#L910
+
+        int ProbCutBeta = beta + 250;
+        if (depth >= 5
+            && ttHit
+            && (ttMove.IsNull || p.IsCapture(ttMove) || ttMove.IsPromotion)
+            && ttEntry.Score >= beta
+            && !IsTerminal(beta))
+        {
+            int ProbCutDepth = depth - 6;
+
+            Span<Move> ProbCutMoves = stackalloc Move[128];
+            Span<int> ProbCutScores = stackalloc int[128];
+            var ProbcutPicker = new MovePicker<QSPicker>(thread, ttMove, ref ProbCutMoves, ref ProbCutScores, ns->InCheck, ProbCutBeta - ns->StaticEval);
+
+            for (Move m = ProbcutPicker.Next(ref p); m.NotNull; m = ProbcutPicker.Next(ref p))
+            {
+                // skip bad and illegal moves
+
+                if (!p.IsLegal(thread, m))
+                {
+                    continue;
+                }
+
+                // make the move and
+                // verify with a quick qsearch that the capture really is not loosing
+
+                Pos copy = p;
+                copy.MakeMove(m, thread);
+                thread.repTable.Push(copy.ZobristKey);
+
+                int ProbCutScore = -QSearch<NonPVNode>(thread, copy, -ProbCutBeta, -ProbCutBeta + 1, ns + 1);
+
+                // if qsearch passed, do a shallow search
+
+                if (ProbCutScore >= ProbCutBeta && ProbCutDepth > 0)
+                {
+                    ProbCutScore = -Negamax<NonPVNode>(thread, copy, -ProbCutBeta, -ProbCutBeta + 1, ProbCutDepth, ns + 1, !cutnode);
+                }
+
+                thread.UndoMove();
+
+                // if beta is beaten by a large margin usign a shallower search
+                // we can relatively savely cut this node
+
+                if (ProbCutScore >= ProbCutBeta && !IsTerminal(ProbCutScore))
+                {
+                    thread.tt.Write(
+                        p.ZobristKey,
+                        ProbCutScore,
+                        m,
+                        ProbCutDepth + 1,
+                        LOWER_BOUND,
+                        ttPV,
+                        thread
+                    );
+
+                    return ProbCutScore - (ProbCutBeta - beta);
+                }
+
+                // stop at hard timeouts
+                if (!thread.doSearch || thread.IsMainThread && TimeManager.IsHardTimeout(thread))
+                {
+                    return SCORE_MATE;
+                }
+            }
+        }
+
 
         // go here on pv or singular nodes or when in check
         skip_whole_node_pruning:
@@ -256,7 +326,7 @@ public static partial class Search
 
         Span<Move> moves = stackalloc Move[256];
         Span<int> scores = stackalloc int[256];
-        MovePicker<PVSPicker> picker = new (thread, ttMove, ref moves, ref scores, ns->InCheck);
+        MovePicker<PVSPicker> picker = new (thread, ttMove, ref moves, ref scores, ns->InCheck, 0);
 
 
         int bestscore = -SCORE_MATE;

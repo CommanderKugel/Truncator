@@ -11,7 +11,8 @@ public ref struct MovePicker<Type> where Type : PickerType
     private Move ttMove;
 
     public Stage stage;
-    bool evasions;
+    readonly bool evasions;
+    readonly int SEEMargin;
 
     private int captureCount;
     private int captureIndex;
@@ -19,7 +20,7 @@ public ref struct MovePicker<Type> where Type : PickerType
     private int quietIndex;
 
 
-    public MovePicker(SearchThread thread_, Move ttMove_, ref Span<Move> moves_, ref Span<int> scores_, bool inCheck)
+    public MovePicker(SearchThread thread_, Move ttMove_, ref Span<Move> moves_, ref Span<int> scores_, bool inCheck, int SEEMargin_)
     {
         moves = moves_;
         scores = scores_;
@@ -29,6 +30,7 @@ public ref struct MovePicker<Type> where Type : PickerType
 
         stage = Stage.TTMove;
         evasions = inCheck;
+        SEEMargin = SEEMargin_;
     }
 
     private unsafe void ScoreMoves<Type>(int start, int end, SearchThread thread, ref Pos p)
@@ -45,7 +47,7 @@ public ref struct MovePicker<Type> where Type : PickerType
             // captures
             if (typeof(Type) == typeof(Captures))
             {
-                scores[i] = (SEE.SEE_threshold(m, ref p, 0) ? 1_000_000 : -1_000_000)
+                scores[i] = (SEE.SEE_threshold(m, ref p, SEEMargin) ? 1_000_000 : -1_000_000)
                     + (int)p.GetCapturedPieceType(m) * 100
                     - (int)p.PieceTypeOn(m.from);
             }
@@ -128,6 +130,7 @@ public ref struct MovePicker<Type> where Type : PickerType
                     {
                         if (typeof(Type) == typeof(QSPicker) && !evasions)
                         {
+                            stage = Stage.Done;
                             return Move.NullMove;
                         }
 
