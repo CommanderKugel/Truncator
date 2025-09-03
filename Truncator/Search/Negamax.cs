@@ -237,9 +237,9 @@ public static partial class Search
             }
         }
 
-    // probcut
-    // 'inspired' by Stockfish
-    // https://github.com/official-stockfish/Stockfish/blob/adfddd2c984fac5f2ac02d87575af821ec118fa8/src/search.cpp#L910
+        // probcut
+        // 'inspired' by Stockfish
+        // https://github.com/official-stockfish/Stockfish/blob/adfddd2c984fac5f2ac02d87575af821ec118fa8/src/search.cpp#L910
 
         int ProbCutBeta = beta + 250;
         if (depth >= 5
@@ -248,7 +248,7 @@ public static partial class Search
             && ttEntry.Score >= beta
             && !IsTerminal(beta))
         {
-            int ProbCutDepth = depth - 6;
+            int ProbCutDepth = depth - 5 - Math.Clamp((ns->StaticEval - beta) / 300, -1, 3);
 
             Span<Move> ProbCutMoves = stackalloc Move[128];
             Span<int> ProbCutScores = stackalloc int[128];
