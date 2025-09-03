@@ -75,6 +75,9 @@ public static partial class Search
         Span<int> scores = stackalloc int[256];
         MovePicker<QSPicker> picker = new (thread, ttMove, ref moves, ref scores, ns->InCheck, 0);
 
+        int flag = NONE_BOUND;
+        Move bestmove = Move.NullMove;
+
         // main move loop
 
         for (Move m = picker.Next(ref p); m.NotNull; m = picker.Next(ref p))
@@ -116,6 +119,7 @@ public static partial class Search
             if (score > bestscore)
             {
                 bestscore = score;
+                flag = UPPER_BOUND;
 
                 if (isPV)
                 {
@@ -128,14 +132,31 @@ public static partial class Search
                     // now we have an exact score
 
                     alpha = score;
+                    bestmove = m;
+                    flag = EXACT_BOUND;
 
                     if (score >= beta)
                     {
+                        flag = LOWER_BOUND;
+
                         // fail high
                         break;
                     }
                 }
             }
+        }
+
+        if (!IsTerminal(bestscore) && flag != NONE_BOUND)
+        {
+            thread.tt.Write(
+                p.ZobristKey,
+                bestscore,
+                flag == UPPER_BOUND ? ttMove : bestmove,
+                0,
+                flag,
+                isPV || ttHit && (ttEntry.PV == 1),
+                thread
+            );
         }
 
         return bestscore;
