@@ -10,6 +10,7 @@ public struct Node
     public Move move;
 
     public bool InCheck;
+    public ulong Threats;
 
     public int UncorrectedStaticEval;
     public int StaticEval;

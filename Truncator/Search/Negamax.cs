@@ -151,7 +151,7 @@ public static partial class Search
             ns->CutoffCount = 0;
         }
 
-        
+        ns->Threats = p.Threats;
         ns->InCheck = p.Checkers != 0;
 
         // static evaluaton
@@ -167,6 +167,19 @@ public static partial class Search
         {
             ns->UncorrectedStaticEval = Pesto.Evaluate(ref p);
             thread.CorrHist.Correct(thread, ref p, ns);
+        }
+
+        // policy history updates
+
+        if ((ns - 1)->move.NotNull
+            && !ns->InCheck
+            && !(ns - 1)->InCheck
+            && (ns - 1)->CapturedPieceType != PieceType.NONE
+            && !(ns - 1)->move.IsEnPassant
+            && !(ns - 1)->move.IsPromotion)
+        {
+            int bonus = Math.Clamp(-((ns - 1)->StaticEval + ns->StaticEval) / 32, -200, 200);
+            thread.history.Butterfly[(ns - 1)->Threats, p.Them, (ns - 1)->move].Update(bonus);
         }
 
         // the past series of moves improved our static evaluation and indicates
