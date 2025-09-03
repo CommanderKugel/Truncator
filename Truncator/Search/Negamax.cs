@@ -153,6 +153,12 @@ public static partial class Search
 
         
         ns->InCheck = p.Checkers != 0;
+        bool PotentialSingularity = !isRoot
+            && !inSingularity
+            && depth >= 8
+            && ttHit
+            && ttEntry.Depth >= depth - 3
+            && ttEntry.Flag > UPPER_BOUND;
 
         // static evaluaton
         // although this might be a noisy position and we have to distrust the static
@@ -248,6 +254,9 @@ public static partial class Search
             && ttEntry.Score >= beta
             && !IsTerminal(beta))
         {
+            int singularBeta = Math.Max(-SCORE_MATE + 1, ttEntry.Score - depth * SEBetaDepthMult);
+            int singularDepth = (depth - 1) / 2;
+
             int ProbCutDepth = depth - 6;
 
             Span<Move> ProbCutMoves = stackalloc Move[128];
@@ -270,13 +279,16 @@ public static partial class Search
                 copy.MakeMove(m, thread);
                 thread.repTable.Push(copy.ZobristKey);
 
-                int ProbCutScore = -QSearch<NonPVNode>(thread, copy, -ProbCutBeta, -ProbCutBeta + 1, ns + 1);
+                int SearchBeta = PotentialSingularity && m != ttMove ? singularBeta : ProbCutBeta;
+                int SearchDepth = PotentialSingularity && m != ttMove ? singularDepth : ProbCutDepth;
+
+                int ProbCutScore = -QSearch<NonPVNode>(thread, copy, -SearchBeta, -SearchBeta + 1, ns + 1);
 
                 // if qsearch passed, do a shallow search
 
-                if (ProbCutScore >= ProbCutBeta && ProbCutDepth > 0)
+                if (ProbCutScore >= SearchBeta && SearchDepth > 0)
                 {
-                    ProbCutScore = -Negamax<NonPVNode>(thread, copy, -ProbCutBeta, -ProbCutBeta + 1, ProbCutDepth, ns + 1, !cutnode);
+                    ProbCutScore = -Negamax<NonPVNode>(thread, copy, -SearchBeta, -SearchBeta + 1, SearchDepth, ns + 1, !cutnode);
                 }
 
                 thread.UndoMove();
@@ -410,11 +422,7 @@ public static partial class Search
             int extension = 0;
 
             if (m == ttMove
-                && !inSingularity
-                && !isRoot
-                && depth >= 8
-                && ttEntry.Depth >= depth - 3
-                && ttEntry.Flag > UPPER_BOUND
+                && PotentialSingularity
                 && thread.ply < thread.completedDepth * 2)
             {
 
