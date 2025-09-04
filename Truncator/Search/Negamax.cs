@@ -162,11 +162,12 @@ public static partial class Search
         if (ns->InCheck)
         {
             ns->StaticEval = ns->UncorrectedStaticEval = -SCORE_MATE;
+            ns->CorrectionValue = 0;
         }
         else
         {
             ns->UncorrectedStaticEval = Pesto.Evaluate(ref p);
-            thread.CorrHist.Correct(thread, ref p, ns);
+            ns->CorrectionValue = thread.CorrHist.Correct(thread, ref p, ns);
         }
 
         // the past series of moves improved our static evaluation and indicates
@@ -190,7 +191,7 @@ public static partial class Search
         // reverse futility pruning (RFP)
 
         if (depth <= RfpDepth
-            && ns->StaticEval - RfpMargin - RfpMult * (improving ? depth - 1 : depth) >= beta)
+            && ns->StaticEval - RfpMargin - RfpMult * (improving ? depth - 1 : depth) - Math.Abs(ns->CorrectionValue) >= beta)
         {
             return ns->StaticEval;   
         }
