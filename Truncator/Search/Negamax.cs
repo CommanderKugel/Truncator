@@ -243,6 +243,7 @@ public static partial class Search
 
         int ProbCutBeta = beta + 250;
         if (depth >= 5
+            && cutnode
             && ttHit
             && (ttMove.IsNull || p.IsCapture(ttMove) || ttMove.IsPromotion)
             && ttEntry.Score >= beta
