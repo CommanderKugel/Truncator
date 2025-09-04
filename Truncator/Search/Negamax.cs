@@ -162,11 +162,12 @@ public static partial class Search
         if (ns->InCheck)
         {
             ns->StaticEval = ns->UncorrectedStaticEval = -SCORE_MATE;
+            ns->CorrectionValue = 0;
         }
         else
         {
             ns->UncorrectedStaticEval = Pesto.Evaluate(ref p);
-            thread.CorrHist.Correct(thread, ref p, ns);
+            ns->CorrectionValue = thread.CorrHist.Correct(thread, ref p, ns);
         }
 
         // the past series of moves improved our static evaluation and indicates
@@ -471,6 +472,10 @@ public static partial class Search
 
                     // reduce more for bad history values
                     R += -ns->HistScore / LmrHistDiv;
+
+                    // reduce more if correction is high -> complex position
+                    // max total correction = 88cp
+                    R -= Math.Abs(ns->CorrectionValue / 32);
 
                     if (thread.ply > 1 && !improving) R++;
 

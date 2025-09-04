@@ -11,6 +11,7 @@ public struct Node
 
     public bool InCheck;
 
+    public int CorrectionValue;
     public int UncorrectedStaticEval;
     public int StaticEval;
 
