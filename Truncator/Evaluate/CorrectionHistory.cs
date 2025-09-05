@@ -1,6 +1,7 @@
 
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using static Tunables;
 
 public struct CorrectionHistory : IDisposable
 {
@@ -9,8 +10,8 @@ public struct CorrectionHistory : IDisposable
     /// </summary>
     public const int SIZE = 16_384;
 
-    private const int MAX_BONUS = HistVal.HIST_VAL_MAX / 4;
-    private const int MIN_BONUS = -HistVal.HIST_VAL_MAX / 4;
+    private const int MAX_BONUS = 256;
+    private const int MIN_BONUS = -256;
 
     private unsafe HistVal* PawnTable;
     private unsafe HistVal* WhiteNonPawnTable;
@@ -49,17 +50,17 @@ public struct CorrectionHistory : IDisposable
         Debug.Assert(PawnTable != null && WhiteNonPawnTable != null && BlackNonPawnTable != null);
         Debug.Assert(MinorTable != null && MajorTable != null && ThreatTable != null);
 
-        int pawn = 16 * PawnTable[MakeKey(p.Us, p.PawnKey)];
-        int npwhite = 12 * WhiteNonPawnTable[MakeKey(p.Us, p.NonPawnMaterialKey(Color.White))];
-        int npblack = 12 * BlackNonPawnTable[MakeKey(p.Us, p.NonPawnMaterialKey(Color.Black))];
-        int minor = 12 * MinorTable[MakeKey(p.Us, p.MinorKey)];
-        int major = 12 * MajorTable[MakeKey(p.Us, p.MajorKey)];
-        int threat = 12 * ThreatTable[MakeKey(p.Us, Utils.murmurHash(p.Threats & p.ColorBB[(int)p.Us]))];
+        int pawn = PawnCorrhistWeight * PawnTable[MakeKey(p.Us, p.PawnKey)];
+        int npwhite = NpCorrhistWeight * WhiteNonPawnTable[MakeKey(p.Us, p.NonPawnMaterialKey(Color.White))];
+        int npblack = NpCorrhistWeight * BlackNonPawnTable[MakeKey(p.Us, p.NonPawnMaterialKey(Color.Black))];
+        int minor = MinorCorrhistWeight * MinorTable[MakeKey(p.Us, p.MinorKey)];
+        int major = MajorCorrhistWeight * MajorTable[MakeKey(p.Us, p.MajorKey)];
+        int threat = ThreatCorrhistWeight * ThreatTable[MakeKey(p.Us, Utils.murmurHash(p.Threats & p.ColorBB[(int)p.Us]))];
 
         int prevPiece = (thread.ply > 0 && (n - 1)->move.NotNull) ?
-            12 * MoveTable[p.Us, (n - 1)->MovedPieceType, (n - 1)->move.to] : 0;
-        
-        int CorrectionValue = (pawn + npwhite + npblack + minor + major + threat + prevPiece) / HistVal.HIST_VAL_MAX;
+            PrevPieceCorrhistWeight * MoveTable[p.Us, (n - 1)->MovedPieceType, (n - 1)->move.to] : 0;
+
+        int CorrectionValue = (pawn + npwhite + npblack + minor + major + threat + prevPiece) / CorrhistDivFinal;
         n->StaticEval = Math.Clamp(n->UncorrectedStaticEval + CorrectionValue, -Search.SCORE_EVAL_MAX, Search.SCORE_EVAL_MAX);
 
         return CorrectionValue;
@@ -74,17 +75,17 @@ public struct CorrectionHistory : IDisposable
         Debug.Assert(PawnTable != null && WhiteNonPawnTable != null && BlackNonPawnTable != null && MinorTable != null);
         var delta = Math.Clamp((score - eval) * depth / 8, MIN_BONUS, MAX_BONUS);
 
-        PawnTable[MakeKey(p.Us, p.PawnKey)].Update(delta);
-        WhiteNonPawnTable[MakeKey(p.Us, p.NonPawnMaterialKey(Color.White))].Update(delta);
-        BlackNonPawnTable[MakeKey(p.Us, p.NonPawnMaterialKey(Color.Black))].Update(delta);
-        MinorTable[MakeKey(p.Us, p.MinorKey)].Update(delta);
-        MajorTable[MakeKey(p.Us, p.MajorKey)].Update(delta);
+        PawnTable[MakeKey(p.Us, p.PawnKey)].Update(delta, PawnCorrhistDiv);
+        WhiteNonPawnTable[MakeKey(p.Us, p.NonPawnMaterialKey(Color.White))].Update(delta, NpCorrhistDiv);
+        BlackNonPawnTable[MakeKey(p.Us, p.NonPawnMaterialKey(Color.Black))].Update(delta, NpCorrhistDiv);
+        MinorTable[MakeKey(p.Us, p.MinorKey)].Update(delta, MinorCorrhistDiv);
+        MajorTable[MakeKey(p.Us, p.MajorKey)].Update(delta, MajorCorrhistDiv);
 
-        ThreatTable[MakeKey(p.Us, Utils.murmurHash(p.Threats & p.ColorBB[(int)p.Us]))].Update(delta);
+        ThreatTable[MakeKey(p.Us, Utils.murmurHash(p.Threats & p.ColorBB[(int)p.Us]))].Update(delta, ThreatCorrhistDiv);
 
         if (thread.ply > 0 && (n - 1)->move.NotNull)
         {
-            MoveTable[p.Us, (n - 1)->MovedPieceType, (n - 1)->move.to].Update(delta);
+            MoveTable[p.Us, (n - 1)->MovedPieceType, (n - 1)->move.to].Update(delta, PrevPieceCorrhistDiv);
         }
     }
 

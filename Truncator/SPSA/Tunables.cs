@@ -22,11 +22,16 @@ public static class Tunables
     public static SpsaValue NmpDepthDivisor = new("NmpDepthDivisor", 6, 3, 9);
     public static SpsaValue NmpEvalDivisor = new("NmpEvalDivisor", 273, 64, 512);
 
+    // Probcut
+    public static SpsaValue ProbcutBetaMargin = new("ProbcutBetaMargin", 250, 1, 512);
+    public static SpsaValue ProbcutDepth = new("ProbcutDepth", 5, 1, 16);
+    public static SpsaValue ProbcutBaseReduction = new("ProbcutBaseReduction", 6, 1, 16);
+
     // Futility Pruning
     public static SpsaValue FpDepth = new("FpDepth", 4, 1, 16);
     public static SpsaValue FpMargin = new("FpMargin", 19, -50, 250);
     public static SpsaValue FpMult = new("FpMult", 145, 1, 250);
-    
+
     // Late Move Pruning
     public static SpsaValue LmpDepth = new("LmpDepth", 4, 1, 16);
     public static SpsaValue LmpBase = new("LmpBase", 3, 1, 32);
@@ -42,6 +47,12 @@ public static class Tunables
     public static SpsaValue SEEQuietMult = new("SEEQuietMult", -25, -128, -1);
     public static SpsaValue SEEQsThreshold = new("SEEQsThreshold", 6, -256, 128);
 
+    public static SpsaValue SEEMaterialPawn = new("SEEMaterialPawn", 100, 1, 256);
+    public static SpsaValue SEEMaterialKnight = new("SEEMaterialKnight", 450, 256, 768);
+    public static SpsaValue SEEMaterialBishop = new("SEEMaterialBishop", 450, 256, 768);
+    public static SpsaValue SEEMaterialRook = new("SEEMaterialRook", 650, 512, 1024);
+    public static SpsaValue SEEMaterialQueen = new("SEEMaterialQueen", 1250, 768, 2048);
+
     // Singular Extensions
     public static SpsaValue SEBetaDepthMult = new("SEBetaDepthMult", 2, 1, 16);
     public static SpsaValue SEDoubleMargin = new("SEDoubleMargin", 2, 1, 128);
@@ -51,13 +62,26 @@ public static class Tunables
     public static SpsaValue LmrBaseMult = new("LmrBaseMult", 1451, 1, 1024 * 4);
     public static SpsaValue LmrHistDiv = new("LmrHistDiv", 234, 1, 1024);
 
+    // History Updates
+    public static SpsaValue ButterflyDiv = new("ButterflyDiv", 1024, 512, 4096);
+    public static SpsaValue ContHistDiv = new("ContHistDiv", 1024, 512, 4096);
+
     // Correction History
-    public static SpsaValue PawnCorrhistWeight = new("PawnCorrhistWeight", 13, 1, 64);
-    public static SpsaValue NpCorrhistWeight = new("NpCorrhistWeight", 15, 1, 64);
-    public static SpsaValue MinorCorrhistWeight = new("MinorCorrhistWeight", 15, 1, 64);
-    public static SpsaValue MajorCorrhistWeight = new("MajorCorrhistWeight", 13, 1, 64);
-    public static SpsaValue ThreatCorrhistWeight = new("ThreatCorrhistWeight", 11, 1, 64);
-    public static SpsaValue PrevPieceCorrhistWeight = new("PrevPieceCorrhistWeight", 2, 1, 64);
+    public static SpsaValue CorrhistDivFinal = new("CorrhistDivFinal", 1024, 512, 4096);
+
+    public static SpsaValue PawnCorrhistWeight = new("PawnCorrhistWeight", 16, 1, 64);
+    public static SpsaValue NpCorrhistWeight = new("NpCorrhistWeight", 12, 1, 64);
+    public static SpsaValue MinorCorrhistWeight = new("MinorCorrhistWeight", 12, 1, 64);
+    public static SpsaValue MajorCorrhistWeight = new("MajorCorrhistWeight", 12, 1, 64);
+    public static SpsaValue ThreatCorrhistWeight = new("ThreatCorrhistWeight", 12, 1, 64);
+    public static SpsaValue PrevPieceCorrhistWeight = new("PrevPieceCorrhistWeight", 12, 1, 64);
+
+    public static SpsaValue PawnCorrhistDiv = new("PawnCorrhistDiv", 1024, 512, 4096);
+    public static SpsaValue NpCorrhistDiv = new("NpCorrhistDiv", 1024, 512, 4096);
+    public static SpsaValue MinorCorrhistDiv = new("MinorCorrhistDiv", 1024, 512, 4096);
+    public static SpsaValue MajorCorrhistDiv = new("MajorCorrhistDiv", 1024, 512, 4096);
+    public static SpsaValue ThreatCorrhistDiv = new("ThreatCorrhistDiv", 1024, 512, 4096);
+    public static SpsaValue PrevPieceCorrhistDiv = new("PrevPieceCorrhistDiv", 1024, 512, 4096);
 
 }
 #pragma warning restore CA2211 // Non-constant fields should not be visible
