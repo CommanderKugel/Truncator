@@ -374,6 +374,14 @@ public static partial class Search
                 {
                     return singularScore;
                 }
+
+                // negative extension
+                // should have been multi-cutted
+
+                else if (ttEntry.Score >= beta)
+                {
+                    extension = -1;
+                }
             }
 
             // skip illegal moves for obvious reasons
