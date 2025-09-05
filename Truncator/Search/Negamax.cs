@@ -430,7 +430,7 @@ public static partial class Search
                     extension = !isPV && singularScore < singularBeta - SEDoubleMargin ?
                         2 : 1;
 
-                    if (!p.IsCapture(ttMove) && singularScore < singularBeta - 20)
+                    if (!isPV && !p.IsCapture(ttMove) && singularScore < singularBeta - 20)
                     {
                         extension++;
                     }
