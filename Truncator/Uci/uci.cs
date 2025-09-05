@@ -32,6 +32,8 @@ public static partial class UCI
                 Console.WriteLine($"option name SyzygyPath type string default <empty>");
                 //Console.WriteLine($"option name SyzygyProbePly type spin default 40 min 1 max 128");
 
+                Console.WriteLine($"option name Hardnodes type spin default {long.MaxValue} min {1} max {long.MaxValue}");
+
 #if SPSA
                 SpsaUciOption.CollectOptions();
                 SpsaUciOption.PrintOptionsToUCI();
