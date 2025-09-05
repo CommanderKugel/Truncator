@@ -43,6 +43,7 @@ public static class Tunables
     public static SpsaValue HpSqrMult = new("HpSqrMult", 7, 1, 64);
 
     // Static Exchange Evaluation
+    public static SpsaValue SEEBadCaptureMargin = new("SEEPvsBadcaptMargin", 0, -256, 256);
     public static SpsaValue SEENoisyMult = new("SEENoisyMult", -149, -256, -1);
     public static SpsaValue SEEQuietMult = new("SEEQuietMult", -25, -128, -1);
     public static SpsaValue SEEQsThreshold = new("SEEQsThreshold", 6, -256, 128);
@@ -62,7 +63,12 @@ public static class Tunables
     public static SpsaValue LmrBaseMult = new("LmrBaseMult", 1451, 1, 1024 * 4);
     public static SpsaValue LmrHistDiv = new("LmrHistDiv", 234, 1, 1024);
 
-    // History Updates
+    // History in Search & Updates
+    public static SpsaValue ButterflySearchMult = new("ButterflySearchMult", 1024, 0, 4096);
+    public static SpsaValue Conthist1SearchMult = new("Conthist1SearchMult", 0, -128, 4096);
+    public static SpsaValue Conthist2SearchMult = new("Conthist2SearchMult", 0, -128, 4096);
+
+    public static SpsaValue HistUpdateMult = new("HistUpdateMult", 1024, 512, 4096);
     public static SpsaValue ButterflyDiv = new("ButterflyDiv", 1024, 512, 4096);
     public static SpsaValue ContHistDiv = new("ContHistDiv", 1024, 512, 4096);
 
