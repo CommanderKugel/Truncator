@@ -427,13 +427,12 @@ public static partial class Search
 
                 if (singularScore < singularBeta)
                 {
-                    if (!isPV && singularScore < singularBeta - SEDoubleMargin)
+                    extension = !isPV && singularScore < singularBeta - SEDoubleMargin ?
+                        2 : 1;
+
+                    if (!p.IsCapture(ttMove) && singularScore < singularBeta - 20)
                     {
-                        extension = 2;
-                    }
-                    else
-                    {
-                        extension = 1;
+                        extension++;
                     }
                 }
             }
