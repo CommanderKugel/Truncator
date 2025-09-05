@@ -3,17 +3,19 @@ public struct History : IDisposable
 {
     public bool isDisposed;
 
+    public CaptureHistory CaptHist;
     public ButterflyHistory Butterfly;
     public ContinuationHistory ContHist;
 
     public History()
     {
         isDisposed = false;
+        CaptHist = new();
         Butterfly = new();
         ContHist = new();
     }
 
-    public unsafe void UpdateQuietMoves(SearchThread thread, Node* n, short bonus, short penalty, ref Pos p, ref Span<Move> quiets, int count, Move bestmove)
+    public unsafe void UpdateQuietMoves(SearchThread thread, Node* n, int bonus, int penalty, ref Pos p, ref Span<Move> quiets, int count, Move bestmove)
     {
         var NullHist = thread.history.ContHist.NullHist;
 
@@ -34,6 +36,19 @@ public struct History : IDisposable
             {
                 (*(n - 2)->ContHist)[p.Us, pt, m.to].Update(delta, Tunables.ContHistDiv);
             }
+        }
+    }
+
+    public unsafe void UpdateCaptureMoves(int bonus, int penalty, ref Pos p, ref Span<Move> capts, int count, Move bestmove)
+    {
+        for (int i = 0; i < count; i++)
+        {
+            ref Move m = ref capts[i];
+            PieceType pt = p.PieceTypeOn(m.from);
+            PieceType vict = p.GetCapturedPieceType(m);
+
+            int delta = (m == bestmove) ? bonus : penalty;
+            CaptHist[p.Us, pt, vict, m.to].Update(delta, 1024);
         }
     }
 

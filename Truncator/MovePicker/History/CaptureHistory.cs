@@ -2,25 +2,29 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
-public struct PieceToHistory : IDisposable
+public struct CaptureHistory : IDisposable
 {
 
-    public const int SIZE = 2 * 6 * 64;
+    public const int SIZE = 2 * 6 * 6 * 64;
     private unsafe HistVal* table_ = null;
 
-    public unsafe PieceToHistory()
+    public unsafe CaptureHistory()
     {
         table_ = (HistVal*)NativeMemory.Alloc((nuint)sizeof(HistVal) * SIZE);
     }
 
-    public unsafe ref HistVal this[Color c, PieceType pt, int sq]
+    public unsafe ref HistVal this[Color c, PieceType pt, PieceType vict, int sq]
     {
         get
         {
             Debug.Assert(c == Color.White || c == Color.Black);
             Debug.Assert(pt != PieceType.NONE);
+            Debug.Assert(vict != PieceType.NONE);
             Debug.Assert(sq >= 0 && sq < 64);
-            return ref table_[(int)c * 6 * 64 + (int)pt * 64 + sq];
+            return ref table_[ (int)c * 6 * 6 * 64
+                + (int)pt * 6 * 64
+                + (int)vict * 64
+                + sq];
         }
     }
 

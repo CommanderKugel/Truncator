@@ -335,7 +335,9 @@ public static partial class Search
 
         int movesPlayed = 0;
         int quitesCount = 0;
+        int captureCount = 0;
         Span<Move> quietMoves = stackalloc Move[128];
+        Span<Move> captureMoves = stackalloc Move[128];
 
         Move bestmove = Move.NullMove;
 
@@ -453,6 +455,7 @@ public static partial class Search
 
             movesPlayed++;
             if (!isCapture) quietMoves[quitesCount++] = m;
+            else captureMoves[captureCount++] = m;
             
             // late-move-reductions (LMR)
             // assuming our move-ordering is good, the first played move should be the best
@@ -567,18 +570,20 @@ public static partial class Search
 
                         flag = LOWER_BOUND;
 
+                        int HistDelta = depth * depth;
                         if (!isCapture)
                         {
                             // update history
                             // ToDo: Bonus = depth * (depth + (m == ttmove))
                             // ToDo: Bonus = depth * (depth + (eval < alpha))
-
-                            int HistDelta = depth * depth;
-                            thread.history.UpdateQuietMoves(thread, ns, (short)HistDelta, (short)-HistDelta, ref p, ref quietMoves, quitesCount, m);
+                            
+                            thread.history.UpdateQuietMoves(thread, ns, HistDelta, -HistDelta, ref p, ref quietMoves, quitesCount, m);
 
                             // update killer-move
                             ns->KillerMove = m;
                         }
+
+                        thread.history.UpdateCaptureMoves(HistDelta, -HistDelta, ref p, ref captureMoves, captureCount, m);
 
                         // ToDo: update capture history (didnt pass yet, its cursed)
 
