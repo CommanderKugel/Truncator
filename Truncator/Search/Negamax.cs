@@ -69,6 +69,13 @@ public static partial class Search
                 || ttEntry.Flag == UPPER_BOUND && ttEntry.Score <= alpha
                 || ttEntry.Flag == EXACT_BOUND))
         {
+
+            if (ttMove.NotNull && !p.IsCapture(ttMove))
+            {
+                int delta = depth * depth;
+                thread.history.Butterfly[p.Threats, p.Us, ttMove].Update(delta, ButterflyDiv);
+            }
+
             return ttEntry.Score;
         }
 
