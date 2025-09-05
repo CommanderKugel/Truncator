@@ -59,12 +59,7 @@ public static class TimeManager
 
                 // assume soft and hardnodes have been set proberly already
                 // for "go nodes 5000", softnodes is assumed
-                // for hardnodes, "go hardnodes 5000" is required to be sent
-
-                if (hardnodes == long.MaxValue)
-                {
-                    hardnodes = softnodes * 20; // go nodes 5000 -> implicit 100k hardnodes
-                }
+                // for hardnodes either use "go hardnodes 5000" or set them via uci-options
 
                 Debug.WriteLine($"nodes: softnodes = {softnodes}, hardnodes = {hardnodes}");
             }

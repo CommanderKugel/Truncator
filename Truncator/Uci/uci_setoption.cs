@@ -60,6 +60,12 @@ public static partial class UCI
             SpsaUciOption.ChangeField(nameStr, int.Parse(valueStr));
         }
 
+        else if (nameStr == "Hardnodes")
+        {
+            TimeManager.hardnodes = long.Parse(valueStr);
+            Console.WriteLine($"info string Hardnodes set to {TimeManager.hardnodes}");
+        }
+
         else
         {
             Console.WriteLine($"info string {nameStr} was not found, setoption unsuccessfull");
