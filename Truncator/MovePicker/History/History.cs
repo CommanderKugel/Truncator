@@ -23,16 +23,16 @@ public struct History : IDisposable
             var delta = (m == bestmove) ? bonus : penalty;
             PieceType pt = p.PieceTypeOn(m.from);
 
-            Butterfly[p.Threats, p.Us, m].Update(delta);
+            Butterfly[p.Threats, p.Us, m].Update(delta, Tunables.ButterflyDiv);
 
             if ((n - 1)->ContHist != NullHist)
             {
-                (*(n - 1)->ContHist)[p.Us, pt, m.to].Update(delta);
+                (*(n - 1)->ContHist)[p.Us, pt, m.to].Update(delta, Tunables.ContHistDiv);
             }
 
             if ((n - 2)->ContHist != NullHist)
             {
-                (*(n - 2)->ContHist)[p.Us, pt, m.to].Update(delta);
+                (*(n - 2)->ContHist)[p.Us, pt, m.to].Update(delta, Tunables.ContHistDiv);
             }
         }
     }

@@ -1,9 +1,17 @@
 
+using static Tunables;
+
 public static class SEE
 {
 
-    public static ReadOnlySpan<int> SEEMaterial => [
-        100, 450, 450, 650, 1250, 0, 0,
+    public static readonly int[] SEEMaterial = [
+        SEEMaterialPawn,
+        SEEMaterialKnight,
+        SEEMaterialBishop,
+        SEEMaterialRook,
+        SEEMaterialQueen,
+        0,
+        0,
     ];
 
     public static unsafe bool SEE_threshold(Move m, ref Pos p, int threshold)
