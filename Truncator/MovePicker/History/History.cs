@@ -54,6 +54,7 @@ public struct History : IDisposable
 
     public void Clear()
     {
+        CaptHist.Clear();
         Butterfly.Clear();
         ContHist.Clear();
     }
@@ -62,6 +63,7 @@ public struct History : IDisposable
     {
         if (!isDisposed)
         {
+            CaptHist.Dispose();
             Butterfly.Dispose();
             ContHist.Dispose();
             isDisposed = true;
