@@ -544,14 +544,6 @@ public static partial class Search
 
             if (isPV && (score > alpha || movesPlayed == 1))
             {
-                if (isRoot)
-                {
-                    thread.PV[depth] = score;
-                }
-
-                // dont replace previous root bestmove on a fail-low
-                // no low failing move can really be trusted to be better than the last best move
-
                 thread.PushToPV(m);
             }
 

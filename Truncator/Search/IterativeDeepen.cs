@@ -17,7 +17,7 @@ public static partial class Search
         {
 
             thread.seldepth = depth;
-            int score = AspirationWindows(thread, depth);
+            thread.PV[depth] = AspirationWindows(thread, depth);
             thread.completedDepth = depth;
 
             if (thread.IsMainThread && !isBench)
