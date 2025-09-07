@@ -546,7 +546,7 @@ public static partial class Search
             {
                 if (isRoot)
                 {
-                    thread.PV[depth] = bestscore;
+                    thread.PV[depth] = score;
                 }
 
                 // dont replace previous root bestmove on a fail-low
