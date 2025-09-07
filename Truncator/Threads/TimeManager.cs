@@ -7,6 +7,8 @@ public static class TimeManager
     public static int movestogo, movetime;
     public static int depth;
 
+    public static long UciSoftnodes = -1;
+    public static long UciHardnodes = -1;
     public static long softnodes, hardnodes;
 
     private static long HardTimeout = 0;
@@ -40,6 +42,19 @@ public static class TimeManager
 
     public static void Start(Color Us)
     {
+        // always skip tm if nodestime is already set via UCI options
+
+        if (UciSoftnodes != -1 || UciHardnodes != -1)
+        {
+            Debug.WriteLine("UCI option nodes tm found!");
+            softnodes = UciSoftnodes == -1 ? UciHardnodes : UciSoftnodes;
+            hardnodes = UciHardnodes == -1 ? long.MaxValue : UciHardnodes;
+            IsSelfManaging = false;
+            return;
+        }
+
+        // now do tm depending on "go ..." command
+
         IsSelfManaging = softnodes == long.MaxValue
             && hardnodes == long.MaxValue
             && depth == -1;

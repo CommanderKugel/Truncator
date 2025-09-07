@@ -8,7 +8,11 @@ public static partial class Search
 
         for (
             int depth = 1;
-            thread.doSearch && !TimeManager.IsSoftTimeout(thread, depth) && depth <= TimeManager.maxDepth || depth <= 3;
+            thread.doSearch
+                && !TimeManager.IsSoftTimeout(thread, depth)
+                && !TimeManager.IsHardTimeout(thread)
+                && depth <= TimeManager.maxDepth
+            || depth <= 3;
             depth++)
         {
 

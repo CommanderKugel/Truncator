@@ -60,10 +60,16 @@ public static partial class UCI
             SpsaUciOption.ChangeField(nameStr, int.Parse(valueStr));
         }
 
+        else if (nameStr == "Softnodes")
+        {
+            TimeManager.UciSoftnodes = long.Parse(valueStr);
+            Console.WriteLine($"info string Softnodes set to {TimeManager.UciSoftnodes}");
+        }
+
         else if (nameStr == "Hardnodes")
         {
-            TimeManager.hardnodes = long.Parse(valueStr);
-            Console.WriteLine($"info string Hardnodes set to {TimeManager.hardnodes}");
+            TimeManager.UciHardnodes = long.Parse(valueStr);
+            Console.WriteLine($"info string Hardnodes set to {TimeManager.UciHardnodes}");
         }
 
         else
