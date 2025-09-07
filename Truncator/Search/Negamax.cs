@@ -302,7 +302,7 @@ public static partial class Search
                 // stop at hard timeouts
                 if (!thread.doSearch || thread.IsMainThread && TimeManager.IsHardTimeout(thread))
                 {
-                    return SCORE_MATE;
+                    return 0;
                 }
             }
         }
@@ -544,15 +544,17 @@ public static partial class Search
 
             if (isPV && (score > alpha || movesPlayed == 1))
             {
+                thread.PushToPV(m);
+
                 if (isRoot)
                 {
-                    thread.PV[depth] = bestscore;
+                    thread.PV[depth] = score;
                 }
+            }
 
-                // dont replace previous root bestmove on a fail-low
-                // no low failing move can really be trusted to be better than the last best move
-
-                thread.PushToPV(m);
+            if (!thread.doSearch || thread.IsMainThread && TimeManager.IsHardTimeout(thread))
+            {
+                return 0;
             }
 
             if (score > bestscore)
@@ -603,18 +605,6 @@ public static partial class Search
                     } // beta beaten
                 } // alpha beaten
             } // best beaten
-
-            // check if we have time left
-            // do this in the move-loop & after updaing the pv
-            // otherwise we could end up without a best move
-            // TODO: instantly return instead of breaking, the search results 
-            // are unfinished and unreliabla
-            // TODO: move this up earlier in the moveloop for earlier and more correct exits 
-
-            if (!thread.doSearch || thread.IsMainThread && TimeManager.IsHardTimeout(thread))
-            {
-                break;
-            }
 
         } // move-loop
 

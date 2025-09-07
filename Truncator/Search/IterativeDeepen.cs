@@ -50,9 +50,11 @@ public static partial class Search
             int score = Negamax<RootNode>(thread, thread.rootPos.p, alpha, beta, depth, &thread.nodeStack[thread.ply], false);
 
             // dont retry if the search already timed out
-            if (!thread.doSearch || thread.IsMainThread && TimeManager.IsSoftTimeout(thread, depth))
+            if (!thread.doSearch
+                || thread.IsMainThread
+                    && (TimeManager.IsSoftTimeout(thread, depth) || TimeManager.IsHardTimeout(thread)))
             {
-                return score;
+                return thread.PV[thread.completedDepth];
             }
 
             // if the score falls outside the window
