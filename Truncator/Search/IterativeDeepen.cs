@@ -36,7 +36,7 @@ public static partial class Search
     private static unsafe int AspirationWindows(SearchThread thread, int depth)
     {
         // dont do aspiration windows at low depth where scores fluctuate a lot
-        if (depth <= 4)
+        if (true || depth <= 4)
         {
             return Negamax<RootNode>(thread, thread.rootPos.p, -SCORE_MATE, SCORE_MATE, depth, &thread.nodeStack[thread.ply], false);
         }
