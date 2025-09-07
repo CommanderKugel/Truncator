@@ -5,6 +5,7 @@ public static partial class Search
     public static unsafe void IterativeDeepen(SearchThread thread, bool isBench = false)
     {
         thread.nodeCount = 0;
+        int rootScore = 0;
 
         for (
             int depth = 1;
@@ -17,7 +18,7 @@ public static partial class Search
         {
 
             thread.seldepth = depth;
-            int score = AspirationWindows(thread, depth);
+            rootScore = AspirationWindows(thread, depth, rootScore);
             thread.completedDepth = depth;
 
             if (thread.IsMainThread && !isBench)
@@ -33,32 +34,37 @@ public static partial class Search
         }
     }
 
-    private static unsafe int AspirationWindows(SearchThread thread, int depth)
+    private static unsafe int AspirationWindows(SearchThread thread, int depth, int lastScore)
     {
         // dont do aspiration windows at low depth where scores fluctuate a lot
         if (depth <= 4)
         {
-            return Negamax<RootNode>(thread, thread.rootPos.p, -SCORE_MATE, SCORE_MATE, depth, &thread.nodeStack[thread.ply], false);
+            int score = Negamax<RootNode>(thread, thread.rootPos.p, -SCORE_MATE, SCORE_MATE, depth, &thread.nodeStack[thread.ply], false);
+            thread.PV[depth] = score;
+            return score;
         }
 
         int delta = Tunables.AspDelta;
-        int alpha = thread.PV[thread.completedDepth] - delta;
-        int beta = thread.PV[thread.completedDepth] + delta;
+        int alpha = lastScore - delta;
+        int beta = lastScore + delta;
 
         while (true)
         {
             int score = Negamax<RootNode>(thread, thread.rootPos.p, alpha, beta, depth, &thread.nodeStack[thread.ply], false);
+            thread.PV[depth] = score;
 
             // dont retry if the search already timed out
+
             if (!thread.doSearch
                 || thread.IsMainThread
                     && (TimeManager.IsSoftTimeout(thread, depth) || TimeManager.IsHardTimeout(thread)))
             {
-                return thread.PV[thread.completedDepth];
+                return lastScore;
             }
 
             // if the score falls outside the window
             // widen the window and try again 
+
             if (score <= alpha || score >= beta)
             {
                 alpha = -SCORE_MATE;

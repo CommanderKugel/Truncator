@@ -545,11 +545,6 @@ public static partial class Search
             if (isPV && (score > alpha || movesPlayed == 1))
             {
                 thread.PushToPV(m);
-
-                if (isRoot)
-                {
-                    thread.PV[depth] = score;
-                }
             }
 
             if (!thread.doSearch || thread.IsMainThread && TimeManager.IsHardTimeout(thread))
