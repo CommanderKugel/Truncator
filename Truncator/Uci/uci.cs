@@ -22,7 +22,7 @@ public static partial class UCI
 
             if (command == "uci")
             {
-                Console.WriteLine("id name Truncator 0.79");
+                Console.WriteLine("id name Truncator 0.82");
                 Console.WriteLine("id author CommanderKugel");
 
                 Console.WriteLine($"option name Hash type spin default {TranspositionTable.DEFAULT_SIZE} min {TranspositionTable.MIN_SIZE} max {TranspositionTable.MAX_SIZE}");

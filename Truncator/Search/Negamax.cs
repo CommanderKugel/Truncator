@@ -326,7 +326,14 @@ public static partial class Search
 
         Span<Move> moves = stackalloc Move[256];
         Span<int> scores = stackalloc int[256];
-        MovePicker<PVSPicker> picker = new (thread, ttMove, ref moves, ref scores, ns->InCheck, 0);
+        MovePicker<PVSPicker> picker = new (
+            thread,
+            ttMove,
+            ref moves,
+            ref scores,
+            ns->InCheck,
+            SEEBadCaptureMargin
+        );
 
 
         int bestscore = -SCORE_MATE;
@@ -360,7 +367,13 @@ public static partial class Search
             bool isCapture = p.IsCapture(m);
             bool isNoisy = isCapture || m.IsPromotion; // ToDo: GivesCheck()
 
-            ns->HistScore = isCapture ? 0 : thread.history.Butterfly[p.Threats, p.Us, m];
+            PieceType pt = p.PieceTypeOn(m.from);
+
+            ns->HistScore = isCapture ? 0 :
+                (thread.history.Butterfly[p.Threats, p.Us, m] * ButterflySearchMult
+                + (*(ns - 1)->ContHist)[p.Us, pt, m.to] * Conthist1SearchMult
+                + (*(ns - 2)->ContHist)[p.Us, pt, m.to] * Conthist2SearchMult)
+                / 1024;
 
             // move loop pruning
             if (!isRoot
@@ -573,7 +586,7 @@ public static partial class Search
                             // ToDo: Bonus = depth * (depth + (m == ttmove))
                             // ToDo: Bonus = depth * (depth + (eval < alpha))
 
-                            int HistDelta = depth * depth;
+                            int HistDelta = HistUpdateMult * depth * depth / 1024;
                             thread.history.UpdateQuietMoves(thread, ns, (short)HistDelta, (short)-HistDelta, ref p, ref quietMoves, quitesCount, m);
 
                             // update killer-move
