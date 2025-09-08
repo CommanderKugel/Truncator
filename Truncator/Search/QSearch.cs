@@ -91,13 +91,6 @@ public static partial class Search
                 continue;
             }
 
-            // simply prune all bad captures
-
-            if (nonPV && !SEE.SEE_threshold(m, ref p, SEEQsThreshold))
-            {
-                continue;
-            }
-
             // only make legal moves
 
             if (!p.IsLegal(thread, m))
