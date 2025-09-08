@@ -55,7 +55,7 @@ public ref struct MovePicker<Type> where Type : PickerType
             // quiets
             else if (m == killer)
             {
-                scores[i] = HistVal.HIST_VAL_MAX * 4 + 1;
+                scores[i] = 900_000;
             }
             else // quiet
             {

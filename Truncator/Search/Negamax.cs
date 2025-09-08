@@ -241,14 +241,14 @@ public static partial class Search
     // 'inspired' by Stockfish
     // https://github.com/official-stockfish/Stockfish/blob/adfddd2c984fac5f2ac02d87575af821ec118fa8/src/search.cpp#L910
 
-        int ProbCutBeta = beta + 250;
-        if (depth >= 5
+        int ProbCutBeta = beta + ProbcutBetaMargin;
+        if (depth >= ProbuctMinDepth
             && ttHit
             && (ttMove.IsNull || p.IsCapture(ttMove) || ttMove.IsPromotion)
             && ttEntry.Score >= beta
             && !IsTerminal(beta))
         {
-            int ProbCutDepth = depth - 6;
+            int ProbCutDepth = depth - ProbcutBaseReduction;
 
             Span<Move> ProbCutMoves = stackalloc Move[128];
             Span<int> ProbCutScores = stackalloc int[128];
@@ -326,7 +326,7 @@ public static partial class Search
 
         Span<Move> moves = stackalloc Move[256];
         Span<int> scores = stackalloc int[256];
-        MovePicker<PVSPicker> picker = new (thread, ttMove, ref moves, ref scores, ns->InCheck, 0);
+        MovePicker<PVSPicker> picker = new (thread, ttMove, ref moves, ref scores, ns->InCheck, SEEPvsBadNoisyThreshold);
 
 
         int bestscore = -SCORE_MATE;
@@ -360,7 +360,13 @@ public static partial class Search
             bool isCapture = p.IsCapture(m);
             bool isNoisy = isCapture || m.IsPromotion; // ToDo: GivesCheck()
 
-            ns->HistScore = isCapture ? 0 : thread.history.Butterfly[p.Threats, p.Us, m];
+            PieceType pt = p.PieceTypeOn(m.from);
+
+            ns->HistScore = isCapture ? 0 :
+                (ButterflySearchMult * thread.history.Butterfly[p.Threats, p.Us, m]
+                + Conthist1plySearchMult * (*(ns - 1)->ContHist)[p.Us, pt, m.to]
+                + Conthist2plySearchMult * (*(ns - 2)->ContHist)[p.Us, pt, m.to])
+                / 1024;
 
             // move loop pruning
             if (!isRoot
