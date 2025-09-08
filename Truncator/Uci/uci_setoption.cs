@@ -54,6 +54,18 @@ public static partial class UCI
             Console.WriteLine($"SyzygyProbePly set to {ply}");
         }
 
+        else if (nameStr == "Softnodes")
+        {
+            TimeManager.UciSoftnodes = long.Parse(valueStr);
+            Console.WriteLine($"info string set softnodes={TimeManager.UciSoftnodes}");
+        }
+
+        else if (nameStr == "Hardnodes")
+        {
+            TimeManager.UciHardnodes = long.Parse(valueStr);
+            Console.WriteLine($"info string set hardnodes={TimeManager.UciHardnodes}");
+        }
+
         else if (SpsaUciOption.SpsaDict != null
             && SpsaUciOption.SpsaDict.ContainsKey(nameStr))
         {
