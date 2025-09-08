@@ -1,5 +1,5 @@
 
-#define SPSA
+//#define SPSA
 
 using System.Diagnostics;
 
@@ -69,8 +69,6 @@ public static partial class UCI
 
             else if (tokens[0] == "ucinewgame")
             {
-                Search.ComputeLmrTable(); // for spsa
-                
                 Debug.Assert(state == UciState.Idle, "command only available, when engine is idle!");
                 ThreadPool.Clear();
             }

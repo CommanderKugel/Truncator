@@ -400,7 +400,6 @@ public static partial class Search
                     R = GetBaseLmr(depth, movesPlayed);
 
                     // reduce more for bad history values
-                    // divisor ~= HIST_VAL_MAX / 3
                     R += -ns->HistScore / LmrHistDiv;
 
                     if (thread.ply > 1 && !improving) R++;
@@ -457,10 +456,20 @@ public static partial class Search
 
             if (isRoot)
             {
-                // save roo-move-data
-                // might be useful for time management
-
                 thread.rootPos.ReportBackMove(m, score, thread.nodeCount - startnodes, depth);
+            }
+
+            if (isPV && (score > alpha || movesPlayed == 1))
+            {
+                if (isRoot)
+                {
+                    thread.PV[depth] = score;
+                }
+
+                // dont replace previous root bestmove on a fail-low
+                // no low failing move can really be trusted to be better than the last best move
+
+                thread.PushToPV(m);
             }
 
             if (score > bestscore)
@@ -470,19 +479,6 @@ public static partial class Search
 
                 bestscore = score;
                 flag = UPPER_BOUND;
-
-                if (isPV)
-                {
-                    if (isRoot)
-                    {
-                        thread.PV[depth] = bestscore;
-                    }
-
-                    // still push the upper-bound move to the pv
-                    // so we always have a bestmove 
-
-                    thread.PushToPV(m);
-                }
 
                 if (score > alpha)
                 {
