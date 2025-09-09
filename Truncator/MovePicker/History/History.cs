@@ -15,7 +15,7 @@ public struct History : IDisposable
         ContHist = new();
     }
 
-    public unsafe void UpdateQuietMoves(SearchThread thread, Node* n, short bonus, short penalty, ref Pos p, ref Span<Move> quiets, int count, Move bestmove)
+    public unsafe void UpdateQuietMoves(SearchThread thread, Node* n, int bonus, int penalty, ref Pos p, ref Span<Move> quiets, int count, Move bestmove)
     {
         var NullHist = thread.history.ContHist.NullHist;
 
