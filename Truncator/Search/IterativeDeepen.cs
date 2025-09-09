@@ -55,8 +55,9 @@ public static partial class Search
             // widen the window and try again 
             if (score <= alpha || score >= beta)
             {
-                alpha = -SCORE_MATE;
-                beta = SCORE_MATE;
+                alpha -= IsTerminal(alpha) ? -SCORE_MATE : delta;
+                beta += IsTerminal(beta) ? SCORE_MATE : delta;
+                delta += delta;
                 continue;
             }
 
