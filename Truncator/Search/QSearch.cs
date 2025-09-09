@@ -73,7 +73,7 @@ public static partial class Search
         
         Span<Move> moves = stackalloc Move[256];
         Span<int> scores = stackalloc int[256];
-        MovePicker<QSPicker> picker = new (thread, ttMove, ref moves, ref scores, ns->InCheck);
+        MovePicker<QSPicker> picker = new (thread, ttMove, ref moves, ref scores, ns->InCheck, SEEQSBadNoisyThreshold);
 
         // main move loop
 
@@ -87,13 +87,6 @@ public static partial class Search
             if (ns->InCheck
                 && !p.IsCapture(m)
                 && !IsLoss(bestscore))
-            {
-                continue;
-            }
-
-            // simply prune all bad captures
-
-            if (nonPV && !SEE.SEE_threshold(m, ref p, SEEQsThreshold))
             {
                 continue;
             }

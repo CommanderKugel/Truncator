@@ -237,6 +237,76 @@ public static partial class Search
             }
         }
 
+    // probcut
+    // 'inspired' by Stockfish
+    // https://github.com/official-stockfish/Stockfish/blob/adfddd2c984fac5f2ac02d87575af821ec118fa8/src/search.cpp#L910
+
+        int ProbCutBeta = beta + ProbcutBetaMargin;
+        if (depth >= ProbuctMinDepth
+            && ttHit
+            && (ttMove.IsNull || p.IsCapture(ttMove) || ttMove.IsPromotion)
+            && ttEntry.Score >= beta
+            && !IsTerminal(beta))
+        {
+            int ProbCutDepth = depth - ProbcutBaseReduction;
+
+            Span<Move> ProbCutMoves = stackalloc Move[128];
+            Span<int> ProbCutScores = stackalloc int[128];
+            var ProbcutPicker = new MovePicker<QSPicker>(thread, ttMove, ref ProbCutMoves, ref ProbCutScores, ns->InCheck, ProbCutBeta - ns->StaticEval);
+
+            for (Move m = ProbcutPicker.Next(ref p); m.NotNull; m = ProbcutPicker.Next(ref p))
+            {
+                // skip bad and illegal moves
+
+                if (!p.IsLegal(thread, m))
+                {
+                    continue;
+                }
+
+                // make the move and
+                // verify with a quick qsearch that the capture really is not loosing
+
+                Pos copy = p;
+                copy.MakeMove(m, thread);
+                thread.repTable.Push(copy.ZobristKey);
+
+                int ProbCutScore = -QSearch<NonPVNode>(thread, copy, -ProbCutBeta, -ProbCutBeta + 1, ns + 1);
+
+                // if qsearch passed, do a shallow search
+
+                if (ProbCutScore >= ProbCutBeta && ProbCutDepth > 0)
+                {
+                    ProbCutScore = -Negamax<NonPVNode>(thread, copy, -ProbCutBeta, -ProbCutBeta + 1, ProbCutDepth, ns + 1, !cutnode);
+                }
+
+                thread.UndoMove();
+
+                // if beta is beaten by a large margin usign a shallower search
+                // we can relatively savely cut this node
+
+                if (ProbCutScore >= ProbCutBeta && !IsTerminal(ProbCutScore))
+                {
+                    thread.tt.Write(
+                        p.ZobristKey,
+                        ProbCutScore,
+                        m,
+                        ProbCutDepth + 1,
+                        LOWER_BOUND,
+                        ttPV,
+                        thread
+                    );
+
+                    return ProbCutScore - (ProbCutBeta - beta);
+                }
+
+                // stop at hard timeouts
+                if (!thread.doSearch || thread.IsMainThread && TimeManager.IsHardTimeout(thread))
+                {
+                    return SCORE_MATE;
+                }
+            }
+        }
+
 
         // go here on pv or singular nodes or when in check
         skip_whole_node_pruning:
@@ -256,7 +326,7 @@ public static partial class Search
 
         Span<Move> moves = stackalloc Move[256];
         Span<int> scores = stackalloc int[256];
-        MovePicker<PVSPicker> picker = new (thread, ttMove, ref moves, ref scores, ns->InCheck);
+        MovePicker<PVSPicker> picker = new (thread, ttMove, ref moves, ref scores, ns->InCheck, SEEPvsBadNoisyThreshold);
 
 
         int bestscore = -SCORE_MATE;
@@ -290,7 +360,13 @@ public static partial class Search
             bool isCapture = p.IsCapture(m);
             bool isNoisy = isCapture || m.IsPromotion; // ToDo: GivesCheck()
 
-            ns->HistScore = isCapture ? 0 : thread.history.Butterfly[p.Threats, p.Us, m];
+            PieceType pt = p.PieceTypeOn(m.from);
+
+            ns->HistScore = isCapture ? 0 :
+                (ButterflySearchMult * thread.history.Butterfly[p.Threats, p.Us, m]
+                + Conthist1plySearchMult * (*(ns - 1)->ContHist)[p.Us, pt, m.to]
+                + Conthist2plySearchMult * (*(ns - 2)->ContHist)[p.Us, pt, m.to])
+                / 1024;
 
             // move loop pruning
             if (!isRoot
@@ -456,10 +532,23 @@ public static partial class Search
 
             if (isRoot)
             {
-                // save roo-move-data
-                // might be useful for time management
-
                 thread.rootPos.ReportBackMove(m, score, thread.nodeCount - startnodes, depth);
+            }
+
+            if (isPV && (score > alpha || movesPlayed == 1))
+            {
+                if (isRoot)
+                {
+                    thread.PV[depth] = score;
+
+                    thread.rootPos.pvStability = thread.rootPos.bestMove == m ? thread.rootPos.pvStability + 1 : 1;
+                    thread.rootPos.bestMove = m;
+                }
+
+                // dont replace previous root bestmove on a fail-low
+                // no low failing move can really be trusted to be better than the last best move
+
+                thread.PushToPV(m);
             }
 
             if (score > bestscore)

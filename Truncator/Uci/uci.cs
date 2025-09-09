@@ -1,5 +1,5 @@
 
-//#define SPSA
+// #define SPSA
 
 using System.Diagnostics;
 
@@ -22,7 +22,7 @@ public static partial class UCI
 
             if (command == "uci")
             {
-                Console.WriteLine("id name Truncator 0.76");
+                Console.WriteLine("id name Truncator 0.79");
                 Console.WriteLine("id author CommanderKugel");
 
                 Console.WriteLine($"option name Hash type spin default {TranspositionTable.DEFAULT_SIZE} min {TranspositionTable.MIN_SIZE} max {TranspositionTable.MAX_SIZE}");
@@ -31,6 +31,9 @@ public static partial class UCI
 
                 Console.WriteLine($"option name SyzygyPath type string default <empty>");
                 //Console.WriteLine($"option name SyzygyProbePly type spin default 40 min 1 max 128");
+
+                Console.WriteLine($"option name Softnodes type spin default {int.MaxValue} min {1} max {int.MaxValue}");
+                Console.WriteLine($"option name Hardnodes type spin default {int.MaxValue} min {1} max {int.MaxValue}");
 
 #if SPSA
                 SpsaUciOption.CollectOptions();
