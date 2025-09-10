@@ -162,11 +162,23 @@ public static class TimeManager
     {
         Debug.Assert(!IsSelfManaging || SoftTimeout != 0 && iteration > 0);
 
+        if (iteration < 4)
+        {
+            return false;
+        }
+
         // pv-tm
+        // always fails miserably somehow
+
         // node-tm
+        // scale tm between 1.5 and 0.5, search longer with fewer nodes spent at bestmove
+
+        long BestMoveNodes = thread.rootPos.RootMoves[thread.PV.BestMove].Nodes;
+        double NodeFactor = 1.5 - (double)(BestMoveNodes / thread.nodeCount);
+
         // score-tm
 
-        return IsSelfManaging && watch.ElapsedMilliseconds > SoftTimeout
+        return IsSelfManaging && watch.ElapsedMilliseconds > SoftTimeout * NodeFactor
             || thread.nodeCount >= softnodes;
     }
 
