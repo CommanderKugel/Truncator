@@ -386,7 +386,7 @@ public static partial class Search
 
                 // late move pruning
                 if (depth <= LmpDepth
-                    && movesPlayed >= LmpBase + depth * depth)
+                    && movesPlayed >= LmpBase + depth * depth * 2 / (improving ? 2 : 3))
                 {
                     continue;
                 }
