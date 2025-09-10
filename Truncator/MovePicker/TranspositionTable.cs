@@ -21,7 +21,7 @@ public class TranspositionTable : IDisposable
         nuint entryCount = sizeByte / (nuint)sizeof(TTEntry);
 
         tt = (TTEntry*)NativeMemory.Alloc((nuint)sizeof(TTEntry) * entryCount);
-        this.size = entryCount;
+        size = entryCount;
     }
 
     public unsafe void Resize(int sizemb)
@@ -29,13 +29,14 @@ public class TranspositionTable : IDisposable
         Debug.Assert(sizemb > 0, "unallowed hash size!");
         sizemb = Math.Clamp(sizemb, MIN_SIZE, MAX_SIZE);
 
-        nuint sizeByte = (nuint)sizemb * 1024 * 1024;
-        nuint entryCount = sizeByte / (nuint)sizeof(TTEntry);
+        int sizeByte = sizemb * 1024 * 1024;
+        nuint entryCount = (nuint)((sizeByte / sizeof(TTEntry)) & ~0b11); // round to multiples of 4
 
         if (tt != null)
         {
             NativeMemory.Free(tt);
         }
+
         tt = (TTEntry*)NativeMemory.Alloc((nuint)sizeof(TTEntry) * entryCount);
         size = entryCount;
 
@@ -51,21 +52,46 @@ public class TranspositionTable : IDisposable
     public unsafe TTEntry Probe(ulong key)
     {
         Debug.Assert(tt != null);
-        return tt[key % size];
+
+        TTEntry* ptr = &tt[(key % size) & ~0b11ul];
+        bool hit = false;
+
+        for (int i = 0; i < 4 && !hit; i++)
+        {
+            if ((ptr + i)->Key == key)
+            {
+                ptr += i;
+                hit = true;
+            }
+        }
+
+        return hit ? *ptr : new();
     }
 
     public unsafe void Write(ulong key, int score, Move move, int depth, int flag, bool pv, SearchThread thread)
     {
         Debug.Assert(tt != null);
         
-        // current policy: always replace
-        ref var entry = ref tt[key % size];
+        TTEntry* ptr = &tt[(key % size) & ~0b11ul];
+        TTEntry* target = ptr;
 
-        entry.Key = key;
-        entry.Score = TTEntry.ConvertToSavescore(score, thread.ply);
-        entry.MoveValue = move.value;
-        entry.Depth = (byte)depth;
-        entry.PackPVAgeFlag(pv, 0, flag);
+        for (int i = 0; i < 4; i++)
+        {
+            // always replace old or empty entries
+
+            if ((ptr + i)->Key == key
+                || (ptr + i)->Flag == Search.NONE_BOUND)
+            {
+                target = ptr + i;
+                break;
+            }
+        }
+
+        target->Key = key;
+        target->Score = TTEntry.ConvertToSavescore(score, thread.ply);
+        target->MoveValue = move.value;
+        target->Depth = (byte)depth;
+        target->PackPVAgeFlag(pv, 0, flag);
     }
 
     public unsafe int GetHashfull()

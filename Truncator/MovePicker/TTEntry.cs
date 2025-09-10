@@ -29,9 +29,9 @@ public struct TTEntry
 
     public TTEntry(ulong key, int score, Move move, int depht, int flag, bool pv, SearchThread thread)
     {
-        this.Key = key;
-        this.Score = ConvertToSavescore(score, thread.ply);
-        this.MoveValue = move.value;
+        Key = key;
+        Score = ConvertToSavescore(score, thread.ply);
+        MoveValue = move.value;
         Depth = (byte)depht;
         PackPVAgeFlag(pv, 0, flag);
     }
