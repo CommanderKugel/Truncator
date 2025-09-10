@@ -478,7 +478,7 @@ public static partial class Search
                     // reduce more for bad history values
                     R += -ns->HistScore / LmrHistDiv;
 
-                    R -= Math.Abs(ns->Corrplexity) / 128;
+                    if (Math.Abs(ns->Corrplexity) > 128) R--;
 
                     if (thread.ply > 1 && !improving) R++;
 
