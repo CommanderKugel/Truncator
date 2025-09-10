@@ -579,8 +579,16 @@ public static partial class Search
                             // ToDo: Bonus = depth * (depth + (m == ttmove))
                             // ToDo: Bonus = depth * (depth + (eval < alpha))
 
-                            int HistDelta = depth * depth;
-                            thread.history.UpdateQuietMoves(thread, ns, (short)HistDelta, (short)-HistDelta, ref p, ref quietMoves, quitesCount, m);
+                            int temp = depth;
+
+                            if (!ns->InCheck && ns->StaticEval < alpha)
+                            {
+                                temp++;
+                            }
+
+                            int HistDelta = temp * temp;
+
+                            thread.history.UpdateQuietMoves(thread, ns, HistDelta, -HistDelta, ref p, ref quietMoves, quitesCount, m);
 
                             // update killer-move
                             ns->KillerMove = m;
