@@ -151,7 +151,7 @@ public static partial class Search
             ns->CutoffCount = 0;
         }
 
-        
+        ns->Corrplexity = 0;
         ns->InCheck = p.Checkers != 0;
 
         // static evaluaton
@@ -166,7 +166,7 @@ public static partial class Search
         else
         {
             ns->UncorrectedStaticEval = Pesto.Evaluate(ref p);
-            thread.CorrHist.Correct(thread, ref p, ns);
+            ns->Corrplexity = thread.CorrHist.Correct(thread, ref p, ns);
         }
 
         // the past series of moves improved our static evaluation and indicates
@@ -477,6 +477,8 @@ public static partial class Search
 
                     // reduce more for bad history values
                     R += -ns->HistScore / LmrHistDiv;
+
+                    R -= Math.Abs(ns->Corrplexity) / 128;
 
                     if (thread.ply > 1 && !improving) R++;
 
