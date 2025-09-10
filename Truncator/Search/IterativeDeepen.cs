@@ -53,10 +53,17 @@ public static partial class Search
 
             // if the score falls outside the window
             // widen the window and try again 
-            if (score <= alpha || score >= beta)
+            if (score <= alpha)
             {
-                alpha -= IsTerminal(alpha) ? -SCORE_MATE : delta;
-                beta += IsTerminal(beta) ? SCORE_MATE : delta;
+                beta = (alpha + beta) / 2;
+                alpha = IsTerminal(score) ? -SCORE_MATE : alpha - delta;
+                delta += delta;
+                continue;
+            }
+            
+            if (score >= beta)
+            {
+                beta = IsTerminal(beta) ? SCORE_MATE : beta + delta;
                 delta += delta;
                 continue;
             }
