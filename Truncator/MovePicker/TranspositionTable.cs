@@ -48,10 +48,20 @@ public class TranspositionTable : IDisposable
         NativeMemory.Clear(tt, (nuint)sizeof(TTEntry) * (nuint)size);
     }
 
-    public unsafe TTEntry Probe(ulong key)
+    public unsafe bool Probe(ulong key, out TTEntry entry, int ply)
     {
         Debug.Assert(tt != null);
-        return tt[key % size];
+        var copy = tt[key % size];
+
+        if (copy.Key == key)
+        {
+            entry = copy;
+            entry.Score = TTEntry.ConvertToSearchscore(entry.Score, ply);
+            return true;
+        }
+
+        entry = new();
+        return false;
     }
 
     public unsafe void Write(ulong key, int score, Move move, int depth, int flag, bool pv, SearchThread thread)
