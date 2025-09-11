@@ -48,6 +48,7 @@ public static class TimeManager
             Debug.Assert(UciSoftnodes != -1 && UciHardnodes != -1);
             softnodes = UciSoftnodes;
             hardnodes = UciHardnodes;
+            IsSelfManaging = false;
             Console.WriteLine($"înfo string set softnodes={softnodes} and hardnodes={hardnodes} via UCI options");
             return;
         }
@@ -160,7 +161,7 @@ public static class TimeManager
 
     public static bool IsSoftTimeout(SearchThread thread, int iteration)
     {
-        Debug.Assert(!IsSelfManaging || SoftTimeout != 0 && iteration > 0);
+        Debug.Assert(!IsSelfManaging || SoftTimeout != 0);
 
         // pv-tm
         // node-tm
