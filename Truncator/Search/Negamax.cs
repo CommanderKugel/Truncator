@@ -54,8 +54,7 @@ public static partial class Search
 
         // probe the transposition table for already visited positions
 
-        TTEntry ttEntry = thread.tt.Probe(p.ZobristKey);
-        bool ttHit = ttEntry.Key == p.ZobristKey;
+        bool ttHit = thread.tt.Probe(p.ZobristKey, out TTEntry ttEntry, thread.ply);
         Move ttMove = ttHit ? new(ttEntry.MoveValue) : Move.NullMove;
         bool ttPV = ttHit && ttEntry.PV == 1 || isPV;
 
@@ -252,7 +251,14 @@ public static partial class Search
 
             Span<Move> ProbCutMoves = stackalloc Move[128];
             Span<int> ProbCutScores = stackalloc int[128];
-            var ProbcutPicker = new MovePicker<QSPicker>(thread, ttMove, ref ProbCutMoves, ref ProbCutScores, ns->InCheck, ProbCutBeta - ns->StaticEval);
+            
+            var ProbcutPicker = new MovePicker<QSPicker>(
+                thread, ttMove,
+                ref ProbCutMoves,
+                ref ProbCutScores,
+                ns->InCheck,
+                ProbCutBeta - ns->StaticEval
+            );
 
             for (Move m = ProbcutPicker.Next(ref p); m.NotNull; m = ProbcutPicker.Next(ref p))
             {
@@ -632,7 +638,7 @@ public static partial class Search
         // dont save mating-scores to the tt, it cant handle them at the moment
         // TODO: fix mate-scores for tt
         
-        if (!IsTerminal(bestscore))
+        if (!inSingularity)
         {
             thread.tt.Write(
                 p.ZobristKey,

@@ -39,11 +39,15 @@ public struct TTEntry
     public static short ConvertToSavescore(int score, int ply)
     {
         Debug.Assert(score >= short.MinValue && score <= short.MaxValue, "Score is out of bounds!");
-        return Search.IsTerminal(score) ? (short)(score + ply) : (short)score;
+        return (score < -Search.SCORE_EVAL_MAX) ? (short)(score - ply) :
+            (score > Search.SCORE_EVAL_MAX) ? (short)(score + ply) :
+            (short)score;
     }
 
-    public static int ConvertToSearchscore(ref TTEntry entry, int ply)
+    public static short ConvertToSearchscore(int score, int ply)
     {
-        return Search.IsTerminal(entry.Score) ? entry.Score - ply : entry.Score;
+        return (score < -Search.SCORE_EVAL_MAX) ? (short)(score +- ply) :
+            (score > Search.SCORE_EVAL_MAX) ? (short)(score - ply) :
+            (short)score;
     }
 }
