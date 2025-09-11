@@ -9,6 +9,7 @@ public ref struct MovePicker<Type> where Type : PickerType
 
     private SearchThread thread;
     private Move ttMove;
+    private Move killer;
 
     public Stage stage;
     readonly bool evasions;
@@ -20,13 +21,14 @@ public ref struct MovePicker<Type> where Type : PickerType
     private int quietIndex;
 
 
-    public MovePicker(SearchThread thread_, Move ttMove_, ref Span<Move> moves_, ref Span<int> scores_, bool inCheck, int SEEMargin_)
+    public unsafe MovePicker(SearchThread thread_, Move ttMove_, Move killer_, ref Span<Move> moves_, ref Span<int> scores_, bool inCheck, int SEEMargin_)
     {
         moves = moves_;
         scores = scores_;
 
         thread = thread_;
         ttMove = ttMove_;
+        killer = killer_;
 
         stage = Stage.TTMove;
         evasions = inCheck;
@@ -68,7 +70,7 @@ public ref struct MovePicker<Type> where Type : PickerType
         }
     }
 
-    public Move Next(ref Pos p)
+    public unsafe Move Next(ref Pos p)
     {
         while (true)
         {
@@ -126,6 +128,17 @@ public ref struct MovePicker<Type> where Type : PickerType
                         return m;
                     }
 
+                case Stage.Killer:
+                    {
+                        stage = Stage.GenerateQuiets;
+                        if (p.IsPseudoLegal(thread, killer))
+                        {
+                            Debug.Assert(killer.NotNull && !p.IsCapture(killer));
+                            return killer;
+                        }
+                        continue;
+                    }
+
                 case Stage.GenerateQuiets:
                     {
                         if (typeof(Type) == typeof(QSPicker) && !evasions)
@@ -166,7 +179,7 @@ public ref struct MovePicker<Type> where Type : PickerType
                         quietIndex++;
 
                         // skip ttMove, we already played that
-                        if (m == ttMove && !m.IsNull)
+                        if (m == ttMove && m.NotNull || m == killer && killer.NotNull)
                         {
                             continue;
                         }

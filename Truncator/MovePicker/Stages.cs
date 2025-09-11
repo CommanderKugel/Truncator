@@ -3,6 +3,7 @@ public enum Stage
     TTMove,
     GenerateCaptures,
     GoodCaptures,
+    Killer,
     GenerateQuiets,
     Quiets,
     BadCaptures,

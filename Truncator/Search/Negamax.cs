@@ -252,7 +252,7 @@ public static partial class Search
 
             Span<Move> ProbCutMoves = stackalloc Move[128];
             Span<int> ProbCutScores = stackalloc int[128];
-            var ProbcutPicker = new MovePicker<QSPicker>(thread, ttMove, ref ProbCutMoves, ref ProbCutScores, ns->InCheck, ProbCutBeta - ns->StaticEval);
+            var ProbcutPicker = new MovePicker<QSPicker>(thread, ttMove, ns->KillerMove, ref ProbCutMoves, ref ProbCutScores, ns->InCheck, ProbCutBeta - ns->StaticEval);
 
             for (Move m = ProbcutPicker.Next(ref p); m.NotNull; m = ProbcutPicker.Next(ref p))
             {
@@ -326,7 +326,7 @@ public static partial class Search
 
         Span<Move> moves = stackalloc Move[256];
         Span<int> scores = stackalloc int[256];
-        MovePicker<PVSPicker> picker = new (thread, ttMove, ref moves, ref scores, ns->InCheck, SEEPvsBadNoisyThreshold);
+        MovePicker<PVSPicker> picker = new (thread, ttMove, ns->KillerMove, ref moves, ref scores, ns->InCheck, SEEPvsBadNoisyThreshold);
 
 
         int bestscore = -SCORE_MATE;
