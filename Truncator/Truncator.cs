@@ -9,6 +9,7 @@ public static class Truncator
 
         ThreadPool.Resize(1);
         Search.ComputeLmrTable();
+        Weights.Load(@"C:\Users\nikol\Desktop\Truncator\Truncator\Evaluate\NNUE\quantised.bin");
 
         if (args.Length == 0)
         {
@@ -54,5 +55,8 @@ public static class Truncator
 
         Debug.WriteLine("\n\t3) Stopping and Disposing of the Threadpool");
         ThreadPool.Join();
+
+        Debug.WriteLine("\n\t4) Disposint of NNUE weights");
+        Weights.Dispose();
     }
 }

@@ -45,7 +45,7 @@ public static partial class Search
         }
         else
         {
-            ns->UncorrectedStaticEval = Pesto.Evaluate(ref p);
+            ns->UncorrectedStaticEval = NNUE.Evaluate(ref p);
             thread.CorrHist.Correct(thread, ref p, ns);
         }
 
