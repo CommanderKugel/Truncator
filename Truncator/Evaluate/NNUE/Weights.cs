@@ -18,7 +18,7 @@ public static class Weights
 
     public static unsafe void Load()
     {
-        string name = "quantised";
+        string name = "lz0_t60_64";
 
         Stream? stream;
         if ((stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(
