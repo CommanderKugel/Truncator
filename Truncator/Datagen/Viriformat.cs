@@ -6,6 +6,7 @@
 /// the headder is followed by move-score pairs of how the main-line of the game was played out
 /// the scores are the engines white relative search-scores 
 /// to train an NNUE, the label of a position most commonly constists of an interpolation of the search score and game result
+/// official viriformat specs: https://github.com/cosmobobak/viriformat
 /// </summary>
 public static class Viriformat
 {
