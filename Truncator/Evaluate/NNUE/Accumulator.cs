@@ -5,15 +5,12 @@ using static Weights;
 public struct Accumulator
 {
 
-    public unsafe short[] WhiteAcc = new short[L1_SIZE];
-    public unsafe short[] BlackAcc = new short[L1_SIZE];
+    public unsafe fixed short WhiteAcc[L1_SIZE];
+    public unsafe fixed short BlackAcc[L1_SIZE];
 
 
     public unsafe Accumulator(ref Pos p)
     {
-        WhiteAcc = new short[L1_SIZE];
-        BlackAcc = new short[L1_SIZE];
-
         AccumulateFromZero(ref p);
     }
 
@@ -22,8 +19,11 @@ public struct Accumulator
         // copy bias
         // also deletes previous data
 
-        Array.Copy(l1_bias, WhiteAcc, L1_SIZE);
-        Array.Copy(l1_bias, BlackAcc, L1_SIZE);
+        for (int i = 0; i < L1_SIZE; i++)
+        {
+            WhiteAcc[i] = l1_bias[i];
+            BlackAcc[i] = l1_bias[i];
+        }
 
         // activate for all existing pieces
 
@@ -50,9 +50,50 @@ public struct Accumulator
     }
 
 
-    public void Clear()
+    public unsafe void Activate(Color c, PieceType pt, int sq)
     {
-        Array.Clear(WhiteAcc);
-        Array.Clear(BlackAcc);
+        int widx = (int)c * 384 + (int)pt * 64 + sq;
+        int bidx = (int)(1 - c) * 384 + (int)pt * 64 + (sq ^ 56);
+
+        for (int i = 0; i < L1_SIZE; i++)
+        {
+            WhiteAcc[i] += l1_weight[widx, i];
+            BlackAcc[i] += l1_weight[bidx, i];
+        }
+    }
+
+
+    public unsafe void Deactivate(Color c, PieceType pt, int sq)
+    {
+        int widx = (int)c * 384 + (int)pt * 64 + sq;
+        int bidx = (int)(1 - c) * 384 + (int)pt * 64 + (sq ^ 56);
+
+        for (int i = 0; i < L1_SIZE; i++)
+        {
+            WhiteAcc[i] -= l1_weight[widx, i];
+            BlackAcc[i] -= l1_weight[bidx, i];
+        }
+    }
+
+
+    public unsafe void Clear()
+    {
+        for (int i = 0; i < L1_SIZE; i++)
+        {
+            WhiteAcc[i] = 0;
+            BlackAcc[i] = 0;
+        }
+    }
+
+    public unsafe bool Equals(ref Accumulator other)
+    {
+        for (int i = 0; i < L1_SIZE; i++)
+        {
+            if (WhiteAcc[i] != other.WhiteAcc[i] || BlackAcc[i] != other.BlackAcc[i])
+            {
+                return false;
+            }
+        }
+        return true;
     }
 }

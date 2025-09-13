@@ -22,4 +22,7 @@ public struct Node
 
     public int CutoffCount;
 
+
+    public Accumulator acc;
+
 }

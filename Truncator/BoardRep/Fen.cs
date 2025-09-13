@@ -96,6 +96,8 @@ public partial struct Pos
 
         thread.castling.UpdateNewPosition(ref this);
         Zobrist.ComputeFromZero(ref this);
+
+        thread.nodeStack[0].acc = new Accumulator(ref this);
     }
 
     /// <summary>

@@ -192,6 +192,11 @@ public unsafe partial struct Pos
             NonPawnKeys[(int)Us] ^= temp;
         }
 
+        UpdateData Add1 = new(Us, movingPt, to);
+        UpdateData Sub1 = new(Us, movingPt, from);
+        UpdateData Add2 = default;
+        UpdateData Sub2 = default;
+
         FiftyMoveRule++;
 
         // if capture: remove the victim
@@ -210,6 +215,8 @@ public unsafe partial struct Pos
             {
                 NonPawnKeys[(int)Them] ^= temp;
             }
+
+            Sub2 = new(Them, victimPt, to);
 
             FiftyMoveRule = 0;
         }
@@ -252,6 +259,8 @@ public unsafe partial struct Pos
                 NonPawnKeys[(int)Us] ^= promoKey;
                 PieceKeys[(int)promoPt] ^= promoKey;
                 PieceKeys[(int)PieceType.Pawn] ^= pawnKey;
+
+                Add1 = new(Us, promoPt, to);
             }
 
             // capture the ep-victim, as it is not done like normal captures
@@ -268,6 +277,8 @@ public unsafe partial struct Pos
                 ZobristKey ^= temp;
                 PieceKeys[(int)PieceType.Pawn] ^= temp;
                 victimPt = PieceType.Pawn;
+
+                Sub2 = new(Them, PieceType.Pawn, victim);
             }
         }
 
@@ -310,6 +321,11 @@ public unsafe partial struct Pos
             PieceKeys[(int)PieceType.Rook] ^= rookKey;
 
             victimPt = PieceType.NONE;
+
+            Add1 = new(Us, PieceType.King, kingEnd);
+            Add2 = new(Us, PieceType.Rook, rookEnd);
+            Sub1 = new(Us, PieceType.King, from);
+            Sub2 = new(Us, PieceType.Rook, to);
         }
         else if (movingPt == PieceType.King)
         {
@@ -352,6 +368,24 @@ public unsafe partial struct Pos
 
         Debug.Assert(Utils.popcnt(GetPieces(Color.White, PieceType.King)) == 1);
         Debug.Assert(Utils.popcnt(GetPieces(Color.Black, PieceType.King)) == 1);
+
+        // update NNUE accumulator
+
+        thread.nodeStack[thread.ply].acc = thread.nodeStack[thread.ply - 1].acc;
+
+        thread.nodeStack[thread.ply].acc.Activate(Add1.c, Add1.pt, Add1.sq);
+        thread.nodeStack[thread.ply].acc.Deactivate(Sub1.c, Sub1.pt, Sub1.sq);
+
+        if (Add2.HasData)
+        {
+            thread.nodeStack[thread.ply].acc.Activate(Add2.c, Add2.pt, Add2.sq);
+        }
+        if (Sub2.HasData)
+        {
+            thread.nodeStack[thread.ply].acc.Deactivate(Sub2.c, Sub2.pt, Sub2.sq);
+        }
+
+        
     }
 
     public void MakeNullMove(SearchThread thread)
@@ -382,6 +416,8 @@ public unsafe partial struct Pos
         thread.nodeStack[thread.ply].ContHist = thread.history.ContHist.NullHist;
         thread.nodeCount++;
         thread.ply++;
+
+        thread.nodeStack[thread.ply].acc = thread.nodeStack[thread.ply - 1].acc;
     }
 
 }

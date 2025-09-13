@@ -45,7 +45,7 @@ public static partial class Search
         }
         else
         {
-            ns->UncorrectedStaticEval = NNUE.Evaluate(ref p);
+            ns->UncorrectedStaticEval = NNUE.Evaluate(ref p, ns);
             thread.CorrHist.Correct(thread, ref p, ns);
         }
 

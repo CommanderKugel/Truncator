@@ -5,13 +5,12 @@ using static Params;
 public static class NNUE
 {
 
-    public static unsafe int Evaluate(ref Pos p)
+    public static unsafe int Evaluate(ref Pos p, Node* n)
     {
-        
         bool wtm = p.Us == Color.White;
-        Accumulator acc = new(ref p);
-        var WhiteAcc = wtm ? acc.WhiteAcc : acc.BlackAcc;
-        var BlackAcc = wtm ? acc.BlackAcc : acc.WhiteAcc;
+
+        var WhiteAcc = wtm ? n->acc.WhiteAcc : n->acc.BlackAcc;
+        var BlackAcc = wtm ? n->acc.BlackAcc : n->acc.WhiteAcc;
 
         // compute hidden layer(s)
         // in this case just one output neuron
