@@ -9,7 +9,7 @@ public static class Truncator
 
         ThreadPool.Resize(1);
         Search.ComputeLmrTable();
-        Weights.Load(@"C:\Users\nikol\Desktop\Truncator\Truncator\Evaluate\NNUE\quantised.bin");
+        Weights.Load();
 
         if (args.Length == 0)
         {

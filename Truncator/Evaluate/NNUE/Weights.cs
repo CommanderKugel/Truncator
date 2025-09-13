@@ -1,5 +1,6 @@
 
 using System.Diagnostics;
+using System.Reflection;
 using static Params;
 
 public static class Weights
@@ -15,10 +16,19 @@ public static class Weights
 
 
 
-    public static unsafe void Load(string path)
+    public static unsafe void Load()
     {
-        using BinaryReader net = new(File.Open(path, FileMode.Open));
+        string name = "quantised";
 
+        Stream? stream;
+        if ((stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(
+            $"Truncator.Evaluate.Nets.{name}.bin"
+        )) == null)
+        {
+            throw new Exception($"Could not find embedded {name}");
+        }
+
+        using BinaryReader net = new(stream);
 
         for (int feat = 0; feat < IN_SIZE; feat++)
             for (int node = 0; node < L1_SIZE; node++)
