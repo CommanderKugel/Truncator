@@ -89,7 +89,7 @@ public struct Marlinformat
 
         for (int i = 0; i < 32 / 2; i++)
         {
-            pieces[i] = (byte)(pieceArray[2 * i + 1] | (pieceArray[2 * i] << 4));
+            pieces[i] = (byte)((pieceArray[2 * i + 1] << 4) | (pieceArray[2 * i]));
         }
 
         gameResult = pgn.Result switch

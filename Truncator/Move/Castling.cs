@@ -66,12 +66,13 @@ public unsafe struct Castling
             {
                 // skip missing castling rights
 
+                int idx = GetCastlingIdx(c, kingside);
+
                 if (!p.HasCastlingRight(c, kingside))
                 {
+                    kingTargets[idx] = 64;
                     continue;
                 }
-
-                int idx = GetCastlingIdx(c, kingside);
 
                 // castling is encoded as King takes Rook
                 // so make the rook the target for the move-representation
