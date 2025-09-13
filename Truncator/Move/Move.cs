@@ -112,8 +112,8 @@ public readonly struct Move
 public enum MoveFlag : ushort
 {
     Normal = 0b0000_0000_0000_0000,
-    Castling = 0b0100_0000_0000_0000,
-    EnPassant = 0b1000_0000_0000_0000,
+    EnPassant = 0b0100_0000_0000_0000,
+    Castling = 0b1000_0000_0000_0000,
     Promotion = 0b1100_0000_0000_0000,
 
     KnightPromo = 0b1100_0000_0000_0000,

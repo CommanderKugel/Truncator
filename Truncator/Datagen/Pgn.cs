@@ -1,6 +1,5 @@
 
 using System.Diagnostics;
-using System.Security.Cryptography;
 
 public class Pgn
 {
@@ -12,23 +11,22 @@ public class Pgn
     {
         MainLine = [];
         string? line;
+        int emptyCount = 0;
 
         while (!file.EndOfStream && (line = file.ReadLine()) != null)
         {
-
             // [FEN "<fen>"]
             if (line.StartsWith("[FEN"))
             {
+                Debug.Assert(Fen == null);
                 Fen = line[6..(line.Length - 2)];
                 thread.rootPos.SetNewFen(thread, Fen);
-                Console.WriteLine("FEN: " + Fen);
             }
 
             // [Result "1-0"]
             else if (line.StartsWith("[Result"))
             {
                 Result = line[9..(line.Length - 2)];
-                Console.WriteLine("Result: " + Result);
             }
 
             else if (!line.StartsWith('[') && line != "")
@@ -39,7 +37,7 @@ public class Pgn
                 {
                     // stop when game ended
 
-                    if (ply == " " || ply == string.Empty)
+                    if (ply == " " || ply == string.Empty || ply == null)
                     {
                         break;
                     }
@@ -49,9 +47,22 @@ public class Pgn
 
                     var info = ply.Trim().Split(' ');
 
+                    if (info.Length == 0 || info.Length == 1)
+                    {
+                        continue;
+                    }
+
+                    // remove full move counter
+
+                    if (thread.rootPos.p.Us == Color.White)
+                    {
+                        info = info[1..];
+                    }
+
                     // parse for move and comment data
 
-                    Move m = new(thread, ref thread.rootPos.p, info[0]);
+                    bool mate = info[0].EndsWith('#');
+                    Move m = ParseSAN.ParseSANMove(thread, ref thread.rootPos.p, info[0]);
 
                     string s = info[1][1..];
                     int score = s.Contains('M') ? 32_000 : (int)float.Parse(s);
@@ -61,7 +72,8 @@ public class Pgn
                     int seldepth = int.Parse(info[2][(slashIdx + 1)..]);
 
                     long time = long.Parse(info[3]);
-                    long nodes = long.Parse(info[4]);
+                    string n = info[4].EndsWith(',') ? info[4][..^1] : info[4];
+                    long nodes = long.Parse(n);
 
                     // flip search scores when black made a move
 
@@ -79,7 +91,10 @@ public class Pgn
 
                     thread.rootPos.MakeMove(m, thread);
                 }
+            }
 
+            else if (string.IsNullOrWhiteSpace(line) && ++emptyCount >= 2)
+            {
                 break;
             }
         }
@@ -97,6 +112,7 @@ public class Pgn
 
         var thread = ThreadPool.MainThread;
         thread.rootPos.SetNewFen(thread, Fen);
+        Utils.print(thread.rootPos.p);
 
         foreach (var pm in MainLine)
         {
@@ -110,22 +126,13 @@ public class Pgn
             thread.doSearch = true;
             thread.rootPos.RootMoves.Clear();
             thread.rootPos.InitRootMoves(thread);
-            
+
             TimeManager.Reset();
             TimeManager.softnodes = 5000;
             TimeManager.hardnodes = pm.nodes;
             TimeManager.Start(thread.rootPos.p.Us);
 
-            if (pm.move == new Move((int)Square.F2, (int)Square.B6))
-            {
-                
-            }
-
             Search.IterativeDeepen(thread, false);
-            if (pm.move == new Move((int)Square.F2, (int)Square.B6))
-            {
-                return;
-            }
 
             thread.rootPos.MakeMove(pm.move, thread);
         }

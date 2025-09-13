@@ -131,13 +131,10 @@ public static partial class UCI
                 Perft.RunPerft();
             }
 
-            else if (tokens[0] == "pgn")
+            else if (tokens[0] == "pgntoviri")
             {
-                Debug.Assert(tokens.Length == 3);
-                var c = tokens[1] == "white" ? Color.White : tokens[1] == "black" ? Color.Black :
-                    throw new Exception($"could not read color '{tokens[1]}', expected 'white' or 'black'");
-                var pgn = new Pgn(ThreadPool.MainThread, new(tokens[2]));
-                pgn.Replay(c);
+                Debug.Assert(tokens.Length == 2);
+                Viriformat.ConvertDirWithPgnsToViriformat(ThreadPool.MainThread, tokens[1]);
             }
 
             else if (command == "spsainput")
