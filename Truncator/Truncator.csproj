@@ -18,4 +18,8 @@
     <EmbeddedResource Include="Fathom/fathomDll.dll"/>
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Evaluate/Nets/raw.bin"/>
+  </ItemGroup>
+
 </Project>
