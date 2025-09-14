@@ -7,8 +7,8 @@ public static class TimeManager
     public static int movestogo, movetime;
     public static int depth;
 
-    public static long UciSoftnodes = -1;
-    public static long UciHardnodes = -1;
+    public static long UciSoftnodes = int.MaxValue;
+    public static long UciHardnodes = int.MaxValue;
     public static long softnodes, hardnodes;
 
     private static long HardTimeout = 0;
@@ -43,7 +43,7 @@ public static class TimeManager
     public static void Start(Color Us)
     {
 
-        if (UciSoftnodes != -1 || UciHardnodes != -1)
+        if (UciSoftnodes != int.MaxValue || UciHardnodes != int.MaxValue)
         {
             Debug.Assert(UciSoftnodes != -1 && UciHardnodes != -1);
             softnodes = UciSoftnodes;

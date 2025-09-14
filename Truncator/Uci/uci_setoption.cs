@@ -57,12 +57,28 @@ public static partial class UCI
         else if (nameStr == "Softnodes")
         {
             TimeManager.UciSoftnodes = long.Parse(valueStr);
+
+            if (TimeManager.UciHardnodes == int.MaxValue)
+            {
+                Console.WriteLine("info string some UIs always set Softnodes to max value when using standart tm.");
+                Console.WriteLine("info string the value 'int.MaxValue' will be ignored by Truncator.");
+                Console.WriteLine("info string WARNING - NODES TIME WILL BE IGNORED");
+            }
+
             Console.WriteLine($"info string set softnodes={TimeManager.UciSoftnodes}");
         }
 
         else if (nameStr == "Hardnodes")
         {
             TimeManager.UciHardnodes = long.Parse(valueStr);
+
+            if (TimeManager.UciHardnodes == int.MaxValue)
+            {
+                Console.WriteLine("info string some UIs always set Hardnodes to max value when using standart tm.");
+                Console.WriteLine("info string the value 'int.MaxValue' will be ignored by Truncator.");
+                Console.WriteLine("info string WARNING - NODES TIME WILL BE IGNORED");
+            }
+
             Console.WriteLine($"info string set hardnodes={TimeManager.UciHardnodes}");
         }
 
