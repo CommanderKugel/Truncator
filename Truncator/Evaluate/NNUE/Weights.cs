@@ -18,7 +18,7 @@ public static class Weights
 
     public static unsafe void Load()
     {
-        string name = "pesto_virifmt_64hl-50";
+        string name = "pesto_virifmt_16hl-50";
 
         Stream? stream;
         if ((stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(

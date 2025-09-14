@@ -10,7 +10,7 @@ public static class Params
     /// <summary>
     /// size of hidden layer after the accumulator
     /// </summary>
-    public const int L1_SIZE = 64;
+    public const int L1_SIZE = 16;
 
 
     public const int SCALE = 400;
