@@ -8,47 +8,14 @@ public static class NNUE
     public static unsafe int Evaluate(ref Pos p)
     {
 
-        // accumulate feature transformer
-
-        var WhiteAcc = new float[L2_SIZE];
-        var BlackAcc = new float[L2_SIZE];
-
-        // copy bias
-
-        for (int node = 0; node < L2_SIZE; node++)
-        {
-            WhiteAcc[node] = l1_bias[node];
-            BlackAcc[node] = l1_bias[node];
-        }
-
-        // apply weight for every piece on the board
-
-        for (Color c = Color.White; c <= Color.Black; c++)
-        {
-            for (PieceType pt = PieceType.Pawn; pt <= PieceType.King; pt++)
-            {
-                ulong pieces = p.GetPieces(c, pt);
-                while (pieces != 0)
-                {
-                    int sq = Utils.popLsb(ref pieces);
-                    int widx = (int)c * 384 + (int)pt * 64 + sq;
-                    int bidx = (int)(1 - c) * 384 + (int)pt * 64 + (sq ^ 56);
-
-                    for (int node = 0; node < L2_SIZE; node++)
-                    {
-                        WhiteAcc[node] += l1_weight[widx * L2_SIZE + node];
-                        BlackAcc[node] += l1_weight[bidx * L2_SIZE + node];
-                    }
-                }
-            }
-        }
+        Accumulator acc = new();
+        acc.Accumulate(ref p);
 
         // Perspective: if its blacks turn, swap whites and blacks accumulator
 
-        if (p.Us == Color.Black)
-        {
-            (WhiteAcc, BlackAcc) = (BlackAcc, WhiteAcc);
-        }
+        bool wtm = p.Us == Color.White;
+        float* WhiteAcc = wtm ? acc.WhiteAcc : acc.BlackAcc;
+        float* BlackAcc = wtm ? acc.BlackAcc : acc.WhiteAcc;
 
         // activate the accumulated values
         // weigh them with L2 weigts
