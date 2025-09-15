@@ -1,4 +1,6 @@
 
+using System.Runtime.InteropServices;
+
 /// <summary>
 /// This is an entry of the Search-stack
 /// </summary>
@@ -21,5 +23,15 @@ public struct Node
     public int HistScore;
 
     public int CutoffCount;
+
+    public Accumulator acc;
+
+    public unsafe void Clear()
+    {
+        fixed (Node* ptr = &this)
+        {
+            NativeMemory.Clear(ptr, (nuint)sizeof(Node) - (nuint)sizeof(Accumulator));
+        }
+    }
 
 }

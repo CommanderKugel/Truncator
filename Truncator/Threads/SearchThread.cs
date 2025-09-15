@@ -1,6 +1,5 @@
 
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 
 public class SearchThread : IDisposable
 {
@@ -14,6 +13,7 @@ public class SearchThread : IDisposable
     public volatile bool doSearch = false;
     public volatile bool die = false;
 
+    public bool isReady = false;
     public bool IsDisposed = false;
 
 
@@ -47,11 +47,20 @@ public class SearchThread : IDisposable
         rootPos.CopyFrom(Parent.rootPos);
         ply = Parent.ply;
         repTable.CopyFrom(ref Parent.repTable);
+
+        for (int i = 0; i < 256; i++)
+        {
+            unsafe {
+                Parent.nodeStack[i].acc.CopyTo(ref this.nodeStack[i].acc);
+            }
+        }
     }
 
 
     public SearchThread(int id)
     {
+        isReady = false;
+
         this.id = id;
         PV = new PV();
         rootPos = new RootPos();
@@ -80,6 +89,13 @@ public class SearchThread : IDisposable
             {
                 (NodePtr + i)->ContHist = this.history.ContHist.NullHist;
             }
+
+            for (int i = 0; i < 256; i++)
+            {
+                (nodeStack + i)->acc = new Accumulator();
+            }
+
+            isReady = true;
 
             try
             {
@@ -160,7 +176,11 @@ public class SearchThread : IDisposable
         completedDepth = 0;
 
         PV.Clear();
-        NativeMemory.Clear(nodeStack, (nuint)sizeof(Node) * 255);
+
+        for (int i = 0; i < 256; i++)
+        {
+            nodeStack[i].Clear();
+        }
     }
 
     /// <summary>
@@ -209,6 +229,14 @@ public class SearchThread : IDisposable
             history.Dispose();
             CorrHist.Dispose();
 
+            for (int i = 0; i < 256; i++)
+            {
+                unsafe
+                {
+                    nodeStack[i].acc.Dispose();
+                }
+            }
+
             // make sure to not dispose of this multiple times
 
             IsDisposed = true;
@@ -217,34 +245,25 @@ public class SearchThread : IDisposable
 
     public unsafe void RunBench()
     {
+        while (!isReady) ;
+
         var watch = new Stopwatch();
         long totalNodes = 0;
 
-        Span<Node> NodeSpan = stackalloc Node[256 + 8];
-        fixed (Node* NodePtr = NodeSpan)
+        watch.Start();
+        foreach (var fen in Bench.Positions)
         {
-            this.nodeStack = NodePtr + 8;
-            for (int i = 0; i < 8; i++)
-            {
-                (NodePtr + i)->ContHist = this.history.ContHist.NullHist;
-            }
+            this.Clear();
+            ThreadPool.tt.Clear();
+            TimeManager.PrepareBench(TimeManager.maxDepth);
 
-            watch.Start();
-            foreach (var fen in Bench.Positions)
-            {
-                this.Clear();
-                ThreadPool.tt.Clear();
-                TimeManager.PrepareBench(TimeManager.maxDepth);
+            rootPos.SetNewFen(this, fen);
+            rootPos.InitRootMoves(this);
 
-                rootPos.SetNewFen(this, fen);
-                rootPos.InitRootMoves(this);
-
-                Search.IterativeDeepen(this, isBench: true);
-                totalNodes += nodeCount;
-            }
-            watch.Stop();
-
-        } // fixed
+            Search.IterativeDeepen(this, isBench: true);
+            totalNodes += nodeCount;
+        }
+        watch.Stop();
 
         Stop();
 
