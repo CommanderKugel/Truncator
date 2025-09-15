@@ -1,4 +1,4 @@
-
+using System.Numerics;
 using static Settings;
 using static Weights;
 
@@ -18,15 +18,51 @@ public static class NNUE
         // sum the accumulated & weighted values
 
         int output = 0;
+        int vecSize = Vector<short>.Count;
 
-        for (int node = 0; node < L2_SIZE; node++)
+        for (int node = 0; node < L2_SIZE; node += vecSize)
         {
-            int wact = Math.Clamp((int)WhiteAcc[node], 0, QA);
-            int bact = Math.Clamp((int)BlackAcc[node], 0, QA);
-            wact *= wact;
-            bact *= bact;
+            // load accumulator into vectors
 
-            output += wact * l2_weight[node] + bact * l2_weight[node + L2_SIZE];
+            Vector<short> wact = Vector.Load(WhiteAcc + node);
+            Vector<short> bact = Vector.Load(BlackAcc + node);
+
+            // clamp 
+
+            wact = Vector.Min(new Vector<short>(QA), wact);
+            wact = Vector.Max(Vector<short>.Zero, wact);
+            
+            bact = Vector.Min(new Vector<short>(QA), bact);
+            bact = Vector.Max(Vector<short>.Zero, bact);
+
+            // weigh
+            // 255 * 64 fits into int16, while 255 * 255 does not
+
+            var wWeighted = Vector.Multiply(wact, Vector.Load(l2_weight + node));
+            var bWeighted= Vector.Multiply(bact, Vector.Load(l2_weight + node + L2_SIZE));
+
+            // split into int-vectors to avoid overflows
+
+            Vector.Widen(wWeighted, out Vector<int> wWeightedLow, out Vector<int> wWeightedHigh);
+            Vector.Widen(bWeighted, out Vector<int> bWeightedLow, out Vector<int> bWeightedHigh);
+
+            Vector.Widen(wact, out Vector<int> wactLow, out Vector<int> wactHigh);
+            Vector.Widen(bact, out Vector<int> bactLow, out Vector<int> bactHigh);
+
+
+            // square (activation function again)
+
+            var wSquaredLow = Vector.Multiply(wWeightedLow, wactLow);
+            var wSquaredHigh = Vector.Multiply(wWeightedHigh, wactHigh);
+            var bSquaredLow = Vector.Multiply(bWeightedLow, bactLow);
+            var bSquaredHigh = Vector.Multiply(bWeightedHigh, bactHigh);
+
+            // sum it up
+
+            output += Vector.Sum(Vector.Add(
+                Vector.Add(wSquaredLow, wSquaredHigh),
+                Vector.Add(bSquaredLow, bSquaredHigh))
+            );
         }
 
         // scale and dequantize

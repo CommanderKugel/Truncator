@@ -1,5 +1,6 @@
 
 using System.Diagnostics;
+using System.Numerics;
 using System.Runtime.InteropServices;
 
 using static Settings;
@@ -67,10 +68,18 @@ public struct Accumulator : IDisposable
         int widx = (int)c * 384 + (int)pt * 64 + sq;
         int bidx = ((int)c ^ 1) * 384 + (int)pt * 64 + (sq ^ 56);
 
-        for (int node = 0; node < L2_SIZE; node++)
+        int vecSize = Vector<short>.Count;
+
+        for (int node = 0; node < L2_SIZE; node += vecSize)
         {
-            WhiteAcc[node] += l1_weight[widx * L2_SIZE + node];
-            BlackAcc[node] += l1_weight[bidx * L2_SIZE + node];
+            var wacc = Vector.Load(WhiteAcc + node);
+            var bacc = Vector.Load(BlackAcc + node);
+
+            var wWeight = Vector.Load(l1_weight + widx * L2_SIZE + node);
+            var bWeight = Vector.Load(l1_weight + bidx * L2_SIZE + node);
+
+            Vector.Store(Vector.Add(wacc, wWeight), WhiteAcc + node);
+            Vector.Store(Vector.Add(bacc, bWeight), BlackAcc + node);
         }
     }
 
@@ -89,10 +98,18 @@ public struct Accumulator : IDisposable
         int widx = (int)c * 384 + (int)pt * 64 + sq;
         int bidx = ((int)c ^ 1) * 384 + (int)pt * 64 + (sq ^ 56);
 
-        for (int node = 0; node < L2_SIZE; node++)
+        int vecSize = Vector<short>.Count;
+
+        for (int node = 0; node < L2_SIZE; node += vecSize)
         {
-            WhiteAcc[node] -= l1_weight[widx * L2_SIZE + node];
-            BlackAcc[node] -= l1_weight[bidx * L2_SIZE + node];
+            var wacc = Vector.Load(WhiteAcc + node);
+            var bacc = Vector.Load(BlackAcc + node);
+
+            var wWeight = Vector.Load(l1_weight + widx * L2_SIZE + node);
+            var bWeight = Vector.Load(l1_weight + bidx * L2_SIZE + node);
+
+            Vector.Store(Vector.Subtract(wacc, wWeight), WhiteAcc + node);
+            Vector.Store(Vector.Subtract(bacc, bWeight), BlackAcc + node);
         }
     }
 
