@@ -31,6 +31,8 @@ public static class NNUE
             output += wact * l2_weight[node] + bact * l2_weight[node + L2_SIZE];
         }
 
+        acc.Dispose();
+
         // scale the output to approximately centipawns
 
         int outInt = (int)(output * EVAL_SCALE);
