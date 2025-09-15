@@ -7,20 +7,20 @@ using System.Diagnostics;
 public static class Weights
 {
 
-    public static unsafe float* l1_weight = null;
-    public static unsafe float* l1_bias = null;
+    public static unsafe short* l1_weight = null;
+    public static unsafe short* l1_bias = null;
 
-    public static unsafe float* l2_weight = null;
-    public static unsafe float l2_bias = 0;
+    public static unsafe short* l2_weight = null;
+    public static unsafe short l2_bias = 0;
 
 
     public static unsafe void Load()
     {
         // allocate the arrays
 
-        l1_weight = (float*)NativeMemory.Alloc((nuint)sizeof(float) * IN_SIZE * L2_SIZE);
-        l1_bias = (float*)NativeMemory.Alloc((nuint)sizeof(float) * L2_SIZE);
-        l2_weight = (float*)NativeMemory.Alloc((nuint)sizeof(float) * 2 * L2_SIZE);
+        l1_weight = (short*)NativeMemory.Alloc((nuint)sizeof(short) * IN_SIZE * L2_SIZE);
+        l1_bias = (short*)NativeMemory.Alloc((nuint)sizeof(short) * L2_SIZE);
+        l2_weight = (short*)NativeMemory.Alloc((nuint)sizeof(short) * 2 * L2_SIZE);
 
         // access embedded weights-file
 
@@ -32,15 +32,15 @@ public static class Weights
 
         for (int feat = 0; feat < IN_SIZE; feat++)
             for (int node = 0; node < L2_SIZE; node++)
-                l1_weight[feat * L2_SIZE + node] = net.ReadSingle();
+                l1_weight[feat * L2_SIZE + node] = net.ReadInt16();
 
         for (int node = 0; node < L2_SIZE; node++)
-            l1_bias[node] = net.ReadSingle();
+            l1_bias[node] = net.ReadInt16();
 
         for (int node = 0; node < L2_SIZE * 2; node++)
-            l2_weight[node] = net.ReadSingle();
+            l2_weight[node] = net.ReadInt16();
 
-        l2_bias = net.ReadSingle();
+        l2_bias = net.ReadInt16();
 
         Debug.WriteLine("info string Done loading net weights");
     }

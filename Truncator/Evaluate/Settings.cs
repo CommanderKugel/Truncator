@@ -8,4 +8,7 @@ public static class Settings
 
     public const string NET_NAME = "16hl-2";
 
+    public const int QA = 255;
+    public const int QB = 64;
+
 }
