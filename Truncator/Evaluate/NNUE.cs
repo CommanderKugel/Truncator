@@ -15,10 +15,13 @@ public static class NNUE
 
         // activate the accumulated values
         // weigh them with L2 weigts
-        // sum the accumulated & weighted values
 
-        int output = 0;
         int vecSize = Vector<short>.Count;
+
+        // store weighted feature transformer values in a vector
+        // and only sum them once in the end
+
+        var outputAcc = Vector<int>.Zero;
 
         for (int node = 0; node < L2_SIZE; node += vecSize)
         {
@@ -27,11 +30,11 @@ public static class NNUE
             Vector<short> wact = Vector.Load(WhiteAcc + node);
             Vector<short> bact = Vector.Load(BlackAcc + node);
 
-            // clamp 
+            // clamp (first part of the activation function) 
 
             wact = Vector.Min(new Vector<short>(QA), wact);
             wact = Vector.Max(Vector<short>.Zero, wact);
-            
+
             bact = Vector.Min(new Vector<short>(QA), bact);
             bact = Vector.Max(Vector<short>.Zero, bact);
 
@@ -39,7 +42,7 @@ public static class NNUE
             // 255 * 64 fits into int16, while 255 * 255 does not
 
             var wWeighted = Vector.Multiply(wact, Vector.Load(l2_weight + node));
-            var bWeighted= Vector.Multiply(bact, Vector.Load(l2_weight + node + L2_SIZE));
+            var bWeighted = Vector.Multiply(bact, Vector.Load(l2_weight + node + L2_SIZE));
 
             // split into int-vectors to avoid overflows
 
@@ -49,25 +52,25 @@ public static class NNUE
             Vector.Widen(wact, out Vector<int> wactLow, out Vector<int> wactHigh);
             Vector.Widen(bact, out Vector<int> bactLow, out Vector<int> bactHigh);
 
-
-            // square (activation function again)
+            // square the not int-vectos (activation function again)
 
             var wSquaredLow = Vector.Multiply(wWeightedLow, wactLow);
             var wSquaredHigh = Vector.Multiply(wWeightedHigh, wactHigh);
             var bSquaredLow = Vector.Multiply(bWeightedLow, bactLow);
             var bSquaredHigh = Vector.Multiply(bWeightedHigh, bactHigh);
 
-            // sum it up
+            // store in output accumulator
 
-            output += Vector.Sum(Vector.Add(
-                Vector.Add(wSquaredLow, wSquaredHigh),
-                Vector.Add(bSquaredLow, bSquaredHigh))
-            );
+            var wSquaredSum = Vector.Add(wSquaredHigh, wSquaredLow);
+            var bSquaredSum = Vector.Add(bSquaredHigh, bSquaredLow);
+
+            outputAcc = Vector.Add(outputAcc, wSquaredSum);
+            outputAcc = Vector.Add(outputAcc, bSquaredSum);
         }
 
         // scale and dequantize
 
-        output = (output / QA + l2_bias) * EVAL_SCALE / (QA * QB);
+        int output = (Vector.Sum(outputAcc) / QA + l2_bias) * EVAL_SCALE / (QA * QB);
 
         return Math.Clamp(output, -Search.SCORE_EVAL_MAX, Search.SCORE_EVAL_MAX);
     }
