@@ -12,6 +12,9 @@ public struct Accumulator : IDisposable
     public unsafe short* WhiteAcc = null;
     public unsafe short* BlackAcc = null;
 
+    public int WhiteFlip;
+    public int BlackFlip;
+
     public unsafe Accumulator()
     {
         WhiteAcc = (short*)NativeMemory.Alloc((nuint)sizeof(short) * L2_SIZE);
@@ -29,6 +32,9 @@ public struct Accumulator : IDisposable
     {
         Debug.Assert(WhiteAcc != null);
         Debug.Assert(BlackAcc != null);
+
+        WhiteFlip = GetHmFlip(p.KingSquares[(int)Color.White]);
+        BlackFlip = GetHmFlip(p.KingSquares[(int)Color.Black]);
 
         // copy bias
         // implicitly clears accumulator
@@ -65,8 +71,8 @@ public struct Accumulator : IDisposable
         Debug.Assert(pt != PieceType.NONE);
         Debug.Assert(sq >= 0 && sq < 64);
 
-        int widx = (int)c * 384 + (int)pt * 64 + sq;
-        int bidx = ((int)c ^ 1) * 384 + (int)pt * 64 + (sq ^ 56);
+        int widx = (int)c * 384 + (int)pt * 64 + (sq ^ WhiteFlip);
+        int bidx = ((int)c ^ 1) * 384 + (int)pt * 64 + (sq ^ BlackFlip ^ 56);
 
         int vecSize = Vector<short>.Count;
 
@@ -95,8 +101,8 @@ public struct Accumulator : IDisposable
         Debug.Assert(pt != PieceType.NONE);
         Debug.Assert(sq >= 0 && sq < 64);
 
-        int widx = (int)c * 384 + (int)pt * 64 + sq;
-        int bidx = ((int)c ^ 1) * 384 + (int)pt * 64 + (sq ^ 56);
+        int widx = (int)c * 384 + (int)pt * 64 + (sq ^ WhiteFlip);
+        int bidx = ((int)c ^ 1) * 384 + (int)pt * 64 + (sq ^ BlackFlip ^ 56);
 
         int vecSize = Vector<short>.Count;
 
@@ -113,6 +119,14 @@ public struct Accumulator : IDisposable
         }
     }
 
+
+    public static int GetHmFlip(int ksq)
+    {
+        Debug.Assert(ksq >= 0 && ksq < 64);
+        return Utils.FileOf(ksq) > 3 ? 7 : 0;
+    }
+
+
     /// <summary>
     /// copy accumulated values to childs White- & BlackAcc
     /// </summary>
@@ -122,6 +136,9 @@ public struct Accumulator : IDisposable
         Debug.Assert(BlackAcc != null);
         Debug.Assert(child.WhiteAcc != null);
         Debug.Assert(child.BlackAcc != null);
+
+        child.WhiteFlip = WhiteFlip;
+        child.BlackFlip = BlackFlip;
 
         for (int i = 0; i < L2_SIZE; i++)
         {
@@ -169,6 +186,13 @@ public struct Accumulator : IDisposable
                 return false;
             }
         }
+
+        if (WhiteFlip != other.WhiteFlip
+            || BlackFlip != other.BlackFlip)
+        {
+            return false;
+        }
+
         return true;
     }
 }

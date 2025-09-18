@@ -1,5 +1,6 @@
 
 using System.Diagnostics;
+using static Settings;
 
 public unsafe partial struct Pos
 {
@@ -93,12 +94,12 @@ public unsafe partial struct Pos
     {
 
         // assumes positive IsPseudoLegal check
-        
+
         Debug.Assert(m.NotNull);
 
         int from = m.from;
-        int to   = m.to;
-        
+        int to = m.to;
+
         PieceType pt = PieceTypeOn(from);
         int ksq = pt == PieceType.King ? to : KingSquares[(int)Us];
 
@@ -108,7 +109,7 @@ public unsafe partial struct Pos
         // 1. we are not in check and we do not move through/into check
         // 2. we have the corresponding castling rights
         // 3. the kings and rooks path is not blocked by other pieces
-        
+
         if (m.IsCastling)
         {
             block ^= 1ul << to;
@@ -335,7 +336,13 @@ public unsafe partial struct Pos
         parent.CopyTo(ref child);
         Debug.Assert(parent.EqualContents(ref child));
 
-        if (m.IsCastling)
+        if (movingPt == PieceType.King
+            && KingBuckets[from] != KingBuckets[to])
+        {
+            child.Accumulate(ref this);
+        }
+
+        else if (m.IsCastling)
         {
             int idx = Castling.GetCastlingIdx(Us, from < to);
             child.Activate(Us, PieceType.King, Castling.KingDestinations[idx]);
