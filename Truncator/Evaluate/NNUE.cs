@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Numerics;
 using static Settings;
 using static Weights;
@@ -31,7 +32,7 @@ public static class NNUE
 
             wact = Vector.Min(new Vector<short>(QA), wact);
             wact = Vector.Max(Vector<short>.Zero, wact);
-            
+
             bact = Vector.Min(new Vector<short>(QA), bact);
             bact = Vector.Max(Vector<short>.Zero, bact);
 
@@ -39,7 +40,7 @@ public static class NNUE
             // 255 * 64 fits into int16, while 255 * 255 does not
 
             var wWeighted = Vector.Multiply(wact, Vector.Load(l2_weight + node));
-            var bWeighted= Vector.Multiply(bact, Vector.Load(l2_weight + node + L2_SIZE));
+            var bWeighted = Vector.Multiply(bact, Vector.Load(l2_weight + node + L2_SIZE));
 
             // split into int-vectors to avoid overflows
 
@@ -70,6 +71,13 @@ public static class NNUE
         output = (output / QA + l2_bias) * EVAL_SCALE / (QA * QB);
 
         return Math.Clamp(output, -Search.SCORE_EVAL_MAX, Search.SCORE_EVAL_MAX);
+    }
+
+
+    public static int GetHM_XOR(int ksq)
+    {
+        Debug.Assert(ksq >= 0 && ksq < 64);
+        return Utils.FileOf(ksq) > 3 ? 7 : 0;
     }
 
 }

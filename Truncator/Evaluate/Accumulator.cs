@@ -12,6 +12,9 @@ public struct Accumulator : IDisposable
     public unsafe short* WhiteAcc = null;
     public unsafe short* BlackAcc = null;
 
+    public int WhiteHMFlip;
+    public int BlackHMFlip;
+
     public unsafe Accumulator()
     {
         WhiteAcc = (short*)NativeMemory.Alloc((nuint)sizeof(short) * L2_SIZE);
@@ -35,6 +38,11 @@ public struct Accumulator : IDisposable
 
         NativeMemory.Copy(l1_bias, WhiteAcc, sizeof(short) * L2_SIZE);
         NativeMemory.Copy(l1_bias, BlackAcc, sizeof(short) * L2_SIZE);
+
+        // setup hozizontal mirroring
+
+        WhiteHMFlip = NNUE.GetHM_XOR(p.KingSquares[(int)Color.White]);
+        BlackHMFlip = NNUE.GetHM_XOR(p.KingSquares[(int)Color.Black]);
 
         // accumulate weights for every piece on the board
 
@@ -65,8 +73,8 @@ public struct Accumulator : IDisposable
         Debug.Assert(pt != PieceType.NONE);
         Debug.Assert(sq >= 0 && sq < 64);
 
-        int widx = (int)c * 384 + (int)pt * 64 + sq;
-        int bidx = ((int)c ^ 1) * 384 + (int)pt * 64 + (sq ^ 56);
+        int widx = (int)c * 384 + (int)pt * 64 + (sq ^ WhiteHMFlip);
+        int bidx = ((int)c ^ 1) * 384 + (int)pt * 64 + (sq ^ 56 ^ BlackHMFlip);
 
         int vecSize = Vector<short>.Count;
 
@@ -95,8 +103,8 @@ public struct Accumulator : IDisposable
         Debug.Assert(pt != PieceType.NONE);
         Debug.Assert(sq >= 0 && sq < 64);
 
-        int widx = (int)c * 384 + (int)pt * 64 + sq;
-        int bidx = ((int)c ^ 1) * 384 + (int)pt * 64 + (sq ^ 56);
+        int widx = (int)c * 384 + (int)pt * 64 + (sq ^ WhiteHMFlip);
+        int bidx = ((int)c ^ 1) * 384 + (int)pt * 64 + (sq ^ 56 ^ BlackHMFlip);
 
         int vecSize = Vector<short>.Count;
 
@@ -122,6 +130,9 @@ public struct Accumulator : IDisposable
         Debug.Assert(BlackAcc != null);
         Debug.Assert(child.WhiteAcc != null);
         Debug.Assert(child.BlackAcc != null);
+
+        child.WhiteHMFlip = WhiteHMFlip;
+        child.BlackHMFlip = BlackHMFlip;
 
         for (int i = 0; i < L2_SIZE; i++)
         {
@@ -169,6 +180,13 @@ public struct Accumulator : IDisposable
                 return false;
             }
         }
+
+        if (WhiteHMFlip != other.WhiteHMFlip
+            || BlackHMFlip != other.BlackHMFlip)
+        {
+            return false;
+        }
+
         return true;
     }
 }

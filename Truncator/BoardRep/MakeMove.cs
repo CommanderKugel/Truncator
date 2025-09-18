@@ -1,5 +1,6 @@
 
 using System.Diagnostics;
+using static Settings;
 
 public unsafe partial struct Pos
 {
@@ -335,7 +336,17 @@ public unsafe partial struct Pos
         parent.CopyTo(ref child);
         Debug.Assert(parent.EqualContents(ref child));
 
-        if (m.IsCastling)
+        // simply accumulate from zero if the king crosses the middle of the board
+
+        if (movingPt == PieceType.King
+            && KingBuckets[from] != KingBuckets[to])
+        {
+            child.Accumulate(ref this);
+        }
+
+        // if no hm-recalculation needed, update as normal
+
+        else if (m.IsCastling)
         {
             int idx = Castling.GetCastlingIdx(Us, from < to);
             child.Activate(Us, PieceType.King, Castling.KingDestinations[idx]);
