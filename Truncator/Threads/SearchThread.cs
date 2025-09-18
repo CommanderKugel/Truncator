@@ -70,7 +70,7 @@ public class SearchThread : IDisposable
 
     private unsafe void ThreadMainLoop()
     {
-        Console.WriteLine($"thread {id} started");
+        Debug.WriteLine($"thread {id} started");
 
         Span<Node> NodeSpan = stackalloc Node[256 + 8];
         fixed (Node* NodePtr = NodeSpan)
@@ -118,7 +118,7 @@ public class SearchThread : IDisposable
             {
                 Dispose();
             }
-            Console.WriteLine("thread shutting down - main loop escaped");
+            Debug.WriteLine("thread shutting down - main loop escaped");
 
         } // fixed
     }

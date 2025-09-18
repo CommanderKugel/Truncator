@@ -4,16 +4,16 @@ public static class GenFens
 
     public static void Generate(string[] args)
     {
-        Console.WriteLine("starting to generate fens");
+        Console.WriteLine("info string starting to generate fens");
 
         // accept commands of form of:
         // genfens N seed S book <None|Books/my_book.epd> <?extra>
 
         if (!int.TryParse(args[1], out int N))
-            throw new ArgumentException("couldnt parse the number of fens to generate!");
+            throw new ArgumentException("info string couldnt parse the number of fens to generate!");
 
         if (!int.TryParse(args[3], out int seed))
-            throw new ArgumentException("coudnt parse the seed to initialize rng from!");
+            throw new ArgumentException("info string coudnt parse the seed to initialize rng from!");
 
         string BookPath = args[5];
 

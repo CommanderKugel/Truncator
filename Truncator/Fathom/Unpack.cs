@@ -60,13 +60,13 @@ public static class BindingHandler
                 if (File.Exists(file))
                 {
                     File.Delete(file);
-                    Console.WriteLine($"deleted {file}");
+                    Debug.WriteLine($"deleted {file}");
                 }
             }
             catch (Exception e)
             {
-                Console.WriteLine($"Something went wrong deleting {file}");
-                Console.WriteLine(e);
+                Debug.WriteLine($"Something went wrong deleting {file}");
+                Debug.WriteLine(e);
             }
         }
     }

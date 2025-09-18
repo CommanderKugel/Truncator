@@ -39,7 +39,7 @@ public class TranspositionTable : IDisposable
         tt = (TTEntry*)NativeMemory.Alloc((nuint)sizeof(TTEntry) * entryCount);
         size = entryCount;
 
-        Console.WriteLine($"hash set to {sizemb} mb");
+        Console.WriteLine($"info string hash set to {sizemb} mb");
     }
 
     public unsafe void Clear()

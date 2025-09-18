@@ -160,7 +160,7 @@ public static partial class Fathom
 
         if (status == Status.Initialized)
         {
-            Console.WriteLine("tb is already initialized");
+            Console.WriteLine("info string tb is already initialized");
             return;
         }
 
@@ -170,7 +170,7 @@ public static partial class Fathom
 
         if (status == Status.Disposed)
         {
-            Console.WriteLine("tb is disposed, cannot re-initialize");
+            Console.WriteLine("info string tb is disposed, cannot re-initialize");
             return;
         }
 
@@ -181,24 +181,24 @@ public static partial class Fathom
 
         if (!OperatingSystem.IsWindows())
         {
-            Console.WriteLine($"Fathom is only supported under Windows for now");
+            Console.WriteLine($"info string Fathom is only supported under Windows (for now)");
             return;
         }
         
         if (!BindingHandler.UnpackContainedDll("Truncator.Fathom.fathomDll.dll", "fathomDll.dll"))
         {
-            Console.WriteLine("Could not load Fathom Bindings");
+            Console.WriteLine("info string Could not load Fathom Bindings");
             return;
         }
         
         try
         {
             int res = tb_init_(path);
-            Console.WriteLine($"tb initialized with returncode {res}");
+            Console.WriteLine($"info string tb initialized with returncode {res}");
 
             TbLargest = get_largest();
             DoTbProbing = true;
-            Console.WriteLine($"largest tb size {TbLargest}");
+            Console.WriteLine($"info string tb largest: {TbLargest}");
 
             if (res == 1)
             {

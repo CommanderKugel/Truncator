@@ -44,7 +44,7 @@ public static class ThreadPool
             pool[i] = new SearchThread(i);
         }
 
-        Console.WriteLine($"resized the threadpool to {ThreadCount}");
+        Console.WriteLine($"info string resized the threadpool to {ThreadCount}");
     }
 
     /// <summary>
