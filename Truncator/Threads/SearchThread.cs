@@ -14,6 +14,7 @@ public class SearchThread : IDisposable
     public volatile bool doSearch = false;
     public volatile bool die = false;
 
+    public bool IsInitialized = false;
     public bool IsDisposed = false;
 
 
@@ -52,6 +53,9 @@ public class SearchThread : IDisposable
 
     public SearchThread(int id)
     {
+        IsInitialized = false;
+        IsDisposed = false;
+
         this.id = id;
         PV = new PV();
         rootPos = new RootPos();
@@ -64,8 +68,6 @@ public class SearchThread : IDisposable
         myThread = new Thread(ThreadMainLoop);
         myThread.Name = $"SearchThread_{id}";
         myThread.Start();
-
-        IsDisposed = false;
     }
 
     private unsafe void ThreadMainLoop()
@@ -75,18 +77,21 @@ public class SearchThread : IDisposable
         Span<Node> NodeSpan = stackalloc Node[256 + 8];
         fixed (Node* NodePtr = NodeSpan)
         {
-            this.nodeStack = NodePtr + 8;
+            nodeStack = NodePtr + 8;
             for (int i = 0; i < 8; i++)
             {
-                (NodePtr + i)->ContHist = this.history.ContHist.NullHist;
+                (NodePtr + i)->ContHist = history.ContHist.NullHist;
             }
+
+
+            IsInitialized = true;
 
             try
             {
                 while (!die)
                 {
                     myResetEvent.WaitOne();
-                    this.doSearch = true;
+                    doSearch = true;
 
                     if (die)
                     {
@@ -145,7 +150,7 @@ public class SearchThread : IDisposable
     /// </summary>
     public void Stop()
     {
-        this.doSearch = false;
+        doSearch = false;
     }
 
     /// <summary>
@@ -220,31 +225,20 @@ public class SearchThread : IDisposable
         var watch = new Stopwatch();
         long totalNodes = 0;
 
-        Span<Node> NodeSpan = stackalloc Node[256 + 8];
-        fixed (Node* NodePtr = NodeSpan)
+        watch.Start();
+        foreach (var fen in Bench.Positions)
         {
-            this.nodeStack = NodePtr + 8;
-            for (int i = 0; i < 8; i++)
-            {
-                (NodePtr + i)->ContHist = this.history.ContHist.NullHist;
-            }
+            this.Clear();
+            ThreadPool.tt.Clear();
+            TimeManager.PrepareBench(TimeManager.maxDepth);
 
-            watch.Start();
-            foreach (var fen in Bench.Positions)
-            {
-                this.Clear();
-                ThreadPool.tt.Clear();
-                TimeManager.PrepareBench(TimeManager.maxDepth);
+            rootPos.SetNewFen(this, fen);
+            rootPos.InitRootMoves(this);
 
-                rootPos.SetNewFen(this, fen);
-                rootPos.InitRootMoves(this);
-
-                Search.IterativeDeepen(this, isBench: true);
-                totalNodes += nodeCount;
-            }
-            watch.Stop();
-
-        } // fixed
+            Search.IterativeDeepen(this, isBench: true);
+            totalNodes += nodeCount;
+        }
+        watch.Stop();
 
         Stop();
 

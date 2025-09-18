@@ -10,32 +10,37 @@ public static class Truncator
         ThreadPool.Resize(1);
         Search.ComputeLmrTable();
 
+        while (!ThreadPool.MainThread.IsInitialized)
+        {
+            // only continue on when threads are fully initialized
+        }
+
         if (args.Length == 0)
-        {
-            Debug.WriteLine("no args given, starting UCI protocol");
-            UCI.MainLoop();
-        }
+            {
+                Debug.WriteLine("no args given, starting UCI protocol");
+                UCI.MainLoop();
+            }
 
-        else if (args.Length == 1 && args[0] == "bench")
-        {
-            Bench.runBench(Bench.BenchDepth);
-        }
+            else if (args.Length == 1 && args[0] == "bench")
+            {
+                Bench.runBench(Bench.BenchDepth);
+            }
 
-        else if (args.Length == 1 && args[0] == "perft")
-        {
-            Perft.RunPerft();
-        }
+            else if (args.Length == 1 && args[0] == "perft")
+            {
+                Perft.RunPerft();
+            }
 
-        else if (args[0].StartsWith("genfens"))
-        {
-            GenFens.Generate(args[0].Split(' '));
-        }
+            else if (args[0].StartsWith("genfens"))
+            {
+                GenFens.Generate(args[0].Split(' '));
+            }
 
-        else
-        {
-            Console.WriteLine($"unknown args, shutting down...");
-            return;
-        }
+            else
+            {
+                Console.WriteLine($"unknown args, shutting down...");
+                return;
+            }
 
 
         Debug.WriteLine("\n\t1) Disposing Fathom Dll and trying to delete File");
