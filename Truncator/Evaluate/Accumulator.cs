@@ -2,7 +2,7 @@
 using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.InteropServices;
-
+using System.Runtime.Intrinsics.X86;
 using static Settings;
 using static Weights;
 
@@ -75,14 +75,14 @@ public struct Accumulator : IDisposable
 
         for (int node = 0; node < L2_SIZE; node += vecSize)
         {
-            var wacc = Vector.LoadAligned(WhiteAcc + node);
-            var bacc = Vector.LoadAligned(BlackAcc + node);
+            var wacc = Avx.LoadAlignedVector256(WhiteAcc + node);
+            var bacc = Avx.LoadAlignedVector256(BlackAcc + node);
 
-            var wWeight = Vector.LoadAligned(wWeightPrt + node);
-            var bWeight = Vector.LoadAligned(bWeightPrt + node);
+            var wWeight = Avx.LoadAlignedVector256(wWeightPrt + node);
+            var bWeight = Avx.LoadAlignedVector256(bWeightPrt + node);
 
-            Vector.Store(Vector.Add(wacc, wWeight), WhiteAcc + node);
-            Vector.Store(Vector.Add(bacc, bWeight), BlackAcc + node);
+            Avx.StoreAligned(WhiteAcc + node, Avx2.Add(wacc, wWeight));
+            Avx.StoreAligned(BlackAcc + node, Avx2.Add(bacc, bWeight));
         }
     }
 
