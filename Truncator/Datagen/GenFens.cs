@@ -73,7 +73,6 @@ public static class GenFens
 
                 Search.IterativeDeepen(thread, isBench: true);
                 int score = thread.PV[thread.completedDepth];
-                Console.WriteLine($"score: {score}");
 
                 // filter out very imbalanced positions
 
