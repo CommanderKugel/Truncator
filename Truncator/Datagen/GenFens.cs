@@ -58,8 +58,29 @@ public static class GenFens
 
             if (success && MoveGen.GenerateLegaMoves(thread, ref moves, ref thread.rootPos.p) > 0)
             {
-                // ToDo: evaluate score with QSearch or low depth/nodes search
-                //       and skip positions that have forced mates or are already dead lost
+
+                TimeManager.Reset();
+                TimeManager.depth = 10;
+                TimeManager.Start(thread.rootPos.p.Us);
+
+                thread.Clear();
+                thread.rootPos.InitRootMoves(thread);
+                
+                unsafe
+                {
+                    thread.nodeStack[0].acc.Accumulate(ref thread.rootPos.p);
+                }
+
+                Search.IterativeDeepen(thread, isBench: true);
+                int score = thread.PV[thread.completedDepth];
+                Console.WriteLine($"score: {score}");
+
+                // filter out very imbalanced positions
+
+                if (Math.Abs(score) > 500)
+                {
+                    continue;
+                }
 
                 Console.WriteLine($"info string genfens {thread.rootPos.p.GetFen()}");
                 positions++;
