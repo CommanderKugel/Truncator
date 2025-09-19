@@ -57,7 +57,45 @@ public struct Accumulator : IDisposable
     /// accumulate a newly activated feaure in the accumulator
     /// ~a piece has been placed on the board somewhere
     /// </summary>
-    public unsafe void Activate(Color c, PieceType pt, int sq)
+    public void Activate(Color c, PieceType pt, int sq)
+    {
+        if (Avx2.IsSupported)
+            ActivateAvx2(c, pt, sq);
+        else
+            ActivateFallback(c, pt, sq);
+    }
+
+    public unsafe void ActivateFallback(Color c, PieceType pt, int sq)
+    {
+        Debug.Assert(Avx2.IsSupported);
+        Debug.Assert(WhiteAcc != null);
+        Debug.Assert(BlackAcc != null);
+        Debug.Assert(c != Color.NONE);
+        Debug.Assert(pt != PieceType.NONE);
+        Debug.Assert(sq >= 0 && sq < 64);
+
+        int widx = (int)c * 384 + (int)pt * 64 + sq;
+        int bidx = ((int)c ^ 1) * 384 + (int)pt * 64 + (sq ^ 56);
+
+        var wWeightPrt = l1_weight + widx * L2_SIZE;
+        var bWeightPrt = l1_weight + bidx * L2_SIZE;
+
+        int vecSize = Vector<short>.Count;
+
+        for (int node = 0; node < L2_SIZE; node += vecSize)
+        {
+            var wacc = Vector.Load(WhiteAcc + node);
+            var bacc = Vector.Load(BlackAcc + node);
+
+            var wWeight = Vector.Load(wWeightPrt + node);
+            var bWeight = Vector.Load(bWeightPrt + node);
+
+            Vector.Store(Vector.Add(wacc, wWeight), WhiteAcc + node);
+            Vector.Store(Vector.Add(bacc, bWeight), BlackAcc + node);
+        }
+    }
+
+    public unsafe void ActivateAvx2(Color c, PieceType pt, int sq)
     {
         Debug.Assert(WhiteAcc != null);
         Debug.Assert(BlackAcc != null);
@@ -86,11 +124,20 @@ public struct Accumulator : IDisposable
         }
     }
 
+
     /// <summary>
     /// remove the accumulation of a formerly activated feaure from the accumulator
     /// ~a piece has been removed from the board somewhere
     /// </summary>
-    public unsafe void Deactivate(Color c, PieceType pt, int sq)
+    public void Deactivate(Color c, PieceType pt, int sq)
+    {
+        if (Avx2.IsSupported)
+            DeactivateAvx2(c, pt, sq);
+        else
+            DeactivateFallback(c, pt, sq);
+    }
+
+    public unsafe void DeactivateFallback(Color c, PieceType pt, int sq)
     {
         Debug.Assert(WhiteAcc != null);
         Debug.Assert(BlackAcc != null);
@@ -116,6 +163,36 @@ public struct Accumulator : IDisposable
 
             Vector.Store(Vector.Subtract(wacc, wWeight), WhiteAcc + node);
             Vector.Store(Vector.Subtract(bacc, bWeight), BlackAcc + node);
+        }
+    }
+
+    public unsafe void DeactivateAvx2(Color c, PieceType pt, int sq)
+    {
+        Debug.Assert(Avx2.IsSupported);
+        Debug.Assert(WhiteAcc != null);
+        Debug.Assert(BlackAcc != null);
+        Debug.Assert(c != Color.NONE);
+        Debug.Assert(pt != PieceType.NONE);
+        Debug.Assert(sq >= 0 && sq < 64);
+
+        int widx = (int)c * 384 + (int)pt * 64 + sq;
+        int bidx = ((int)c ^ 1) * 384 + (int)pt * 64 + (sq ^ 56);
+
+        var wWeightPrt = l1_weight + widx * L2_SIZE;
+        var bWeightPrt = l1_weight + bidx * L2_SIZE;
+
+        int vecSize = Vector<short>.Count;
+
+        for (int node = 0; node < L2_SIZE; node += vecSize)
+        {
+            var wacc = Avx.LoadAlignedVector256(WhiteAcc + node);
+            var bacc = Avx.LoadAlignedVector256(BlackAcc + node);
+
+            var wWeight = Avx.LoadAlignedVector256(wWeightPrt + node);
+            var bWeight = Avx.LoadAlignedVector256(bWeightPrt + node);
+
+            Avx.StoreAligned(WhiteAcc + node, Avx2.Subtract(wacc, wWeight));
+            Avx.StoreAligned(BlackAcc + node, Avx2.Subtract(bacc, bWeight));
         }
     }
 

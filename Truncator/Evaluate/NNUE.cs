@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
@@ -83,31 +84,32 @@ public static class NNUE
 
     public static unsafe int EvaluateAvx2(ref Pos p, Accumulator acc)
     {
+        Debug.Assert(Avx2.IsSupported);
+
         // Perspective: if its blacks turn, swap whites and blacks accumulator
 
         short* WhiteAcc = p.Us == Color.White ? acc.WhiteAcc : acc.BlackAcc;
         short* BlackAcc = p.Us == Color.White ? acc.BlackAcc : acc.WhiteAcc;
 
-        // activate the accumulated values
-        // weigh them with L2 weigts
-        // sum the accumulated & weighted values
-
-        int outputBucket = GetOutputBucket(ref p);
-        const int VEC_SIZE = 16;
-
-        var OutputAccumulator = Vector256<int>.Zero;
+        const int VEC_SIZE = 16; // avx2 uses 256 bit registers
+        
         var QAVector = Vector256.Create((short)QA);
         var ZeroVector = Vector256<short>.Zero;
 
+        int outputBucket = GetOutputBucket(ref p);
+        var OutputAccumulator = Vector256<int>.Zero;
+        
         var wWeightPtr = l2_weight + outputBucket * L2_SIZE * 2;
         var bWeightPrt = l2_weight + outputBucket * L2_SIZE * 2 + L2_SIZE;
+
+        // main accumulation loop
 
         for (int node = 0; node < L2_SIZE; node += VEC_SIZE)
         {
             // load accumulator into vectors
 
-            var wact = Vector256.LoadAligned<short>(WhiteAcc + node);
-            var bact = Vector256.LoadAligned<short>(BlackAcc + node);
+            var wact = Avx.LoadAlignedVector256(WhiteAcc + node);
+            var bact = Avx.LoadAlignedVector256(BlackAcc + node);
 
             // clamp 
 
@@ -117,8 +119,8 @@ public static class NNUE
             // weigh
             // 255 * 64 fits into int16, while 255 * 255 does not
 
-            var wWeighted = Avx2.MultiplyLow(wact, Vector256.LoadAligned(wWeightPtr + node));
-            var bWeighted = Avx2.MultiplyLow(bact, Vector256.LoadAligned(bWeightPrt + node));
+            var wWeighted = Avx2.MultiplyLow(wact, Avx.LoadAlignedVector256(wWeightPtr + node));
+            var bWeighted = Avx2.MultiplyLow(bact, Avx.LoadAlignedVector256(bWeightPrt + node));
 
             // now square (255 * 64 fits into short, 255 * 255 * 64 needs to be int)
             // so widen vector into ints
