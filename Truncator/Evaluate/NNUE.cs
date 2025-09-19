@@ -20,28 +20,30 @@ public static class NNUE
         int outputBucket = GetOutputBucket(ref p);
         int vecSize = Vector<short>.Count;
 
-        int output = 0;
+        var OutputAccumulator = Vector<int>.Zero;
+        var QAVector = new Vector<short>(QA);
+        var ZeroVector = Vector<short>.Zero;
+
+        var wWeightPtr = l2_weight + outputBucket * L2_SIZE * 2;
+        var bWeightPrt = l2_weight + outputBucket * L2_SIZE * 2 + L2_SIZE;
 
         for (int node = 0; node < L2_SIZE; node += vecSize)
         {
             // load accumulator into vectors
 
-            Vector<short> wact = Vector.Load(WhiteAcc + node);
-            Vector<short> bact = Vector.Load(BlackAcc + node);
+            Vector<short> wact = Vector.LoadAligned(WhiteAcc + node);
+            Vector<short> bact = Vector.LoadAligned(BlackAcc + node);
 
             // clamp 
 
-            wact = Vector.Min(new Vector<short>(QA), wact);
-            wact = Vector.Max(Vector<short>.Zero, wact);
-            
-            bact = Vector.Min(new Vector<short>(QA), bact);
-            bact = Vector.Max(Vector<short>.Zero, bact);
+            wact = Vector.Min(QAVector, Vector.Max(ZeroVector, wact));
+            bact = Vector.Min(QAVector, Vector.Max(ZeroVector, bact));
 
             // weigh
             // 255 * 64 fits into int16, while 255 * 255 does not
 
-            var wWeighted = Vector.Multiply(wact, Vector.Load(l2_weight + outputBucket * L2_SIZE * 2 + node));
-            var bWeighted = Vector.Multiply(bact, Vector.Load(l2_weight + outputBucket * L2_SIZE * 2 + node + L2_SIZE));
+            var wWeighted = Vector.Multiply(wact, Vector.LoadAligned(wWeightPtr + node));
+            var bWeighted = Vector.Multiply(bact, Vector.LoadAligned(bWeightPrt + node));
 
             // split into int-vectors to avoid overflows
 
@@ -61,15 +63,15 @@ public static class NNUE
 
             // sum it up
 
-            output += Vector.Sum(Vector.Add(
-                Vector.Add(wSquaredLow, wSquaredHigh),
-                Vector.Add(bSquaredLow, bSquaredHigh))
-            );
+            var wSum = Vector.Add(wSquaredHigh, wSquaredLow);
+            var bSum = Vector.Add(bSquaredHigh, bSquaredLow);
+            var sum = Vector.Add(wSum, bSum);
+            OutputAccumulator = Vector.Add(sum, OutputAccumulator);
         }
 
         // scale and dequantize
 
-        output = (output / QA + l2_bias[outputBucket]) * EVAL_SCALE / (QA * QB);
+        int output = (Vector.Sum(OutputAccumulator) / QA + l2_bias[outputBucket]) * EVAL_SCALE / (QA * QB);
 
         return Math.Clamp(output, -Search.SCORE_EVAL_MAX, Search.SCORE_EVAL_MAX);
     }
