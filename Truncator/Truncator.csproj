@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Evaluate/Nets/64hl-fensmargin500.bin"/>
+    <EmbeddedResource Include="Evaluate/Nets/64hl-fm250-adj.bin"/>
   </ItemGroup>
 
 </Project>
