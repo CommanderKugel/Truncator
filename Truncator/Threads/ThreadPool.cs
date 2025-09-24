@@ -110,7 +110,7 @@ public static class ThreadPool
 
         // put miscellaneous data together
 
-        Console.WriteLine($"info depth {depth} seldepth {seldepth} nodes {nodes} tbhits {tbHits} time {time} nps {nps} hashfull {hashfull}");
+        var info = $"info depth {depth} seldepth {seldepth} nodes {nodes} tbhits {tbHits} time {time} nps {nps} hashfull {hashfull}";
 
         // add all multipv lines
 
@@ -123,7 +123,7 @@ public static class ThreadPool
             var (norm_score, w, d, l) = WDL.GetWDL(dirty_score);
             string scoreString = Search.IsTerminal(dirty_score) ? $"mate {(Math.Abs(dirty_score) - Search.SCORE_MATE) / 2}" : $"cp {norm_score}";
 
-            string info = $" multipv {i + 1} score {scoreString}";
+            info += $" multipv {i + 1} score {scoreString}";
 
             if (WDL.UCI_showWDL)
             {
@@ -131,9 +131,10 @@ public static class ThreadPool
             }
 
             info += $" {MainThread.rootPos.PVs[i].ToString()}";
-            Console.WriteLine(info);
         }
-    }
+
+        Console.WriteLine(info);
+        }
 
     public static void ReportBestmove()
     {
