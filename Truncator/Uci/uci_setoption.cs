@@ -79,6 +79,12 @@ public static partial class UCI
             Console.WriteLine($"info string Set MutliPV to {UCI_MultiPV}");
         }
 
+        else if (nameStr == "DatagenMode")
+        {
+            UCI_DatagenMode = valueStr == "true";
+            Console.WriteLine($"info string set DatagenMode to {UCI_DatagenMode}");
+        }
+
         else
         {
             Console.WriteLine($"info string {nameStr} was not found, setoption unsuccessfull");

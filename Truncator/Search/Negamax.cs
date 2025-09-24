@@ -384,7 +384,8 @@ public static partial class Search
             if (!isRoot
                 && !inSingularity
                 && !isNoisy
-                && notLoosing)
+                && notLoosing
+                && (!UCI.UCI_DatagenMode || nonPV))
             {
 
                 // futility pruning 
@@ -418,6 +419,7 @@ public static partial class Search
             // ToDo: margin -= histScore / 8
             if (!isRoot
                 && notLoosing
+                && (!UCI.UCI_DatagenMode || nonPV)
                 && !SEE.SEE_threshold(m, ref p, isCapture ? SEENoisyMult * depth : SEEQuietMult * depth * depth))
             {
                 continue;

@@ -7,6 +7,7 @@ public static partial class UCI
 {
     public static bool IsChess960 = false;
     public static int UCI_MultiPV = 1;
+    public static bool UCI_DatagenMode = false;
 
     public static UciState state = UciState.Idle;
 
@@ -34,6 +35,7 @@ public static partial class UCI
                 Console.WriteLine($"option name SyzygyPath type string default <empty>");
                 //Console.WriteLine($"option name SyzygyProbePly type spin default 40 min 1 max 128");
 
+                Console.WriteLine($"option name DatagenMode type check default false");
                 Console.WriteLine($"option name Softnodes type spin default {int.MaxValue} min {1} max {int.MaxValue}");
                 Console.WriteLine($"option name Hardnodes type spin default {int.MaxValue} min {1} max {int.MaxValue}");
                 
