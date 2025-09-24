@@ -72,6 +72,13 @@ public static partial class UCI
             SpsaUciOption.ChangeField(nameStr, int.Parse(valueStr));
         }
 
+        else if (nameStr == "MultiPV")
+        {
+            UCI_MultiPV = Math.Clamp(int.Parse(valueStr), 1, 255);
+            ThreadPool.SetMultiPV(UCI_MultiPV);
+            Console.WriteLine($"info string Set MutliPV to {UCI_MultiPV}");
+        }
+
         else
         {
             Console.WriteLine($"info string {nameStr} was not found, setoption unsuccessfull");

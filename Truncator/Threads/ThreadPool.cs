@@ -102,39 +102,50 @@ public static class ThreadPool
         // info printing in between iterations
         int depth = MainThread.completedDepth;
         int seldepth = MainThread.seldepth;
-        int dirty_score = MainThread.PV[depth];
         long nodes = GetNodes();
         long tbHits = GetTbHits();
         long time = TimeManager.ElapsedMilliseconds;
         long nps = nodes * 1000 / time;
         int hashfull = tt.GetHashfull();
 
-        // normalize score to +100 cp ~ 50% chance of winning
-        var (norm_score, w, d, l) = WDL.GetWDL(dirty_score);
-        string scoreString = Search.IsTerminal(dirty_score) ? $"mate {(Math.Abs(dirty_score) - Search.SCORE_MATE) / 2}" : $"cp {norm_score}";
+        // put miscellaneous data together
 
-        string info = $"info depth {depth} seldepth {seldepth} nodes {nodes} tbhits {tbHits} time {time} nps {nps} score {scoreString} hashfull {hashfull}";
+        Console.WriteLine($"info depth {depth} seldepth {seldepth} nodes {nodes} tbhits {tbHits} time {time} nps {nps} hashfull {hashfull}");
 
-        if (WDL.UCI_showWDL)
+        // add all multipv lines
+
+        int lines = Math.Min(UCI.UCI_MultiPV, MainThread.rootPos.moveCount);
+        for (int i = 0; i < lines; i++)
         {
-            info += $" wdl {(int)(w * 1000)} {(int)(d * 1000)} {(int)(l * 1000)}";
-        }
+            // normalize score to +100 cp ~ 50% chance of winning
 
-        info += $" pv {MainThread.PV.ToString()}";
-        Console.WriteLine(info);
+            int dirty_score = MainThread.rootPos.PVs[0][depth];
+            var (norm_score, w, d, l) = WDL.GetWDL(dirty_score);
+            string scoreString = Search.IsTerminal(dirty_score) ? $"mate {(Math.Abs(dirty_score) - Search.SCORE_MATE) / 2}" : $"cp {norm_score}";
+
+            string info = $" multipv {i + 1} score {scoreString}";
+
+            if (WDL.UCI_showWDL)
+            {
+                info += $" wdl {(int)(w * 1000)} {(int)(d * 1000)} {(int)(l * 1000)}";
+            }
+
+            info += $" {MainThread.rootPos.PVs[i].ToString()}";
+            Console.WriteLine(info);
+        }
     }
 
     public static void ReportBestmove()
     {
         SearchThread bestThread = pool[0];
         int bestDepth = bestThread.completedDepth;
-        int bestScore = bestThread.PV[bestThread.completedDepth];
+        int bestScore = bestThread.rootPos.PVs[0][bestThread.completedDepth];
 
         for (int i = 0; i < ThreadCount; i++)
         {
             var thread = pool[i];
             int depth = pool[i].completedDepth;
-            int score = pool[i].PV[depth];
+            int score = pool[i].rootPos.PVs[0][depth];
 
             // if depths are equal, choose the higher score
             if (depth == bestDepth && score > bestScore)
@@ -154,8 +165,8 @@ public static class ThreadPool
             }
         }
 
-        Move bestmove = bestThread.PV.BestMove;
-        Move pondermove = bestThread.PV.PonderMove;
+        Move bestmove = bestThread.rootPos.PVs[0].BestMove;
+        Move pondermove = bestThread.rootPos.PVs[0].PonderMove;
         Console.WriteLine($"bestmove {bestmove} ponder {pondermove}");
     }
 
@@ -195,6 +206,16 @@ public static class ThreadPool
             tbHits += thread.tbHits;
         }
         return tbHits;
+    }
+
+    public static void SetMultiPV(int count)
+    {
+        Debug.Assert(count > 0 && count < 256);
+
+        foreach (var thread in pool)
+        {
+            thread.rootPos.SetMultiPV(count);
+        }
     }
 
     /// <summary>

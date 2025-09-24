@@ -1,21 +1,24 @@
 using System.Diagnostics;
 
 
-public class RootPos
+public class RootPos : IDisposable
 {
     public Dictionary<Move, RootMove> RootMoves;
 
     public Pos p;
     public int moveCount;
 
+    public int MultiPv;
+    public PV[] PVs;
 
-    public RootPos() => RootMoves = new();
 
-    public RootPos(SearchThread thread, string fen)
+    public RootPos()
     {
-        RootMoves = new();
-        SetNewFen(thread, fen);
+        MultiPv = 1;
+        RootMoves = [];
+        SetMultiPV(1);
     }
+
 
     public void MakeMove(string movestr, SearchThread thread)
         => MakeMove(new Move(thread, ref p, movestr), thread);
@@ -38,14 +41,6 @@ public class RootPos
         }
     }
 
-    public unsafe void Print()
-    {
-        Console.WriteLine($"moveCount: {moveCount}");
-        foreach (RootMove rm in RootMoves.Values)
-        {
-            Console.WriteLine($"move {rm.Move} score {rm.Score} nodes {rm.Nodes}");
-        }
-    }
 
     public void ReportBackMove(Move m, int score, long nodes, int depth)
     {
@@ -56,6 +51,42 @@ public class RootPos
 
         RootMoves[m] = new(m, score, nodes);
     }
+
+
+    public bool MoveInMultiPVs(Move m)
+    {
+        foreach (var pv in PVs)
+        {
+            if (pv.BestMove == m)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public void SetMultiPV(int count)
+    {
+        Debug.Assert(count > 0);
+        Debug.Assert(count < 256);
+
+        if (PVs != null)
+        {
+            foreach (var pv in PVs)
+            {
+                pv.Dispose();
+            }
+        }
+
+        PVs = new PV[count];
+        GC.Collect();
+
+        for (int i = 0; i < count; i++)
+        {
+            PVs[i] = new PV();
+        }
+    }
+
 
     public void SetNewFen(SearchThread thread, string fen)
     {
@@ -80,6 +111,19 @@ public class RootPos
         p = new();
         moveCount = 0;
         RootMoves.Clear();
+
+        foreach (var pv in PVs)
+        {
+            pv.Clear();
+        }
+    }
+
+    public void Dispose()
+    {
+        foreach (var pv in PVs)
+        {
+            pv.Dispose();
+        }
     }
 
     public void CopyFrom(RootPos Parent)

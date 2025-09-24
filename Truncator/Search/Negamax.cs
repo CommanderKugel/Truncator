@@ -17,7 +17,8 @@ public static partial class Search
         bool inSingularity = ns->ExcludedMove.NotNull;
 
         // overwrite previous pv line
-        thread.NewPVLine();
+        
+        thread.rootPos.PVs[thread.MultiPVIdx][thread.ply, thread.ply] = Move.NullMove;
 
         if (!isRoot)
         {
@@ -360,6 +361,11 @@ public static partial class Search
                 continue;
             }
 
+            if (isRoot && thread.rootPos.MoveInMultiPVs(m))
+            {
+                continue;
+            }
+
             long startnodes = thread.nodeCount;
             bool notLoosing = !IsLoss(bestscore);
 
@@ -536,22 +542,23 @@ public static partial class Search
 
             thread.UndoMove();
 
-            if (isRoot)
+            if (isRoot && thread.MultiPVIdx == 0)
             {
                 thread.rootPos.ReportBackMove(m, score, thread.nodeCount - startnodes, depth);
             }
 
             if (isPV && (score > alpha || movesPlayed == 1))
             {
+
                 if (isRoot)
                 {
-                    thread.PV[depth] = score;
+                    thread.rootPos.PVs[thread.MultiPVIdx][depth] = score;
                 }
 
                 // dont replace previous root bestmove on a fail-low
                 // no low failing move can really be trusted to be better than the last best move
 
-                thread.PushToPV(m);
+                thread.rootPos.PVs[thread.MultiPVIdx].Push(m, thread.ply);
             }
 
             if (score > bestscore)

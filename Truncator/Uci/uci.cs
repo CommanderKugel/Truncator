@@ -6,6 +6,7 @@ using System.Diagnostics;
 public static partial class UCI
 {
     public static bool IsChess960 = false;
+    public static int UCI_MultiPV = 1;
 
     public static UciState state = UciState.Idle;
 
@@ -27,6 +28,7 @@ public static partial class UCI
 
                 Console.WriteLine($"option name Hash type spin default {TranspositionTable.DEFAULT_SIZE} min {TranspositionTable.MIN_SIZE} max {TranspositionTable.MAX_SIZE}");
                 Console.WriteLine($"option name Threads type spin default 1 min 1 max {ThreadPool.MAX_THREAD_COUNT}");
+                Console.WriteLine($"option name MultiPV type spin default {1} min {1} max {256}");
                 Console.WriteLine($"option name UCI_ShowWDL type check default false");
 
                 Console.WriteLine($"option name SyzygyPath type string default <empty>");
@@ -34,6 +36,7 @@ public static partial class UCI
 
                 Console.WriteLine($"option name Softnodes type spin default {int.MaxValue} min {1} max {int.MaxValue}");
                 Console.WriteLine($"option name Hardnodes type spin default {int.MaxValue} min {1} max {int.MaxValue}");
+                
 
 #if SPSA
                 SpsaUciOption.CollectOptions();

@@ -28,13 +28,9 @@ public class SearchThread : IDisposable
     public long tbHits = 0;
 
     public int completedDepth = 0;
+    public int MultiPVIdx = 0;
 
     // search objects
-    public PV PV;
-
-    public void NewPVLine() => PV[ply, ply] = Move.NullMove;
-    public void PushToPV(Move m) => PV.Push(m, ply);
-
     public TranspositionTable tt = ThreadPool.tt;
     public volatile unsafe Node* nodeStack = null;
 
@@ -50,9 +46,15 @@ public class SearchThread : IDisposable
 
         for (int i = 0; i < 256; i++)
         {
-            unsafe {
+            unsafe
+            {
                 Parent.nodeStack[i].acc.CopyTo(ref this.nodeStack[i].acc);
             }
+        }
+
+        if (rootPos.MultiPv != Parent.rootPos.MultiPv)
+        {
+            rootPos.SetMultiPV(Parent.rootPos.MultiPv);
         }
     }
 
@@ -62,7 +64,7 @@ public class SearchThread : IDisposable
         isReady = false;
 
         this.id = id;
-        PV = new PV();
+
         rootPos = new RootPos();
         repTable = new RepetitionTable();
         castling = new Castling();
@@ -175,8 +177,6 @@ public class SearchThread : IDisposable
         tbHits = 0;
         completedDepth = 0;
 
-        PV.Clear();
-
         for (int i = 0; i < 256; i++)
         {
             nodeStack[i].Clear();
@@ -224,10 +224,11 @@ public class SearchThread : IDisposable
         {
             // free all allocated memory
             
-            PV.Dispose();
             repTable.Dispose();
             history.Dispose();
             CorrHist.Dispose();
+
+            rootPos.Dispose();
 
             for (int i = 0; i < 256; i++)
             {

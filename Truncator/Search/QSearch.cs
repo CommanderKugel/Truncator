@@ -15,7 +15,7 @@ public static partial class Search
 
         if (isPV)
         {
-            thread.NewPVLine();
+            thread.rootPos.PVs[thread.MultiPVIdx][thread.ply, thread.ply] = Move.NullMove;
         }
 
         // probe the tt for a transposition
@@ -112,7 +112,7 @@ public static partial class Search
                 if (isPV)
                 {
                     thread.seldepth = Math.Max(thread.ply, thread.seldepth);
-                    thread.PushToPV(m);
+                    thread.rootPos.PVs[thread.MultiPVIdx].Push(m, thread.ply);
                 }
 
                 if (score > alpha)
