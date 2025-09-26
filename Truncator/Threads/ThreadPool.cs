@@ -124,7 +124,8 @@ public static class ThreadPool
         Console.WriteLine(info);
     }
 
-    public static void ReportBestmove()
+
+    public static SearchThread GetBestThread()
     {
         SearchThread bestThread = pool[0];
         int bestDepth = bestThread.completedDepth;
@@ -154,8 +155,23 @@ public static class ThreadPool
             }
         }
 
+        return bestThread;
+    }
+
+    public static void ReportBestmove()
+    {
+        var bestThread = GetBestThread();
+
+        while (bestThread.PV.BestMove.IsNull)
+        {
+            bestThread = GetBestThread();
+        }
+
+        Debug.Assert(bestThread.PV.BestMove.NotNull);
+
         Move bestmove = bestThread.PV.BestMove;
         Move pondermove = bestThread.PV.PonderMove;
+
         Console.WriteLine($"bestmove {bestmove} ponder {pondermove}");
     }
 
