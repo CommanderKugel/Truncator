@@ -44,13 +44,15 @@ public class SearchThread : IDisposable
 
     public void CopyFrom(SearchThread Parent)
     {
-        rootPos.CopyFrom(Parent.rootPos);
         ply = Parent.ply;
+        rootPos.CopyFrom(Parent.rootPos);
         repTable.CopyFrom(ref Parent.repTable);
+        castling = Parent.castling;
 
         for (int i = 0; i < 256; i++)
         {
-            unsafe {
+            unsafe
+            {
                 Parent.nodeStack[i].acc.CopyTo(ref this.nodeStack[i].acc);
             }
         }
