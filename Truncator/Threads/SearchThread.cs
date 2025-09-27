@@ -7,17 +7,19 @@ public class SearchThread : IDisposable
     private ManualResetEvent myResetEvent = new ManualResetEvent(false);
 
     // thread Managing Variables
+
     public readonly int id;
     public bool IsMainThread => id == 0;
 
     public volatile bool doSearch = false;
     public volatile bool die = false;
+    public volatile bool isReady = false;
 
-    public bool isReady = false;
     public bool IsDisposed = false;
 
 
     // search variables
+
     public RootPos rootPos;
     public Castling castling;
     public RepetitionTable repTable;
@@ -30,8 +32,8 @@ public class SearchThread : IDisposable
     public int completedDepth = 0;
 
     // search objects
-    public PV PV;
 
+    public PV PV;
     public void NewPVLine() => PV[ply, ply] = Move.NullMove;
     public void PushToPV(Move m) => PV.Push(m, ply);
 
@@ -62,6 +64,7 @@ public class SearchThread : IDisposable
     public SearchThread(int id)
     {
         isReady = false;
+        IsDisposed = false;
 
         this.id = id;
         PV = new PV();
@@ -76,13 +79,11 @@ public class SearchThread : IDisposable
         myThread.Name = $"SearchThread_{id}";
         myThread.Start();
 
-        IsDisposed = false;
+        while (!this.isReady) { }
     }
 
     private unsafe void ThreadMainLoop()
     {
-        Console.WriteLine($"thread {id} started");
-
         Span<Node> NodeSpan = stackalloc Node[256 + 8];
         fixed (Node* NodePtr = NodeSpan)
         {
@@ -97,6 +98,7 @@ public class SearchThread : IDisposable
                 (nodeStack + i)->acc = new Accumulator();
             }
 
+            Console.WriteLine($"info string thread {id} started");
             isReady = true;
 
             try
@@ -136,7 +138,7 @@ public class SearchThread : IDisposable
             {
                 Dispose();
             }
-            Console.WriteLine("thread shutting down - main loop escaped");
+            Console.WriteLine($"info string thread {id} shutting down - main loop escaped");
 
         } // fixed
     }

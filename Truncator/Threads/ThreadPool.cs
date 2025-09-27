@@ -42,9 +42,10 @@ public static class ThreadPool
         for (int i = 0; i < count; i++)
         {
             pool[i] = new SearchThread(i);
+            Debug.Assert(pool[i].isReady);
         }
 
-        Console.WriteLine($"resized the threadpool to {ThreadCount}");
+        Console.WriteLine($"info string resized the threadpool to {ThreadCount}");
     }
 
     /// <summary>
