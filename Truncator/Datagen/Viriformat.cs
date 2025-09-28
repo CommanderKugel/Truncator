@@ -16,7 +16,7 @@ public static class Viriformat
         var files = Directory.GetFiles(PgnPath, "*.PGN");
         Console.WriteLine($"{files.Length} PGN files found");
 
-        string outFileName = "convertd.viriformat";
+        string outFileName = "converted.viriformat";
         var outPath = Path.Combine(PgnPath, outFileName);
 
         long totalGames = 0;
@@ -37,6 +37,8 @@ public static class Viriformat
 
         foreach (var file in files)
         {
+            Console.WriteLine($"now parsing: {file}");
+
             var (gameCount, posCount) = ConvertPgnToViriformat(
                 thread,
                 Path.Combine(PgnPath, file),
@@ -46,7 +48,6 @@ public static class Viriformat
             totalGames += gameCount;
             totalPos += posCount;
 
-            Console.WriteLine($"finieshed parsing {file}");
             Console.WriteLine($"parsed {gameCount} games, {posCount} poitions, to total {totalGames} games and total {totalPos} positions");
         }
 
@@ -57,7 +58,7 @@ public static class Viriformat
     {
 
         // read all games from the file
-        // and instantly convert them to viriformat
+        // then convert them to viriformat
 
         using var PgnReader = new StreamReader(PgnPath);
         using var ViriWriter = new BinaryWriter(new FileStream(ViriPath, FileMode.Append));
@@ -67,7 +68,16 @@ public static class Viriformat
 
         while (!PgnReader.EndOfStream)
         {
-            var pgn = new Pgn(thread, PgnReader);
+            Pgn pgn;
+
+            try
+            {
+                pgn = new Pgn(thread, PgnReader);
+            }
+            catch
+            {
+                continue;
+            }
 
             gameCount++;
             posCount += pgn.MainLine.Count;

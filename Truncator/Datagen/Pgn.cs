@@ -29,6 +29,20 @@ public class Pgn
                 Result = line[9..(line.Length - 2)];
             }
 
+            // skip games where the engine crashed
+            else if (line == "[Termination \"abandoned\"]")
+            {
+                // read until next pgn
+
+                while (!string.IsNullOrWhiteSpace(file.ReadLine())
+                    || ++emptyCount < 2)
+                { }
+
+                // now throw an error and try parsing the next game
+
+                throw null;
+            }
+
             else if (!line.StartsWith('[') && line != "")
             {
                 var plies = line.Split('}');
