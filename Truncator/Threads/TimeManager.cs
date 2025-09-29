@@ -40,6 +40,12 @@ public static class TimeManager
         hardnodes = long.MaxValue;
     }
 
+    public static void Kill()
+    {
+        Reset();
+        IsSelfManaging = false;
+    }
+
     public static void Start(Color Us)
     {
 

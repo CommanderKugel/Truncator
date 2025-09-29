@@ -5,12 +5,16 @@ public class Pgn
 {
     public string Fen;
     public string Result;
-    public List<PgnMove> MainLine;
 
-    public Pgn(SearchThread thread, StreamReader file)
+    public List<PgnMove> MainLine;
+    public int quietPositions;
+
+    public Pgn(SearchThread thread, StreamReader file, bool filterSingularQuiets = true)
     {
         MainLine = [];
         string? line;
+
+        quietPositions = 0;
         int emptyCount = 0;
 
         while (!file.EndOfStream && (line = file.ReadLine()) != null)
@@ -82,6 +86,53 @@ public class Pgn
                         score = -score;
                     }
 
+                    bool tactical = m.IsPromotion
+                        || m.IsCastling
+                        || thread.rootPos.p.IsCapture(m)
+                        || thread.rootPos.p.Checkers != 0
+                        || Search.IsTerminal(score);
+
+                    // optional: check if move is quiet and singular
+                    // score singular moves exceptionally high to filter them during training
+
+                    if (filterSingularQuiets && !tactical)
+                    {
+                        int singularDepth = Math.Clamp(depth / 2, 2, 10);
+                        int singularBeta = score - 16;
+
+                        Debug.WriteLine(singularDepth);
+
+                        TimeManager.Kill();
+
+                        thread.Clear();
+                        thread.rootPos.RootMoves.Clear();
+                        thread.rootPos.InitRootMoves(thread);
+
+                        unsafe
+                        {
+                            thread.nodeStack[0].acc.Accumulate(ref thread.rootPos.p);
+                            thread.nodeStack[0].ExcludedMove = m;
+
+                            int singularScore = Search.Negamax<RootNode>(
+                                thread,
+                                thread.rootPos.p,
+                                singularBeta - 1,
+                                singularBeta,
+                                singularDepth,
+                                thread.nodeStack,
+                                cutnode: false
+                            );
+
+                            thread.nodeStack[0].ExcludedMove = Move.NullMove;
+
+                            if (singularScore < singularBeta)
+                            {
+                                bool tacitcal = true;
+                                score = Search.SCORE_EVAL_MAX; // 30_000
+                            }
+                        }
+                    }
+
                     // save the move-data
 
                     PgnMove pm = new(m, score, depth, seldepth, time, nodes);
@@ -90,6 +141,14 @@ public class Pgn
                     // make the move
 
                     thread.rootPos.MakeMove(m, thread);
+
+                    // count all quiet (& non singular) positions
+                    // they are quiet and suitable for training
+
+                    if (!tactical)
+                    {
+                        quietPositions++;
+                    }
                 }
             }
 

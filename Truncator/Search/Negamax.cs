@@ -356,7 +356,7 @@ public static partial class Search
 
             if (m == ns->ExcludedMove)
             {
-                Debug.Assert(m == ttMove);
+                Debug.Assert(isRoot || m == ttMove);
                 continue;
             }
 

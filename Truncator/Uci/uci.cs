@@ -133,8 +133,9 @@ public static partial class UCI
 
             else if (tokens[0] == "pgntoviri")
             {
-                Debug.Assert(tokens.Length == 2);
-                Viriformat.ConvertDirWithPgnsToViriformat(ThreadPool.MainThread, tokens[1]);
+                Debug.Assert(tokens.Length == 2 || tokens.Length == 3);
+                bool filterSingularQuiets = tokens.Length == 3 && tokens[2] == "fsq";
+                Viriformat.ConvertDirWithPgnsToViriformat(ThreadPool.MainThread, tokens[1], filterSingularQuiets);
             }
 
             else if (command == "spsainput")
