@@ -8,7 +8,7 @@ public static class Settings
 
     public const int EVAL_SCALE = 400;
 
-    public const string NET_NAME = "64hl-fm250-adj-regen";
+    public const string NET_NAME = "64hl-fm250-adj-moredata";
 
     public const int QA = 255;
     public const int QB = 64;
