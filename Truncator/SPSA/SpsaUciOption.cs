@@ -18,9 +18,16 @@ public static class SpsaUciOption
     {
         SpsaDict = [];
 
+        int i = 0;
+
         foreach (var field in typeof(Tunables).GetFields(BindingFlags.Public | BindingFlags.Static))
         {
             SpsaDict[field.Name] = field;
+            i++;
+            if (i >= 2 * 6 * 64 - 2 * 16)
+            {
+                break;
+            }
         }
     }
 
