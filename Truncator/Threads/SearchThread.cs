@@ -45,9 +45,15 @@ public class SearchThread : IDisposable
 
     public void CopyFrom(SearchThread Parent)
     {
-        rootPos.CopyFrom(Parent.rootPos);
         ply = Parent.ply;
+        rootPos.CopyFrom(Parent.rootPos);
         repTable.CopyFrom(ref Parent.repTable);
+        castling = Parent.castling;
+
+        unsafe
+        {
+            NativeMemory.Copy(Parent.nodeStack, nodeStack, (nuint)sizeof(Node) * 256);
+        }
     }
 
 
