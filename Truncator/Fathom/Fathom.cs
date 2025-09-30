@@ -23,12 +23,17 @@ public static partial class Fathom
     public static bool IsInitialized => status == Status.Initialized;
 
 
-    [DllImport(@"fathomDll.dll", CallingConvention = CallingConvention.Cdecl)]
-    private static extern int get_largest();
+    [DllImport(@"fathom.dll", CallingConvention = CallingConvention.Cdecl)]
+    private static extern int get_largest_win();
+
+    [DllImport(@"libfathom.os", CallingConvention = CallingConvention.Cdecl)]
+    private static extern int get_largest_lin();
+
+    private static int get_largest() => OperatingSystem.IsWindows() ? get_largest_win() : get_largest_lin();
 
 
-    [DllImport(@"fathomDll.dll", CallingConvention = CallingConvention.Cdecl)]
-    private static extern int tb_probe_wdl_(
+    [DllImport(@"fathom.dll", CallingConvention = CallingConvention.Cdecl)]
+    private static extern int tb_probe_wdl_win(
         ulong white, ulong black,
         ulong kings, ulong queens,
         ulong rooks, ulong bishops,
@@ -36,6 +41,28 @@ public static partial class Fathom
         uint rule50, uint castling,
         uint ep, bool stm
     );
+
+    [DllImport(@"libfathom.so", CallingConvention = CallingConvention.Cdecl)]
+    private static extern int tb_probe_wdl_lin(
+        ulong white, ulong black,
+        ulong kings, ulong queens,
+        ulong rooks, ulong bishops,
+        ulong knights, ulong pawns,
+        uint rule50, uint castling,
+        uint ep, bool stm
+    );
+
+    private static int tb_probe_wdl(
+        ulong white, ulong black,
+        ulong kings, ulong queens,
+        ulong rooks, ulong bishops,
+        ulong knights, ulong pawns,
+        uint rule50, uint castling,
+        uint ep, bool stm
+    ) => OperatingSystem.IsWindows() ?
+        tb_probe_wdl_win(white, black, kings, queens, rooks, bishops, knights, pawns, rule50, castling, ep, stm) :
+        tb_probe_wdl_lin(white, black, kings, queens, rooks, bishops, knights, pawns, rule50, castling, ep, stm);
+
 
     /// <summary>
     /// Wrapper for Fathoms probe_wdl function
@@ -52,7 +79,7 @@ public static partial class Fathom
         Debug.Assert(p.FiftyMoveRule == 0);
         Debug.Assert(Utils.popcnt(p.blocker) <= TbLargest);
 
-        int res = tb_probe_wdl_(
+        int res = tb_probe_wdl(
             p.ColorBB[(int)Color.White],
             p.ColorBB[(int)Color.Black],
             p.PieceBB[(int)PieceType.King],
@@ -71,8 +98,8 @@ public static partial class Fathom
     }
 
 
-    [DllImport(@"fathomDll.dll", CallingConvention = CallingConvention.Cdecl)]
-    private static unsafe extern int tb_probe_root_(
+    [DllImport(@"fathom.dll", CallingConvention = CallingConvention.Cdecl)]
+    private static unsafe extern int tb_probe_root_win(
         ulong white, ulong black,
         ulong kings, ulong queens,
         ulong rooks, ulong bishops,
@@ -81,6 +108,29 @@ public static partial class Fathom
         uint ep, bool stm,
         uint* results
     );
+    
+    [DllImport(@"libfathom.so", CallingConvention = CallingConvention.Cdecl)]
+    private static unsafe extern int tb_probe_root_lin(
+        ulong white, ulong black,
+        ulong kings, ulong queens,
+        ulong rooks, ulong bishops,
+        ulong knights, ulong pawns,
+        uint rule50, uint castling,
+        uint ep, bool stm,
+        uint* results
+    );
+
+    private static unsafe int tb_probe_root(
+        ulong white, ulong black,
+        ulong kings, ulong queens,
+        ulong rooks, ulong bishops,
+        ulong knights, ulong pawns,
+        uint rule50, uint castling,
+        uint ep, bool stm,
+        uint* results
+    ) => OperatingSystem.IsWindows() ?
+        tb_probe_root_win(white, black, kings, queens, rooks, bishops, knights, pawns, rule50, castling, ep, stm, results) :
+        tb_probe_root_lin(white, black, kings, queens, rooks, bishops, knights, pawns, rule50, castling, ep, stm, results);
 
     /// <summary>
     /// Wrapper for Fathoms probe_root function
@@ -96,7 +146,7 @@ public static partial class Fathom
         Debug.Assert(p.CastlingRights == 0);
         Debug.Assert(Utils.popcnt(p.blocker) <= TbLargest);
 
-        int res = tb_probe_root_(
+        int res = tb_probe_root(
             p.ColorBB[(int)Color.White],
             p.ColorBB[(int)Color.Black],
             p.PieceBB[(int)PieceType.King],
@@ -150,8 +200,14 @@ public static partial class Fathom
     }
 
 
-    [DllImport(@"fathomDll.dll", CallingConvention = CallingConvention.Cdecl)]
-    private static extern int tb_init_(string path);
+    [DllImport(@"fathom.dll", CallingConvention = CallingConvention.Cdecl)]
+    private static extern int tb_init_win(string path);
+
+    [DllImport(@"libfathom.so", CallingConvention = CallingConvention.Cdecl)]
+    private static extern int tb_init_lin(string path);
+
+    private static int tb_init(string path) => OperatingSystem.IsWindows() ? tb_init_win(path) : tb_init_lin(path);
+    
 
     public static void Init(string path)
     {
@@ -179,19 +235,24 @@ public static partial class Fathom
 
         if (!OperatingSystem.IsWindows())
         {
-            Console.WriteLine($"info string Fathom is only supported under Windows (for now)");
+            Console.WriteLine($"info string Fathom support is only available for Windows atm. (Linux support is under development)");
             return;
         }
-        
-        if (!BindingHandler.UnpackContainedDll("Truncator.Fathom.fathomDll.dll", "fathomDll.dll"))
+
+        // unpack either windows or linux fathom library
+        string filename = OperatingSystem.IsWindows() ? "fathom.dll" : "libfathom.so";
+
+        if (!BindingHandler.UnpackContainedDll("Truncator.Fathom." + filename, filename))
         {
             Console.WriteLine("info string Could not load Fathom Bindings");
             return;
         }
-        
+
+        Debug.WriteLine($"info strung successfully unpacked 'truncator.Fathom.{filename}'");
+
         try
         {
-            int res = tb_init_(path);
+            int res = tb_init(path);
             Console.WriteLine($"info string tb initialized with returncode {res}");
 
             TbLargest = Math.Min(get_largest(), UCI_TbLargest);
@@ -210,8 +271,24 @@ public static partial class Fathom
     }
 
 
-    [DllImport(@"fathomDll.dll", CallingConvention = CallingConvention.Cdecl)]
-    private static extern void tb_free_();
+    [DllImport(@"fathom.dll", CallingConvention = CallingConvention.Cdecl)]
+    private static extern void tb_free_win();
+    
+    [DllImport(@"libfathom.so", CallingConvention = CallingConvention.Cdecl)]
+    private static extern void tb_free_lin();
+
+    private static void tb_free()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            tb_free_win();
+        }
+        else
+        {
+            tb_free_lin();
+        }
+    }
+
 
     public static void Dispose()
     {
@@ -220,7 +297,7 @@ public static partial class Fathom
             Debug.WriteLine("tb is not initialized, nothing to dispose");
             return;
         }
-        
+
         if (status == Status.Disposed)
         {
             Debug.WriteLine("tb is already disposed");
@@ -229,7 +306,7 @@ public static partial class Fathom
 
         try
         {
-            tb_free_();
+            tb_free();
             Debug.WriteLine($"tb successfully disposed");
             status = Status.Disposed;
         }
