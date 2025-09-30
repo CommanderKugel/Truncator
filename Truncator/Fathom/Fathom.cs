@@ -9,10 +9,8 @@ public static partial class Fathom
     public static int TbLargest = 0;
     public static string SyzygyPath = "";
 
-    /// <summary>
-    /// not used anywhere right now
-    /// </summary>
     public static int SyzygyProbePly = 40;
+    public static int UCI_TbLargest = 7;
 
     private enum Status
     {
@@ -196,7 +194,7 @@ public static partial class Fathom
             int res = tb_init_(path);
             Console.WriteLine($"info string tb initialized with returncode {res}");
 
-            TbLargest = get_largest();
+            TbLargest = Math.Min(get_largest(), UCI_TbLargest);
             DoTbProbing = true;
             Console.WriteLine($"info string tb largest: {TbLargest}");
 

@@ -30,16 +30,18 @@ public static partial class UCI
         else if (nameStr == "Move" && tokens[3] == "Overhead")
         {
             Debug.Assert(tokens.Length == 6);
-            int overhead = int.Parse(tokens[5]);
-            TimeManager.MoveOverhead = overhead;
-            Console.WriteLine($"info string Move Overhead set to {overhead}");
+            TimeManager.MoveOverhead = Math.Clamp(int.Parse(tokens[5]), 0, 999999);
+            Console.WriteLine($"info string set Move Overhead={TimeManager.MoveOverhead}");
         }
 
+        /*
+        // disabled for now
         else if (nameStr == "UCI_ShowWDL" && tokens.Length >= 5)
         {
             WDL.UCI_showWDL = valueStr == "true";
             Console.WriteLine($"info string set UCI_ShowWDL to {WDL.UCI_showWDL}");
         }
+        */
 
         else if (nameStr == "SyzygyPath" && tokens.Length >= 5)
         {
@@ -51,9 +53,15 @@ public static partial class UCI
         else if (nameStr == "SyzygyProbePly")
         {
             Debug.Assert(tokens.Length == 5);
-            int ply = int.Parse(valueStr);
-            Fathom.SyzygyProbePly = ply;
-            Console.WriteLine($"info string SyzygyProbePly set to {ply}");
+            Fathom.SyzygyProbePly = int.Parse(valueStr);
+            Console.WriteLine($"info string set SyzygyProbePly={Fathom.SyzygyProbePly}");
+        }
+
+        else if (nameStr == "UCI_TbLargest")
+        {
+            Debug.Assert(tokens.Length == 5);
+            Fathom.UCI_TbLargest = Math.Clamp(int.Parse(valueStr), 1, 7);
+            Console.WriteLine($"info string set UCI_TbLargest={Fathom.UCI_TbLargest}");
         }
 
         else if (nameStr == "Softnodes")

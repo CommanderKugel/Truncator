@@ -81,6 +81,7 @@ public static partial class Search
             && Fathom.DoTbProbing
             && p.CastlingRights == 0
             && p.FiftyMoveRule == 0
+            && thread.ply >= Fathom.SyzygyProbePly
             && Utils.popcnt(p.blocker) <= Fathom.TbLargest)
         {
 

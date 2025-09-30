@@ -27,9 +27,15 @@ public static partial class UCI
 
                 Console.WriteLine($"option name Hash type spin default {TranspositionTable.DEFAULT_SIZE} min {TranspositionTable.MIN_SIZE} max {TranspositionTable.MAX_SIZE}");
                 Console.WriteLine($"option name Threads type spin default 1 min 1 max {ThreadPool.MAX_THREAD_COUNT}");
-                Console.WriteLine($"option name UCI_ShowWDL type check default false");
+
+                Console.WriteLine($"option name Move Overhead type spin default {TimeManager.MoveOverhead} min 0 max 999999");
+
+                // disabled for now, dont have an up-to-date model
+                //Console.WriteLine($"option name UCI_ShowWDL type check default false");
 
                 Console.WriteLine($"option name SyzygyPath type string default <empty>");
+                Console.WriteLine($"optino name SyzygyProbePly type spin default 40 min 1 max 256");
+                Console.WriteLine($"optino name UCI_TbLargest type spin default 7 min 1 max 7");
 
                 Console.WriteLine($"option name Softnodes type spin default {int.MaxValue} min {1} max {int.MaxValue}");
                 Console.WriteLine($"option name Hardnodes type spin default {int.MaxValue} min {1} max {int.MaxValue}");
@@ -96,6 +102,7 @@ public static partial class UCI
 
             else if (tokens[0] == "quit")
             {
+                ThreadPool.StopAll();
                 return;
             }
 
@@ -103,11 +110,13 @@ public static partial class UCI
             
             else if (command == "print")
             {
+                Debug.Assert(state == UciState.Idle, "command only available, when engine is idle!");
                 Utils.print(ThreadPool.MainThread.rootPos.p);
             }
 
             else if (tokens[0] == "move")
-            {
+            {   
+                Debug.Assert(state == UciState.Idle, "command only available, when engine is idle!");
                 Debug.Assert(tokens.Length >= 2, "forgot to write the move?");
                 string mvstr = tokens[1];
                 Move m = new(ThreadPool.MainThread, ref ThreadPool.MainThread.rootPos.p, mvstr);
@@ -132,6 +141,7 @@ public static partial class UCI
 
             else if (tokens[0] == "pgntoviri")
             {
+                Debug.Assert(state == UciState.Idle, "command only available, when engine is idle!");
                 Debug.Assert(tokens.Length == 2);
                 Viriformat.ConvertDirWithPgnsToViriformat(ThreadPool.MainThread, tokens[1]);
             }
