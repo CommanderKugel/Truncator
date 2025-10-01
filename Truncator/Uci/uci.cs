@@ -22,7 +22,7 @@ public static partial class UCI
 
             if (command == "uci")
             {
-                Console.WriteLine("id name Truncator 0.82");
+                Console.WriteLine("id name Truncator 1.0");
                 Console.WriteLine("id author CommanderKugel");
 
                 Console.WriteLine($"option name Hash type spin default {TranspositionTable.DEFAULT_SIZE} min {TranspositionTable.MIN_SIZE} max {TranspositionTable.MAX_SIZE}");
@@ -114,18 +114,6 @@ public static partial class UCI
                 Utils.print(ThreadPool.MainThread.rootPos.p);
             }
 
-            else if (tokens[0] == "move")
-            {   
-                Debug.Assert(state == UciState.Idle, "command only available, when engine is idle!");
-                Debug.Assert(tokens.Length >= 2, "forgot to write the move?");
-                string mvstr = tokens[1];
-                Move m = new(ThreadPool.MainThread, ref ThreadPool.MainThread.rootPos.p, mvstr);
-                Console.WriteLine(m);
-                Console.WriteLine($"castling - {m.IsCastling}");
-                Console.WriteLine($"ep       - {m.IsEnPassant}");
-                Console.WriteLine($"promo    - {m.IsPromotion} ({m.PromoType})");
-            }
-
             else if (tokens[0] == "bench")
             {
                 Debug.Assert(state == UciState.Idle, "command only available, when engine is idle!");
@@ -146,10 +134,12 @@ public static partial class UCI
                 Viriformat.ConvertDirWithPgnsToViriformat(ThreadPool.MainThread, tokens[1]);
             }
 
+#if SPSA
             else if (command == "spsainput")
             {
                 SpsaUciOption.PrintValuesInOBFormat();
             }
+#endif
 
         }
     }
