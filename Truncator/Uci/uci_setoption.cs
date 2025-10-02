@@ -27,6 +27,21 @@ public static partial class UCI
             ThreadPool.tt.Resize(sizemb);
         }
 
+        else if (nameStr == "UCI_Chess960")
+        {
+            if (tokens.Length == 5)
+            {
+                Castling.UCI_Chess960 = bool.Parse(valueStr);
+            }
+            
+            else if (tokens.Length == 3)
+            {
+                Castling.UCI_Chess960 = !Castling.UCI_Chess960;
+            }
+
+            Console.WriteLine($"info string set UCI_Chess960={Castling.UCI_Chess960}");
+        }
+
         else if (nameStr == "Move" && tokens[3] == "Overhead")
         {
             Debug.Assert(tokens.Length == 6);

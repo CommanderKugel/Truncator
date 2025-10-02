@@ -2,6 +2,7 @@ using System.Diagnostics;
 
 public unsafe struct Castling
 {
+    public static bool UCI_Chess960 = false;
 
     public static ReadOnlySpan<byte> Masks => [
         0b0001,
@@ -109,7 +110,7 @@ public unsafe struct Castling
         Debug.Assert(p.HasCastlingRight(p.Us, from < to));
 
         int idx = GetCastlingIdx(p.Us, from < to);
-        int KingEnd = !UCI.IsChess960 ? KingDestinations[idx] : kingTargets[idx];
+        int KingEnd = !UCI_Chess960 ? KingDestinations[idx] : kingTargets[idx];
         int KingStart = kingStart[(int)p.Us];
         return KingStart == from && KingEnd == to;
     }

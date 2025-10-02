@@ -5,10 +5,8 @@ using System.Diagnostics;
 
 public static partial class UCI
 {
-    public static bool IsChess960 = false;
 
     public static UciState state = UciState.Idle;
-
 
     public static void MainLoop()
     {
@@ -27,6 +25,7 @@ public static partial class UCI
 
                 Console.WriteLine($"option name Hash type spin default {TranspositionTable.DEFAULT_SIZE} min {TranspositionTable.MIN_SIZE} max {TranspositionTable.MAX_SIZE}");
                 Console.WriteLine($"option name Threads type spin default 1 min 1 max {ThreadPool.MAX_THREAD_COUNT}");
+                Console.WriteLine($"option name UCI_Chess960 type button default false");
 
                 Console.WriteLine($"option name Move Overhead type spin default {TimeManager.MoveOverhead} min 0 max 999999");
 
