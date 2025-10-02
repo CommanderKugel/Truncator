@@ -35,6 +35,8 @@ public static class NNUE
 
         // scale the output to approximately centipawns
 
+        acc.Dispose();
+
         int outInt = (int)(output * EVAL_SCALE);
         return Math.Clamp(outInt, -Search.SCORE_EVAL_MAX, Search.SCORE_EVAL_MAX);
     }

@@ -156,6 +156,7 @@ public static partial class UCI
                     ThreadPool.MainThread.rootPos.SetNewFen(ThreadPool.MainThread, fen);
                     Console.WriteLine($"fen: {fen}");
                     int eval = NNUE.Evaluate(ref ThreadPool.MainThread.rootPos.p);
+                    Console.WriteLine($"eval: {eval}");
                 }
             }
 

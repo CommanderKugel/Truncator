@@ -6,6 +6,6 @@ public static class Settings
 
     public const int EVAL_SCALE = 400;
 
-    public const string NET_NAME = "raw";
+    public const string NET_NAME = "16hl-2";
 
 }
