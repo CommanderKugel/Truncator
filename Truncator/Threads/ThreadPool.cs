@@ -128,13 +128,13 @@ public static class ThreadPool
     {
         SearchThread bestThread = pool[0];
         int bestDepth = bestThread.completedDepth;
-        int bestScore = bestThread.PV[bestThread.completedDepth];
+        int bestScore = bestThread.rootPos.PVs[0][bestThread.completedDepth];
 
         for (int i = 0; i < ThreadCount; i++)
         {
             var thread = pool[i];
             int depth = pool[i].completedDepth;
-            int score = pool[i].PV[depth];
+            int score = pool[i].rootPos.PVs[0][depth];
 
             // if depths are equal, choose the higher score
             if (depth == bestDepth && score > bestScore)
@@ -161,12 +161,12 @@ public static class ThreadPool
     {
         var bestThread = GetBestThread();
 
-        while (bestThread.PV.BestMove.IsNull)
+        while (bestThread.rootPos.PVs[0].BestMove.IsNull)
         {
             bestThread = GetBestThread();
         }
 
-        Console.WriteLine($"bestmove {bestThread.PV.BestMove} ponder {bestThread.PV.PonderMove}");
+        Console.WriteLine($"bestmove {bestThread.rootPos.PVs[0].BestMove} ponder {bestThread.rootPos.PVs[0].PonderMove}");
     }
 
     public static void Clear()

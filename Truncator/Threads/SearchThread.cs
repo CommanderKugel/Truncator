@@ -30,10 +30,6 @@ public class SearchThread : IDisposable
     public int completedDepth = 0;
 
     // search objects
-    public PV PV;
-
-    public void NewPVLine() => PV[ply, ply] = Move.NullMove;
-    public void PushToPV(Move m) => PV.Push(m, ply);
 
     public TranspositionTable tt = ThreadPool.tt;
     public volatile unsafe Node* nodeStack = null;
@@ -175,8 +171,6 @@ public class SearchThread : IDisposable
         tbHits = 0;
         completedDepth = 0;
 
-        PV.Clear();
-
         for (int i = 0; i < 256; i++)
         {
             nodeStack[i].Clear();
@@ -225,7 +219,7 @@ public class SearchThread : IDisposable
         {
             // free all allocated memory
             
-            PV.Dispose();
+            rootPos.Dispose();
             repTable.Dispose();
             history.Dispose();
             CorrHist.Dispose();

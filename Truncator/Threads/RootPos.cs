@@ -1,28 +1,45 @@
 using System.Diagnostics;
 
 
-public class RootPos
+public class RootPos : IDisposable
 {
     private SearchThread thread;
     public Dictionary<Move, RootMove> RootMoves;
+    public PV[] PVs;
 
     public Pos p;
     public int moveCount;
 
+    
+    public RootPos(SearchThread thread)
+    {
+        this.thread = thread;
+        RootMoves = [];
+        PVs = new PV[thread.MultiPvCount];
 
-    public RootPos() => RootMoves = new();
+        for (int i = 0; i < PVs.Length; i++)
+        {
+            PVs[i] = new();
+        }
+    }
 
     public RootPos(SearchThread thread, string fen)
     {
-        
         this.thread = thread;
-        SetNewFen(fen);
         RootMoves = new();
-        SetNewFen(thread, fen);
+
+        PVs = new PV[thread.MultiPvCount];
+
+        for (int i = 0; i < PVs.Length; i++)
+        {
+            PVs[i] = new();
+        }
+
+        SetNewFen(fen);
     }
 
-    public void MakeMove(string movestr, SearchThread thread)
-        => MakeMove(new Move(thread, ref p, movestr), thread);
+
+    public void MakeMove(string movestr) => MakeMove(new Move(thread, ref p, movestr));
 
     public void MakeMove(Move m)
     {
@@ -69,6 +86,8 @@ public class RootPos
 
     public void InitRootMoves()
     {
+        RootMoves.Clear();
+
         Span<Move> moves = stackalloc Move[256];
         moveCount = MoveGen.GenerateLegaMoves(thread, ref moves, ref p);
         Debug.Assert(moveCount < 256);
@@ -84,6 +103,11 @@ public class RootPos
         p = new();
         moveCount = 0;
         RootMoves.Clear();
+
+        foreach (var pv in PVs)
+        {
+            pv.Clear();
+        }
     }
 
     public void CopyFrom(RootPos Parent)
@@ -91,6 +115,14 @@ public class RootPos
         RootMoves = new Dictionary<Move, RootMove>(Parent.RootMoves);
         p = Parent.p;
         moveCount = Parent.moveCount;
+    }
+
+    public void Dispose()
+    {
+        foreach (var pv in PVs)
+        {
+            pv.Dispose();
+        }
     }
 
 }

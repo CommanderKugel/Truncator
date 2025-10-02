@@ -38,8 +38,8 @@ public static partial class Search
         }
 
         int delta = Tunables.AspDelta;
-        int alpha = thread.PV[thread.completedDepth] - delta;
-        int beta = thread.PV[thread.completedDepth] + delta;
+        int alpha = thread.rootPos.PVs[thread.MultiPvIdx][thread.completedDepth] - delta;
+        int beta = thread.rootPos.PVs[thread.MultiPvIdx][thread.completedDepth] + delta;
 
         while (true)
         {
