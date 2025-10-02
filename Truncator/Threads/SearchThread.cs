@@ -1,6 +1,5 @@
 
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 
 public class SearchThread : IDisposable
 {
@@ -14,7 +13,7 @@ public class SearchThread : IDisposable
     public volatile bool doSearch = false;
     public volatile bool die = false;
 
-    public bool IsInitialized = false;
+    public bool isReady = false;
     public bool IsDisposed = false;
 
 
@@ -48,18 +47,20 @@ public class SearchThread : IDisposable
         ply = Parent.ply;
         rootPos.CopyFrom(Parent.rootPos);
         repTable.CopyFrom(ref Parent.repTable);
-        castling = Parent.castling;
 
-        unsafe
+        for (int i = 0; i < 256; i++)
         {
-            NativeMemory.Copy(Parent.nodeStack, nodeStack, (nuint)sizeof(Node) * 256);
+            unsafe {
+                Parent.nodeStack[i].acc.CopyTo(ref this.nodeStack[i].acc);
+            }
         }
+        castling = Parent.castling;
     }
 
 
     public SearchThread(int id)
     {
-        IsInitialized = false;
+        isReady = false;
         IsDisposed = false;
 
         this.id = id;
@@ -89,8 +90,12 @@ public class SearchThread : IDisposable
                 (NodePtr + i)->ContHist = history.ContHist.NullHist;
             }
 
+            for (int i = 0; i < 256; i++)
+            {
+                (nodeStack + i)->acc = new Accumulator();
+            }
 
-            IsInitialized = true;
+            isReady = true;
 
             try
             {
@@ -171,7 +176,11 @@ public class SearchThread : IDisposable
         completedDepth = 0;
 
         PV.Clear();
-        NativeMemory.Clear(nodeStack, (nuint)sizeof(Node) * 255);
+
+        for (int i = 0; i < 256; i++)
+        {
+            nodeStack[i].Clear();
+        }
     }
 
     /// <summary>
@@ -220,6 +229,14 @@ public class SearchThread : IDisposable
             history.Dispose();
             CorrHist.Dispose();
 
+            for (int i = 0; i < 256; i++)
+            {
+                unsafe
+                {
+                    nodeStack[i].acc.Dispose();
+                }
+            }
+
             // make sure to not dispose of this multiple times
 
             IsDisposed = true;
@@ -228,6 +245,8 @@ public class SearchThread : IDisposable
 
     public unsafe void RunBench()
     {
+        while (!isReady) ;
+
         var watch = new Stopwatch();
         long totalNodes = 0;
 

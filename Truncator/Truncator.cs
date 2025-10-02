@@ -11,7 +11,7 @@ public static class Truncator
         Search.ComputeLmrTable();
         Weights.Load();
 
-        while (!ThreadPool.MainThread.IsInitialized)
+        while (!ThreadPool.MainThread.isReady)
         {
             // only continue on when threads are fully initialized
         }

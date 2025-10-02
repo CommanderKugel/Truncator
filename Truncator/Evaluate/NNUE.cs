@@ -5,12 +5,8 @@ using static Weights;
 public static class NNUE
 {
 
-    public static unsafe int Evaluate(ref Pos p)
+    public static unsafe int Evaluate(ref Pos p, Accumulator acc)
     {
-
-        Accumulator acc = new();
-        acc.Accumulate(ref p);
-
         // Perspective: if its blacks turn, swap whites and blacks accumulator
 
         bool wtm = p.Us == Color.White;
@@ -32,12 +28,6 @@ public static class NNUE
 
             output += wact * l2_weight[node] + bact * l2_weight[node + L2_SIZE];
         }
-
-        acc.Dispose();
-
-        // scale the output to approximately centipawns
-
-        acc.Dispose();
 
         // scale and dequantize
 

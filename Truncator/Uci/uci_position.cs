@@ -24,6 +24,11 @@ public static partial class UCI
         }
 
         thread.rootPos.InitRootMoves(ThreadPool.MainThread);
+
+        unsafe
+        {
+            thread.nodeStack[0].acc.Accumulate(ref thread.rootPos.p);
+        }
     }
 
 }
