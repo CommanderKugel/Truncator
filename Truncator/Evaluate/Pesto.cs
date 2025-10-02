@@ -2,10 +2,12 @@
 public static class Pesto
 {
 
-    public static int Evaluate(ref Pos p)
+    public static unsafe int Evaluate(ref Pos p)
     {
         int eval = 0;
         int phase = 0;
+
+        // accumulate psqt and material values
 
         for (Color stm = Color.White; stm <= Color.Black; stm++)
         {
@@ -25,11 +27,21 @@ public static class Pesto
             eval = -eval;
         }
 
+        // interpolate between mg and eg values
+
         phase = Math.Min(phase, 24);
         eval = (phase * (short)(eval >> 16) + (24 - phase) * (short)eval) / (p.Us == Color.White ? 24 : -24);
+
+        // material scaling
+
+        int nonPawnMaterial = Utils.popcnt(p.PieceBB[(int)PieceType.Knight]) * 450
+            + Utils.popcnt(p.PieceBB[(int)PieceType.Bishop]) * 450
+            + Utils.popcnt(p.PieceBB[(int)PieceType.Rook]) * 650
+            + Utils.popcnt(p.PieceBB[(int)PieceType.Queen]) * 1250;
+
+        eval = eval * (26_500 + nonPawnMaterial) / 32_768;
         
-        eval = Scaling.MaterialScaling(ref p, eval);
-        return eval;
+        return Math.Clamp(eval, -Search.SCORE_EVAL_MAX, Search.SCORE_EVAL_MAX);
     }
 
 
