@@ -17,8 +17,10 @@ public static class NNUE
         // weigh them with L2 weigts
         // sum the accumulated & weighted values
 
-        int output = 0;
+        int outputBucket = GetOutputBucket(ref p);
         int vecSize = Vector<short>.Count;
+
+        int output = 0;
 
         for (int node = 0; node < L2_SIZE; node += vecSize)
         {
@@ -38,8 +40,8 @@ public static class NNUE
             // weigh
             // 255 * 64 fits into int16, while 255 * 255 does not
 
-            var wWeighted = Vector.Multiply(wact, Vector.Load(l2_weight + node));
-            var bWeighted= Vector.Multiply(bact, Vector.Load(l2_weight + node + L2_SIZE));
+            var wWeighted = Vector.Multiply(wact, Vector.Load(l2_weight + outputBucket * L2_SIZE * 2 + node));
+            var bWeighted = Vector.Multiply(bact, Vector.Load(l2_weight + outputBucket * L2_SIZE * 2 + node + L2_SIZE));
 
             // split into int-vectors to avoid overflows
 
@@ -67,9 +69,15 @@ public static class NNUE
 
         // scale and dequantize
 
-        output = (output / QA + l2_bias) * EVAL_SCALE / (QA * QB);
+        output = (output / QA + l2_bias[outputBucket]) * EVAL_SCALE / (QA * QB);
 
         return Math.Clamp(output, -Search.SCORE_EVAL_MAX, Search.SCORE_EVAL_MAX);
+    }
+
+    public static int GetOutputBucket(ref Pos p)
+    {
+        const int DIV = (32 + 1) / OUTPUT_BUCKETS;
+        return (Utils.popcnt(p.blocker) - 2) / DIV;
     }
 
 }
