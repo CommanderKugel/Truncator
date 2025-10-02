@@ -1,4 +1,6 @@
 using System.Numerics;
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
 using static Settings;
 using static Weights;
 
@@ -6,6 +8,9 @@ public static class NNUE
 {
 
     public static unsafe int Evaluate(ref Pos p, Accumulator acc)
+        => Avx2.IsSupported ? EvaluateAvx2(ref p, acc) : EvaluateFallback(ref p, acc);
+
+    public static unsafe int EvaluateFallback(ref Pos p, Accumulator acc)
     {
         // Perspective: if its blacks turn, swap whites and blacks accumulator
 
@@ -20,28 +25,30 @@ public static class NNUE
         int outputBucket = GetOutputBucket(ref p);
         int vecSize = Vector<short>.Count;
 
-        int output = 0;
+        var OutputAccumulator = Vector<int>.Zero;
+        var QAVector = new Vector<short>(QA);
+        var ZeroVector = Vector<short>.Zero;
+
+        var wWeightPtr = l2_weight + outputBucket * L2_SIZE * 2;
+        var bWeightPrt = l2_weight + outputBucket * L2_SIZE * 2 + L2_SIZE;
 
         for (int node = 0; node < L2_SIZE; node += vecSize)
         {
             // load accumulator into vectors
 
-            Vector<short> wact = Vector.Load(WhiteAcc + node);
-            Vector<short> bact = Vector.Load(BlackAcc + node);
+            Vector<short> wact = Vector.LoadAligned(WhiteAcc + node);
+            Vector<short> bact = Vector.LoadAligned(BlackAcc + node);
 
             // clamp 
 
-            wact = Vector.Min(new Vector<short>(QA), wact);
-            wact = Vector.Max(Vector<short>.Zero, wact);
-            
-            bact = Vector.Min(new Vector<short>(QA), bact);
-            bact = Vector.Max(Vector<short>.Zero, bact);
+            wact = Vector.Min(QAVector, Vector.Max(ZeroVector, wact));
+            bact = Vector.Min(QAVector, Vector.Max(ZeroVector, bact));
 
             // weigh
             // 255 * 64 fits into int16, while 255 * 255 does not
 
-            var wWeighted = Vector.Multiply(wact, Vector.Load(l2_weight + outputBucket * L2_SIZE * 2 + node));
-            var bWeighted = Vector.Multiply(bact, Vector.Load(l2_weight + outputBucket * L2_SIZE * 2 + node + L2_SIZE));
+            var wWeighted = Vector.Multiply(wact, Vector.LoadAligned(wWeightPtr + node));
+            var bWeighted = Vector.Multiply(bact, Vector.LoadAligned(bWeightPrt + node));
 
             // split into int-vectors to avoid overflows
 
@@ -61,15 +68,77 @@ public static class NNUE
 
             // sum it up
 
-            output += Vector.Sum(Vector.Add(
-                Vector.Add(wSquaredLow, wSquaredHigh),
-                Vector.Add(bSquaredLow, bSquaredHigh))
-            );
+            var wSum = Vector.Add(wSquaredHigh, wSquaredLow);
+            var bSum = Vector.Add(bSquaredHigh, bSquaredLow);
+            var sum = Vector.Add(wSum, bSum);
+            OutputAccumulator = Vector.Add(sum, OutputAccumulator);
         }
 
         // scale and dequantize
 
-        output = (output / QA + l2_bias[outputBucket]) * EVAL_SCALE / (QA * QB);
+        int output = (Vector.Sum(OutputAccumulator) / QA + l2_bias[outputBucket]) * EVAL_SCALE / (QA * QB);
+
+        return Math.Clamp(output, -Search.SCORE_EVAL_MAX, Search.SCORE_EVAL_MAX);
+    }
+
+    public static unsafe int EvaluateAvx2(ref Pos p, Accumulator acc)
+    {
+        // Perspective: if its blacks turn, swap whites and blacks accumulator
+
+        short* WhiteAcc = p.Us == Color.White ? acc.WhiteAcc : acc.BlackAcc;
+        short* BlackAcc = p.Us == Color.White ? acc.BlackAcc : acc.WhiteAcc;
+
+        // activate the accumulated values
+        // weigh them with L2 weigts
+        // sum the accumulated & weighted values
+
+        int outputBucket = GetOutputBucket(ref p);
+        const int VEC_SIZE = 16;
+
+        var OutputAccumulator = Vector256<int>.Zero;
+        var QAVector = Vector256.Create((short)QA);
+        var ZeroVector = Vector256<short>.Zero;
+
+        var wWeightPtr = l2_weight + outputBucket * L2_SIZE * 2;
+        var bWeightPrt = l2_weight + outputBucket * L2_SIZE * 2 + L2_SIZE;
+
+        for (int node = 0; node < L2_SIZE; node += VEC_SIZE)
+        {
+            // load accumulator into vectors
+
+            var wact = Vector256.LoadAligned<short>(WhiteAcc + node);
+            var bact = Vector256.LoadAligned<short>(BlackAcc + node);
+
+            // clamp 
+
+            wact = Avx2.Max(ZeroVector, Avx2.Min(QAVector, Avx.LoadAlignedVector256(WhiteAcc + node)));
+            bact = Avx2.Max(ZeroVector, Avx2.Min(QAVector, Avx.LoadAlignedVector256(BlackAcc + node)));
+
+            // weigh
+            // 255 * 64 fits into int16, while 255 * 255 does not
+
+            var wWeighted = Avx2.MultiplyLow(wact, Vector256.LoadAligned(wWeightPtr + node));
+            var bWeighted = Avx2.MultiplyLow(bact, Vector256.LoadAligned(bWeightPrt + node));
+
+            // now square (255 * 64 fits into short, 255 * 255 * 64 needs to be int)
+            // so widen vector into ints
+            // after that sum it all up
+            // Square -> widen -> sum (2x)
+            // can be simplified into
+            // MultiplyAddAdjacend -> sum (1x)
+
+            var wSquared = Avx2.MultiplyAddAdjacent(wWeighted, wact);
+            var bSquared = Avx2.MultiplyAddAdjacent(bWeighted, bact);
+
+            // save into the evaluation
+
+            OutputAccumulator = Avx2.Add(wSquared, OutputAccumulator);
+            OutputAccumulator = Avx2.Add(bSquared, OutputAccumulator);
+        }
+
+        // scale and dequantize
+
+        int output = (Vector256.Sum(OutputAccumulator) / QA + l2_bias[outputBucket]) * EVAL_SCALE / (QA * QB);
 
         return Math.Clamp(output, -Search.SCORE_EVAL_MAX, Search.SCORE_EVAL_MAX);
     }

@@ -2,7 +2,7 @@
 using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.InteropServices;
-
+using System.Runtime.Intrinsics.X86;
 using static Settings;
 using static Weights;
 
@@ -14,8 +14,8 @@ public struct Accumulator : IDisposable
 
     public unsafe Accumulator()
     {
-        WhiteAcc = (short*)NativeMemory.Alloc((nuint)sizeof(short) * L2_SIZE);
-        BlackAcc = (short*)NativeMemory.Alloc((nuint)sizeof(short) * L2_SIZE);
+        WhiteAcc = (short*)NativeMemory.AlignedAlloc((nuint)sizeof(short) * L2_SIZE, 256);
+        BlackAcc = (short*)NativeMemory.AlignedAlloc((nuint)sizeof(short) * L2_SIZE, 256);
     }
 
 
@@ -68,18 +68,21 @@ public struct Accumulator : IDisposable
         int widx = (int)c * 384 + (int)pt * 64 + sq;
         int bidx = ((int)c ^ 1) * 384 + (int)pt * 64 + (sq ^ 56);
 
+        var wWeightPrt = l1_weight + widx * L2_SIZE;
+        var bWeightPrt = l1_weight + bidx * L2_SIZE;
+
         int vecSize = Vector<short>.Count;
 
         for (int node = 0; node < L2_SIZE; node += vecSize)
         {
-            var wacc = Vector.Load(WhiteAcc + node);
-            var bacc = Vector.Load(BlackAcc + node);
+            var wacc = Avx.LoadAlignedVector256(WhiteAcc + node);
+            var bacc = Avx.LoadAlignedVector256(BlackAcc + node);
 
-            var wWeight = Vector.Load(l1_weight + widx * L2_SIZE + node);
-            var bWeight = Vector.Load(l1_weight + bidx * L2_SIZE + node);
+            var wWeight = Avx.LoadAlignedVector256(wWeightPrt + node);
+            var bWeight = Avx.LoadAlignedVector256(bWeightPrt + node);
 
-            Vector.Store(Vector.Add(wacc, wWeight), WhiteAcc + node);
-            Vector.Store(Vector.Add(bacc, bWeight), BlackAcc + node);
+            Avx.StoreAligned(WhiteAcc + node, Avx2.Add(wacc, wWeight));
+            Avx.StoreAligned(BlackAcc + node, Avx2.Add(bacc, bWeight));
         }
     }
 
@@ -98,6 +101,9 @@ public struct Accumulator : IDisposable
         int widx = (int)c * 384 + (int)pt * 64 + sq;
         int bidx = ((int)c ^ 1) * 384 + (int)pt * 64 + (sq ^ 56);
 
+        var wWeightPrt = l1_weight + widx * L2_SIZE;
+        var bWeightPrt = l1_weight + bidx * L2_SIZE;
+
         int vecSize = Vector<short>.Count;
 
         for (int node = 0; node < L2_SIZE; node += vecSize)
@@ -105,8 +111,8 @@ public struct Accumulator : IDisposable
             var wacc = Vector.Load(WhiteAcc + node);
             var bacc = Vector.Load(BlackAcc + node);
 
-            var wWeight = Vector.Load(l1_weight + widx * L2_SIZE + node);
-            var bWeight = Vector.Load(l1_weight + bidx * L2_SIZE + node);
+            var wWeight = Vector.Load(wWeightPrt + node);
+            var bWeight = Vector.Load(bWeightPrt + node);
 
             Vector.Store(Vector.Subtract(wacc, wWeight), WhiteAcc + node);
             Vector.Store(Vector.Subtract(bacc, bWeight), BlackAcc + node);
@@ -123,14 +129,8 @@ public struct Accumulator : IDisposable
         Debug.Assert(child.WhiteAcc != null);
         Debug.Assert(child.BlackAcc != null);
 
-        for (int i = 0; i < L2_SIZE; i++)
-        {
-            child.WhiteAcc[i] = WhiteAcc[i];
-            child.BlackAcc[i] = BlackAcc[i];
-        }
-
-        //NativeMemory.Copy(WhiteAcc, child.WhiteAcc, (nuint)sizeof(float) * L2_SIZE);
-        //NativeMemory.Copy(BlackAcc, child.BlackAcc, (nuint)sizeof(float) * L2_SIZE);
+        NativeMemory.Copy(WhiteAcc, child.WhiteAcc, (nuint)sizeof(short) * L2_SIZE);
+        NativeMemory.Copy(BlackAcc, child.BlackAcc, (nuint)sizeof(short) * L2_SIZE);
     }
 
     /// <summary>
@@ -152,8 +152,8 @@ public struct Accumulator : IDisposable
     {
         if (WhiteAcc != null)
         {
-            NativeMemory.Free(WhiteAcc);
-            NativeMemory.Free(BlackAcc);
+            NativeMemory.AlignedFree(WhiteAcc);
+            NativeMemory.AlignedFree(BlackAcc);
             WhiteAcc = null;
             BlackAcc = null;
         }

@@ -18,10 +18,10 @@ public static class Weights
     {
         // allocate the arrays
 
-        l1_weight = (short*)NativeMemory.Alloc((nuint)sizeof(short) * IN_SIZE * L2_SIZE);
-        l1_bias = (short*)NativeMemory.Alloc((nuint)sizeof(short) * L2_SIZE);
-        l2_weight = (short*)NativeMemory.Alloc((nuint)sizeof(short) * 2 * L2_SIZE * OUTPUT_BUCKETS);
-        l2_bias = (short*)NativeMemory.Alloc((nuint)sizeof(short) * OUTPUT_BUCKETS);
+        l1_weight = (short*)NativeMemory.AlignedAlloc((nuint)sizeof(short) * IN_SIZE * L2_SIZE, 256);
+        l1_bias = (short*)NativeMemory.AlignedAlloc((nuint)sizeof(short) * L2_SIZE, 256);
+        l2_weight = (short*)NativeMemory.AlignedAlloc((nuint)sizeof(short) * 2 * L2_SIZE * OUTPUT_BUCKETS, 256);
+        l2_bias = (short*)NativeMemory.AlignedAlloc((nuint)sizeof(short) * OUTPUT_BUCKETS, 256);
 
         // access embedded weights-file
 
@@ -53,10 +53,10 @@ public static class Weights
     {
         if (l1_weight != null)
         {
-            NativeMemory.Free(l1_weight);
-            NativeMemory.Free(l1_bias);
-            NativeMemory.Free(l2_weight);
-            NativeMemory.Free(l2_bias);
+            NativeMemory.AlignedFree(l1_weight);
+            NativeMemory.AlignedFree(l1_bias);
+            NativeMemory.AlignedFree(l2_weight);
+            NativeMemory.AlignedFree(l2_bias);
 
             l1_weight = l1_bias = l2_weight = l2_bias = null;
             Debug.WriteLine("Disposed of NNUE Weights");
