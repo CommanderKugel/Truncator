@@ -33,7 +33,7 @@ public static class GenFens
         {
             // ToDo: read fen from book here
 
-            thread.rootPos.SetNewFen(thread, Utils.startpos);
+            thread.rootPos.SetNewFen(Utils.startpos);
             bool success = true;
 
             for (int i = 0; i < RandomMoves; i++)
@@ -51,7 +51,7 @@ public static class GenFens
 
                 // position is not terminal, thus make a random move
 
-                thread.rootPos.MakeMove(moves[rng.Next() % moveCount], thread);
+                thread.rootPos.MakeMove(moves[rng.Next() % moveCount]);
             }
 
             // if the position didnt become terminal and is not terminal right now - print it
@@ -64,7 +64,7 @@ public static class GenFens
                 TimeManager.Start(thread.rootPos.p.Us);
 
                 thread.Clear();
-                thread.rootPos.InitRootMoves(thread);
+                thread.rootPos.InitRootMoves();
                 
                 unsafe
                 {

@@ -64,8 +64,8 @@ public class SearchThread : IDisposable
         IsDisposed = false;
 
         this.id = id;
-        PV = new PV();
-        rootPos = new RootPos();
+
+        rootPos = new RootPos(this);
         repTable = new RepetitionTable();
         castling = new Castling();
 
@@ -191,6 +191,7 @@ public class SearchThread : IDisposable
         doSearch = true;
         Reset();
 
+        rootPos.Clear();
         history.Clear();
         CorrHist.Clear();
     }
@@ -257,8 +258,8 @@ public class SearchThread : IDisposable
             ThreadPool.tt.Clear();
             TimeManager.PrepareBench(TimeManager.maxDepth);
 
-            rootPos.SetNewFen(this, fen);
-            rootPos.InitRootMoves(this);
+            rootPos.SetNewFen(fen);
+            rootPos.InitRootMoves();
 
             Search.IterativeDeepen(this, isBench: true);
             totalNodes += nodeCount;

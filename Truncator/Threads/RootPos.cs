@@ -3,6 +3,7 @@ using System.Diagnostics;
 
 public class RootPos
 {
+    private SearchThread thread;
     public Dictionary<Move, RootMove> RootMoves;
 
     public Pos p;
@@ -13,6 +14,9 @@ public class RootPos
 
     public RootPos(SearchThread thread, string fen)
     {
+        
+        this.thread = thread;
+        SetNewFen(fen);
         RootMoves = new();
         SetNewFen(thread, fen);
     }
@@ -20,7 +24,7 @@ public class RootPos
     public void MakeMove(string movestr, SearchThread thread)
         => MakeMove(new Move(thread, ref p, movestr), thread);
 
-    public void MakeMove(Move m, SearchThread thread)
+    public void MakeMove(Move m)
     {
         Debug.Assert(m.NotNull);
 
@@ -57,13 +61,13 @@ public class RootPos
         RootMoves[m] = new(m, score, nodes);
     }
 
-    public void SetNewFen(SearchThread thread, string fen)
+    public void SetNewFen(string fen)
     {
         Clear();
         p = new(thread, fen);
     }
 
-    public void InitRootMoves(SearchThread thread)
+    public void InitRootMoves()
     {
         Span<Move> moves = stackalloc Move[256];
         moveCount = MoveGen.GenerateLegaMoves(thread, ref moves, ref p);

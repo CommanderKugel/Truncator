@@ -50,7 +50,7 @@ public struct Marlinformat
 
     public unsafe Marlinformat(SearchThread thread, Pgn pgn)
     {
-        thread.rootPos.SetNewFen(thread, pgn.Fen);
+        thread.rootPos.SetNewFen(pgn.Fen);
         ref Pos p = ref thread.rootPos.p;
 
         occupancy = p.blocker;
