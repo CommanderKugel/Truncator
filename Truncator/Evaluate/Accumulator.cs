@@ -8,13 +8,13 @@ using static Weights;
 public struct Accumulator : IDisposable
 {
 
-    public unsafe float* WhiteAcc = null;
-    public unsafe float* BlackAcc = null;
+    public unsafe short* WhiteAcc = null;
+    public unsafe short* BlackAcc = null;
 
     public unsafe Accumulator()
     {
-        WhiteAcc = (float*)NativeMemory.Alloc((nuint)sizeof(float) * L2_SIZE);
-        BlackAcc = (float*)NativeMemory.Alloc((nuint)sizeof(float) * L2_SIZE);
+        WhiteAcc = (short*)NativeMemory.Alloc((nuint)sizeof(short) * L2_SIZE);
+        BlackAcc = (short*)NativeMemory.Alloc((nuint)sizeof(short) * L2_SIZE);
     }
 
 
@@ -32,8 +32,8 @@ public struct Accumulator : IDisposable
         // copy bias
         // implicitly clears accumulator
 
-        NativeMemory.Copy(l1_bias, WhiteAcc, sizeof(float) * L2_SIZE);
-        NativeMemory.Copy(l1_bias, BlackAcc, sizeof(float) * L2_SIZE);
+        NativeMemory.Copy(l1_bias, WhiteAcc, sizeof(short) * L2_SIZE);
+        NativeMemory.Copy(l1_bias, BlackAcc, sizeof(short) * L2_SIZE);
 
         // accumulate weights for every piece on the board
 
