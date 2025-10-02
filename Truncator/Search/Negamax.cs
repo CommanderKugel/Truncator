@@ -361,6 +361,11 @@ public static partial class Search
                 continue;
             }
 
+            if (isRoot && thread.rootPos.MoveInMultiPV(m))
+            {
+                continue;
+            }
+
             long startnodes = thread.nodeCount;
             bool notLoosing = !IsLoss(bestscore);
 

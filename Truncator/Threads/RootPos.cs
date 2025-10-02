@@ -59,14 +59,40 @@ public class RootPos : IDisposable
         }
     }
 
-    public unsafe void Print()
+
+    public void ResizeMultiPV(int MultiPvCount)
     {
-        Console.WriteLine($"moveCount: {moveCount}");
-        foreach (RootMove rm in RootMoves.Values)
-        {
-            Console.WriteLine($"move {rm.Move} score {rm.Score} nodes {rm.Nodes}");
-        }
+        if (MultiPvCount == PVs.Length)
+            return;
+
+        foreach (var pv in PVs)
+            pv.Dispose();
+
+        PVs = new PV[MultiPvCount];
+
+        for (int i = 0; i < MultiPvCount; i++)
+            PVs[i] = new();
+
+        GC.Collect();
     }
+
+    /// <summary>
+    /// checks if the current rootmove has already been accepted 
+    /// as a bestmove in a previous multi-pv line
+    /// </summary>
+    public bool MoveInMultiPV(Move m)
+    {
+        for (int i = 0; i < thread.MultiPvIdx; i++)
+        {
+            if (m == PVs[i].BestMove)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
 
     public void ReportBackMove(Move m, int score, long nodes, int depth)
     {
@@ -113,6 +139,9 @@ public class RootPos : IDisposable
     public void CopyFrom(RootPos Parent)
     {
         RootMoves = new Dictionary<Move, RootMove>(Parent.RootMoves);
+
+        ResizeMultiPV(Parent.PVs.Length);
+
         p = Parent.p;
         moveCount = Parent.moveCount;
     }

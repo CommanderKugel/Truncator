@@ -13,8 +13,16 @@ public static partial class Search
         {
 
             thread.seldepth = depth;
-            int score = AspirationWindows(thread, depth);
+
+            int multiPv = Math.Min(ThreadPool.UCI_MultiPVCount, thread.rootPos.RootMoves.Count);
+            for (int i = 0; i < multiPv; i++)
+            {
+                thread.MultiPvIdx = i;
+                AspirationWindows(thread, depth);
+            }
+
             thread.completedDepth = depth;
+            thread.MultiPvIdx = 0;
 
             if (thread.IsMainThread && !isBench)
             {

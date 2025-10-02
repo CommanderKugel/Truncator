@@ -27,6 +27,14 @@ public static partial class UCI
             ThreadPool.tt.Resize(sizemb);
         }
 
+        else if (nameStr == "MultiPv")
+        {
+            Debug.Assert(tokens.Length == 5);
+            ThreadPool.UCI_MultiPVCount = Math.Clamp(int.Parse(valueStr), 1, 256);
+            ThreadPool.UpdateMultiPv();
+            Console.WriteLine($"info string set MultiPv={ThreadPool.UCI_MultiPVCount}");
+        }
+
         else if (nameStr == "Move" && tokens[3] == "Overhead")
         {
             Debug.Assert(tokens.Length == 6);

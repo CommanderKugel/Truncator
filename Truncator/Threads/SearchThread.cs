@@ -24,10 +24,13 @@ public class SearchThread : IDisposable
 
     public volatile int ply;
     public volatile int seldepth;
+    public int completedDepth = 0;
+
     public long nodeCount = 0;
     public long tbHits = 0;
 
-    public int completedDepth = 0;
+    public volatile int MultiPvCount = 1;
+    public volatile int MultiPvIdx = 0;
 
     // search objects
 
