@@ -6,7 +6,6 @@ public static partial class UCI
     private static void SetOption(string[] tokens)
     {
         Debug.Assert(tokens[0] == "setoption");
-        Debug.Assert(state == UciState.Idle, "cant use setoption when not idle!");
 
         // setoption name <ID> [value <X>]
 
@@ -33,6 +32,21 @@ public static partial class UCI
             ThreadPool.UCI_MultiPVCount = Math.Clamp(int.Parse(valueStr), 1, 256);
             ThreadPool.UpdateMultiPv();
             Console.WriteLine($"info string set MultiPv={ThreadPool.UCI_MultiPVCount}");
+        }
+        
+        else if (nameStr == "UCI_Chess960")
+        {
+            if (tokens.Length == 5)
+            {
+                Castling.UCI_Chess960 = bool.Parse(valueStr);
+            }
+
+            else if (tokens.Length == 3)
+            {
+                Castling.UCI_Chess960 = !Castling.UCI_Chess960;
+            }
+
+            Console.WriteLine($"info string set UCI_Chess960={Castling.UCI_Chess960}");
         }
 
         else if (nameStr == "Move" && tokens[3] == "Overhead")

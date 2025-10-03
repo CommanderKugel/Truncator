@@ -54,7 +54,7 @@ public readonly struct Move
 
     public override string ToString()
     {
-        int target = IsCastling && !UCI.IsChess960 ? CastlingDestination() : to;
+        int target = IsCastling && !Castling.UCI_Chess960 ? CastlingDestination() : to;
         var val = Utils.SquareToString(from) + Utils.SquareToString(target);
         return IsPromotion ? val + ".nbrq."[(int)PromoType] : val;
     }

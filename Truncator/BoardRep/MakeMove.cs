@@ -126,7 +126,7 @@ public unsafe partial struct Pos
             int rookEnd = Castling.RookDestinations[idx];
 
             block ^= (1ul << kingEnd) | (1ul << rookEnd);
-            int dir = from < to ? 1 : -1;
+            int dir = from < kingEnd ? 1 : -1;
 
             // check if we move through check
 
