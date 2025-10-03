@@ -24,16 +24,15 @@ public class SearchThread : IDisposable
 
     public volatile int ply;
     public volatile int seldepth;
+    public int completedDepth = 0;
+
     public long nodeCount = 0;
     public long tbHits = 0;
 
-    public int completedDepth = 0;
+    public volatile int MultiPvCount = 1;
+    public volatile int MultiPvIdx = 0;
 
     // search objects
-    public PV PV;
-
-    public void NewPVLine() => PV[ply, ply] = Move.NullMove;
-    public void PushToPV(Move m) => PV.Push(m, ply);
 
     public TranspositionTable tt = ThreadPool.tt;
     public volatile unsafe Node* nodeStack = null;
@@ -64,8 +63,8 @@ public class SearchThread : IDisposable
         IsDisposed = false;
 
         this.id = id;
-        PV = new PV();
-        rootPos = new RootPos();
+
+        rootPos = new RootPos(this);
         repTable = new RepetitionTable();
         castling = new Castling();
 
@@ -175,8 +174,6 @@ public class SearchThread : IDisposable
         tbHits = 0;
         completedDepth = 0;
 
-        PV.Clear();
-
         for (int i = 0; i < 256; i++)
         {
             nodeStack[i].Clear();
@@ -191,6 +188,7 @@ public class SearchThread : IDisposable
         doSearch = true;
         Reset();
 
+        rootPos.Clear();
         history.Clear();
         CorrHist.Clear();
     }
@@ -224,7 +222,7 @@ public class SearchThread : IDisposable
         {
             // free all allocated memory
             
-            PV.Dispose();
+            rootPos.Dispose();
             repTable.Dispose();
             history.Dispose();
             CorrHist.Dispose();
@@ -257,8 +255,8 @@ public class SearchThread : IDisposable
             ThreadPool.tt.Clear();
             TimeManager.PrepareBench(TimeManager.maxDepth);
 
-            rootPos.SetNewFen(this, fen);
-            rootPos.InitRootMoves(this);
+            rootPos.SetNewFen(fen);
+            rootPos.InitRootMoves();
 
             Search.IterativeDeepen(this, isBench: true);
             totalNodes += nodeCount;

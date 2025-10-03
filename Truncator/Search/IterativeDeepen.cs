@@ -13,8 +13,16 @@ public static partial class Search
         {
 
             thread.seldepth = depth;
-            int score = AspirationWindows(thread, depth);
+
+            int multiPv = Math.Min(ThreadPool.UCI_MultiPVCount, thread.rootPos.RootMoves.Count);
+            for (int i = 0; i < multiPv; i++)
+            {
+                thread.MultiPvIdx = i;
+                AspirationWindows(thread, depth);
+            }
+
             thread.completedDepth = depth;
+            thread.MultiPvIdx = 0;
 
             if (thread.IsMainThread && !isBench)
             {
@@ -38,8 +46,8 @@ public static partial class Search
         }
 
         int delta = Tunables.AspDelta;
-        int alpha = thread.PV[thread.completedDepth] - delta;
-        int beta = thread.PV[thread.completedDepth] + delta;
+        int alpha = thread.rootPos.PVs[thread.MultiPvIdx][thread.completedDepth] - delta;
+        int beta = thread.rootPos.PVs[thread.MultiPvIdx][thread.completedDepth] + delta;
 
         while (true)
         {

@@ -20,7 +20,7 @@ public class Pgn
             {
                 Debug.Assert(Fen == null);
                 Fen = line[6..(line.Length - 2)];
-                thread.rootPos.SetNewFen(thread, Fen);
+                thread.rootPos.SetNewFen(Fen);
             }
 
             // [Result "1-0"]
@@ -89,7 +89,7 @@ public class Pgn
 
                     // make the move
 
-                    thread.rootPos.MakeMove(m, thread);
+                    thread.rootPos.MakeMove(m);
                 }
             }
 
@@ -111,21 +111,21 @@ public class Pgn
         TimeManager.Reset();
 
         var thread = ThreadPool.MainThread;
-        thread.rootPos.SetNewFen(thread, Fen);
+        thread.rootPos.SetNewFen(Fen);
         Utils.print(thread.rootPos.p);
 
         foreach (var pm in MainLine)
         {
             if (thread.rootPos.p.Us != c)
             {
-                thread.rootPos.MakeMove(pm.move, thread);
+                thread.rootPos.MakeMove(pm.move);
                 continue;
             }
 
             thread.Reset();
             thread.doSearch = true;
             thread.rootPos.RootMoves.Clear();
-            thread.rootPos.InitRootMoves(thread);
+            thread.rootPos.InitRootMoves();
 
             TimeManager.Reset();
             TimeManager.softnodes = 5000;
@@ -134,7 +134,7 @@ public class Pgn
 
             Search.IterativeDeepen(thread, false);
 
-            thread.rootPos.MakeMove(pm.move, thread);
+            thread.rootPos.MakeMove(pm.move);
         }
     }
 

@@ -12,6 +12,8 @@ public static class ThreadPool
 
     public static TranspositionTable tt = new TranspositionTable();
 
+    public static int UCI_MultiPVCount = 1;
+
 
     /// <summary>
     /// Call this via uci options
@@ -102,39 +104,53 @@ public static class ThreadPool
         // info printing in between iterations
         int depth = MainThread.completedDepth;
         int seldepth = MainThread.seldepth;
-        int dirty_score = MainThread.PV[depth];
+
         long nodes = GetNodes();
         long tbHits = GetTbHits();
-        long time = TimeManager.ElapsedMilliseconds;
-        long nps = nodes * 1000 / time;
         int hashfull = tt.GetHashfull();
 
-        // normalize score to +100 cp ~ 50% chance of winning
-        var (norm_score, w, d, l) = WDL.GetWDL(dirty_score);
-        string scoreString = Search.IsTerminal(dirty_score) ? $"mate {(Math.Abs(dirty_score) - Search.SCORE_MATE) / 2}" : $"cp {norm_score}";
+        long time = TimeManager.ElapsedMilliseconds;
+        long nps = nodes * 1000 / time;
+        
+        string info = $"info depth {depth} seldepth {seldepth} nodes {nodes} tbhits {tbHits} time {time} nps {nps} hashfull {hashfull}";
 
-        string info = $"info depth {depth} seldepth {seldepth} nodes {nodes} tbhits {tbHits} time {time} nps {nps} score {scoreString} hashfull {hashfull}";
+        // multipv dependant information
 
-        if (WDL.UCI_showWDL)
+        if (MainThread.MultiPvCount == 1)
         {
-            info += $" wdl {(int)(w * 1000)} {(int)(d * 1000)} {(int)(l * 1000)}";
+            Console.WriteLine(info + GetMultipvInfo(0));
+            return;
         }
 
-        info += $" pv {MainThread.PV.ToString()}";
+        for (int i = 0; i < Math.Min(UCI_MultiPVCount, MainThread.rootPos.RootMoves.Count); i++)
+        {
+            info += $" multipv {i + 1}" + GetMultipvInfo(i);
+        }
         Console.WriteLine(info);
+
+        string GetMultipvInfo(int idx)
+        {
+            int dirty_score = MainThread.rootPos.PVs[idx][depth];
+            var (norm_score, w, d, l) = WDL.GetWDL(dirty_score);
+            string scoreString = Search.IsTerminal(dirty_score) ? $"mate {(Math.Abs(dirty_score) - Search.SCORE_MATE) / 2}" : $"cp {norm_score}";
+
+            string wdl = WDL.UCI_showWDL ? $" wdl {(int)(w * 1000)} {(int)(d * 1000)} {(int)(l * 1000)}" : "";
+
+            return $" score {scoreString}{wdl} {MainThread.rootPos.PVs[idx].ToString()}";
+        }
     }
 
     public static SearchThread GetBestThread()
     {
         SearchThread bestThread = pool[0];
         int bestDepth = bestThread.completedDepth;
-        int bestScore = bestThread.PV[bestThread.completedDepth];
+        int bestScore = bestThread.rootPos.PVs[0][bestThread.completedDepth];
 
         for (int i = 0; i < ThreadCount; i++)
         {
             var thread = pool[i];
             int depth = pool[i].completedDepth;
-            int score = pool[i].PV[depth];
+            int score = pool[i].rootPos.PVs[0][depth];
 
             // if depths are equal, choose the higher score
             if (depth == bestDepth && score > bestScore)
@@ -161,12 +177,12 @@ public static class ThreadPool
     {
         var bestThread = GetBestThread();
 
-        while (bestThread.PV.BestMove.IsNull)
+        while (bestThread.rootPos.PVs[0].BestMove.IsNull)
         {
             bestThread = GetBestThread();
         }
 
-        Console.WriteLine($"bestmove {bestThread.PV.BestMove} ponder {bestThread.PV.PonderMove}");
+        Console.WriteLine($"bestmove {bestThread.rootPos.PVs[0].BestMove} ponder {bestThread.rootPos.PVs[0].PonderMove}");
     }
 
     public static void Clear()
@@ -205,6 +221,15 @@ public static class ThreadPool
             tbHits += thread.tbHits;
         }
         return tbHits;
+    }
+
+    public static void UpdateMultiPv()
+    {
+        foreach (var thread in pool)
+        {
+            thread.MultiPvCount = UCI_MultiPVCount;
+            thread.rootPos.ResizeMultiPV(UCI_MultiPVCount);
+        }
     }
 
     /// <summary>

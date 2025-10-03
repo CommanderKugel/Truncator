@@ -27,6 +27,7 @@ public static partial class UCI
 
                 Console.WriteLine($"option name Hash type spin default {TranspositionTable.DEFAULT_SIZE} min {TranspositionTable.MIN_SIZE} max {TranspositionTable.MAX_SIZE}");
                 Console.WriteLine($"option name Threads type spin default 1 min 1 max {ThreadPool.MAX_THREAD_COUNT}");
+                Console.WriteLine($"option name MultiPv type spin default 1 min 1 max 256");
 
                 Console.WriteLine($"option name Move Overhead type spin default {TimeManager.MoveOverhead} min 0 max 999999");
 
@@ -153,7 +154,7 @@ public static partial class UCI
                     "r1b1k1nr/ppq3pp/2n1p3/2ppPp2/3P4/P1P1B1Q1/2P2PPP/R3KBNR b KQkq - 3 9",
                     "rn2kb1r/pp3ppp/2p1pn2/q7/3P4/2P2B1P/PP3PP1/RNBQ1RK1 b kq - 1 9"})
                 {
-                    ThreadPool.MainThread.rootPos.SetNewFen(ThreadPool.MainThread, fen);
+                    ThreadPool.MainThread.rootPos.SetNewFen(fen);
                     Console.WriteLine($"fen: {fen}");
                     unsafe
                     {
