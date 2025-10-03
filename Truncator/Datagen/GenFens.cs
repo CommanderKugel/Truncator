@@ -17,6 +17,8 @@ public static class GenFens
 
         string BookPath = args[5];
 
+        bool dfrc = args.Contains("dfrc");
+
         Console.WriteLine($"info string generating {N} fens, using the seed {seed} and book found at {BookPath}");
 
         // ignore extra for now
@@ -33,7 +35,9 @@ public static class GenFens
         {
             // ToDo: read fen from book here
 
-            thread.rootPos.SetNewFen(Utils.startpos);
+            string fen = !dfrc ? Utils.startpos : Frc.GetDfrcFen(rng.Next() % 960, rng.Next() % 960);
+            thread.rootPos.SetNewFen(fen);
+
             bool success = true;
 
             for (int i = 0; i < RandomMoves; i++)
@@ -76,7 +80,7 @@ public static class GenFens
 
                 // filter out very imbalanced positions
 
-                if (Math.Abs(score) > 500)
+                if (Math.Abs(score) > 250)
                 {
                     continue;
                 }
