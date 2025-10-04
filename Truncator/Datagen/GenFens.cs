@@ -4,9 +4,7 @@ public static class GenFens
 
     public static void Generate(string[] args)
     {
-        Console.WriteLine("info string starting to generate fens");
-
-        // accept commands of form of:
+        // accepts arguments in the form of:
         // genfens N seed S book <None|Books/my_book.epd> <?extra>
 
         if (!int.TryParse(args[1], out int N))
@@ -17,9 +15,9 @@ public static class GenFens
 
         string BookPath = args[5];
 
-        bool dfrc = args.Length == 6 && args[6].Contains("dfrc");
+        bool dfrc = args.Length > 6 && args[6] == "dfrc";
 
-        Console.WriteLine($"info string generating {N} fens, using the seed {seed} and book found at {BookPath}");
+        Console.WriteLine($"info string generating {N} fens, using the seed {seed}, book found at {BookPath}, and dfrc={dfrc}");
 
         // ignore extra for now
 
@@ -67,7 +65,7 @@ public static class GenFens
                 TimeManager.depth = 10;
                 TimeManager.Start(thread.rootPos.p.Us);
 
-                thread.Clear();
+                thread.Clear(containRootpos: true);
                 thread.rootPos.InitRootMoves();
                 
                 unsafe
