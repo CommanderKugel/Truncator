@@ -37,6 +37,8 @@ public static class Viriformat
 
         foreach (var file in files)
         {
+            Console.WriteLine($"now parsing: {file}");
+
             var (gameCount, posCount) = ConvertPgnToViriformat(
                 thread,
                 Path.Combine(PgnPath, file),
@@ -46,7 +48,6 @@ public static class Viriformat
             totalGames += gameCount;
             totalPos += posCount;
 
-            Console.WriteLine($"finieshed parsing {file}");
             Console.WriteLine($"parsed {gameCount} games, {posCount} poitions, to total {totalGames} games and total {totalPos} positions");
         }
 
