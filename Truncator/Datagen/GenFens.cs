@@ -17,7 +17,7 @@ public static class GenFens
 
         string BookPath = args[5];
 
-        bool dfrc = args.Contains("dfrc");
+        bool dfrc = args.Length == 6 && args[6].Contains("dfrc");
 
         Console.WriteLine($"info string generating {N} fens, using the seed {seed} and book found at {BookPath}");
 
