@@ -12,10 +12,17 @@ public struct Accumulator : IDisposable
     public unsafe short* WhiteAcc = null;
     public unsafe short* BlackAcc = null;
 
+    public int wflip;
+    public int bflip;
+
+
     public unsafe Accumulator()
     {
         WhiteAcc = (short*)NativeMemory.AlignedAlloc((nuint)sizeof(short) * L2_SIZE, 256);
         BlackAcc = (short*)NativeMemory.AlignedAlloc((nuint)sizeof(short) * L2_SIZE, 256);
+
+        wflip = 0;
+        bflip = 0;
     }
 
 
@@ -29,6 +36,14 @@ public struct Accumulator : IDisposable
     {
         Debug.Assert(WhiteAcc != null);
         Debug.Assert(BlackAcc != null);
+
+        Debug.Assert(Utils.popcnt(p.GetPieces(Color.White, PieceType.King)) == 1);
+        Debug.Assert(Utils.popcnt(p.GetPieces(Color.Black, PieceType.King)) == 1);
+        Debug.Assert(Utils.lsb(p.GetPieces(Color.White, PieceType.King)) == p.KingSquares[(int)Color.White]);
+        Debug.Assert(Utils.lsb(p.GetPieces(Color.Black, PieceType.King)) == p.KingSquares[(int)Color.Black]);
+
+        this.wflip = GetFlip(p.KingSquares[(int)Color.White]);
+        this.bflip = GetFlip(p.KingSquares[(int)Color.Black]);
 
         // copy bias
         // implicitly clears accumulator
@@ -53,6 +68,13 @@ public struct Accumulator : IDisposable
     }
 
 
+    public static int GetFlip(int ksq)
+    {
+        Debug.Assert(ksq >= 0 && ksq < 64);
+        return Utils.FileOf(ksq) > 3 ? 7 : 0;
+    }
+
+
     /// <summary>
     /// accumulate a newly activated feaure in the accumulator
     /// ~a piece has been placed on the board somewhere
@@ -65,7 +87,7 @@ public struct Accumulator : IDisposable
             ActivateFallback(c, pt, sq);
     }
 
-    public unsafe void ActivateFallback(Color c, PieceType pt, int sq)
+    private unsafe void ActivateFallback(Color c, PieceType pt, int sq)
     {
         Debug.Assert(Avx2.IsSupported);
         Debug.Assert(WhiteAcc != null);
@@ -74,8 +96,8 @@ public struct Accumulator : IDisposable
         Debug.Assert(pt != PieceType.NONE);
         Debug.Assert(sq >= 0 && sq < 64);
 
-        int widx = (int)c * 384 + (int)pt * 64 + sq;
-        int bidx = ((int)c ^ 1) * 384 + (int)pt * 64 + (sq ^ 56);
+        int widx = (int)c * 384 + (int)pt * 64 + (sq ^ wflip);
+        int bidx = ((int)c ^ 1) * 384 + (int)pt * 64 + (sq ^ bflip ^ 56);
 
         var wWeightPrt = l1_weight + widx * L2_SIZE;
         var bWeightPrt = l1_weight + bidx * L2_SIZE;
@@ -95,7 +117,7 @@ public struct Accumulator : IDisposable
         }
     }
 
-    public unsafe void ActivateAvx2(Color c, PieceType pt, int sq)
+    private unsafe void ActivateAvx2(Color c, PieceType pt, int sq)
     {
         Debug.Assert(WhiteAcc != null);
         Debug.Assert(BlackAcc != null);
@@ -103,8 +125,8 @@ public struct Accumulator : IDisposable
         Debug.Assert(pt != PieceType.NONE);
         Debug.Assert(sq >= 0 && sq < 64);
 
-        int widx = (int)c * 384 + (int)pt * 64 + sq;
-        int bidx = ((int)c ^ 1) * 384 + (int)pt * 64 + (sq ^ 56);
+        int widx = (int)c * 384 + (int)pt * 64 + (sq ^ wflip);
+        int bidx = ((int)c ^ 1) * 384 + (int)pt * 64 + (sq ^ bflip ^ 56);
 
         var wWeightPrt = l1_weight + widx * L2_SIZE;
         var bWeightPrt = l1_weight + bidx * L2_SIZE;
@@ -137,7 +159,7 @@ public struct Accumulator : IDisposable
             DeactivateFallback(c, pt, sq);
     }
 
-    public unsafe void DeactivateFallback(Color c, PieceType pt, int sq)
+    private unsafe void DeactivateFallback(Color c, PieceType pt, int sq)
     {
         Debug.Assert(WhiteAcc != null);
         Debug.Assert(BlackAcc != null);
@@ -145,8 +167,8 @@ public struct Accumulator : IDisposable
         Debug.Assert(pt != PieceType.NONE);
         Debug.Assert(sq >= 0 && sq < 64);
 
-        int widx = (int)c * 384 + (int)pt * 64 + sq;
-        int bidx = ((int)c ^ 1) * 384 + (int)pt * 64 + (sq ^ 56);
+        int widx = (int)c * 384 + (int)pt * 64 + (sq ^ wflip);
+        int bidx = ((int)c ^ 1) * 384 + (int)pt * 64 + (sq ^ bflip ^ 56);
 
         var wWeightPrt = l1_weight + widx * L2_SIZE;
         var bWeightPrt = l1_weight + bidx * L2_SIZE;
@@ -166,7 +188,7 @@ public struct Accumulator : IDisposable
         }
     }
 
-    public unsafe void DeactivateAvx2(Color c, PieceType pt, int sq)
+    private unsafe void DeactivateAvx2(Color c, PieceType pt, int sq)
     {
         Debug.Assert(Avx2.IsSupported);
         Debug.Assert(WhiteAcc != null);
@@ -175,8 +197,8 @@ public struct Accumulator : IDisposable
         Debug.Assert(pt != PieceType.NONE);
         Debug.Assert(sq >= 0 && sq < 64);
 
-        int widx = (int)c * 384 + (int)pt * 64 + sq;
-        int bidx = ((int)c ^ 1) * 384 + (int)pt * 64 + (sq ^ 56);
+        int widx = (int)c * 384 + (int)pt * 64 + (sq ^ wflip);
+        int bidx = ((int)c ^ 1) * 384 + (int)pt * 64 + (sq ^ bflip ^ 56);
 
         var wWeightPrt = l1_weight + widx * L2_SIZE;
         var bWeightPrt = l1_weight + bidx * L2_SIZE;
@@ -208,6 +230,9 @@ public struct Accumulator : IDisposable
 
         NativeMemory.Copy(WhiteAcc, child.WhiteAcc, (nuint)sizeof(short) * L2_SIZE);
         NativeMemory.Copy(BlackAcc, child.BlackAcc, (nuint)sizeof(short) * L2_SIZE);
+
+        child.wflip = this.wflip;
+        child.bflip = this.bflip;
     }
 
     /// <summary>
@@ -220,6 +245,9 @@ public struct Accumulator : IDisposable
 
         NativeMemory.Clear(WhiteAcc, sizeof(float) * L2_SIZE);
         NativeMemory.Clear(BlackAcc, sizeof(float) * L2_SIZE);
+
+        wflip = 0;
+        bflip = 0;
     }
 
     /// <summary>
@@ -239,13 +267,19 @@ public struct Accumulator : IDisposable
 
     public unsafe bool EqualContents(ref Accumulator other)
     {
-        for (int i = 0; i < L2_SIZE; i++)
+        if (other.wflip != wflip || other.bflip != bflip)
         {
-            if (WhiteAcc[i] != other.WhiteAcc[i] || BlackAcc[i] != other.BlackAcc[i])
-            {
-                return false;
-            }
+            return false;
         }
+
+        for (int i = 0; i < L2_SIZE; i++)
+            {
+                if (WhiteAcc[i] != other.WhiteAcc[i] || BlackAcc[i] != other.BlackAcc[i])
+                {
+                    return false;
+                }
+            }
+
         return true;
     }
 }
