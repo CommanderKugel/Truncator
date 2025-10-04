@@ -57,14 +57,17 @@ public class SearchThread : IDisposable
     }
 
 
-    public SearchThread(int id)
+    public SearchThread(int id, int multPvCount=1)
     {
         isReady = false;
         IsDisposed = false;
 
         this.id = id;
+        MultiPvCount = multPvCount;
 
         rootPos = new RootPos(this);
+        rootPos.ResizeMultiPV(multPvCount);
+
         repTable = new RepetitionTable();
         castling = new Castling();
 
