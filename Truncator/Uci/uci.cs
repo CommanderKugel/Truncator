@@ -159,6 +159,7 @@ public static partial class UCI
                     {
                         int eval = NNUE.Evaluate(ref ThreadPool.MainThread.rootPos.p, ThreadPool.MainThread.nodeStack[0].acc);
                         Console.WriteLine($"eval: {eval}");
+                        Console.WriteLine($"{ThreadPool.MainThread.nodeStack[0].acc.wflip}, {ThreadPool.MainThread.nodeStack[0].acc.bflip}");
                     }
                 }
             }

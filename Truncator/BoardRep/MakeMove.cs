@@ -330,30 +330,44 @@ public unsafe partial struct Pos
 
         // update accumulator
 
-        var child = thread.nodeStack[thread.ply + 1].acc;
-        var parent = thread.nodeStack[thread.ply].acc;
-        parent.CopyTo(ref child);
-        Debug.Assert(parent.EqualContents(ref child));
+        ref var child = ref thread.nodeStack[thread.ply + 1].acc;
+        ref var parent = ref thread.nodeStack[thread.ply].acc;
 
-        if (m.IsCastling)
+        // if king moves into a different bucket -> recompute the accumulator
+        // ToDo for more buckets: Finny tables
+
+        if (Accumulator.GetFlip(KingSquares[(int)Us]) != (Us == Color.White ? parent.wflip : parent.bflip))
         {
-            int idx = Castling.GetCastlingIdx(Us, from < to);
-            child.Activate(Us, PieceType.King, Castling.KingDestinations[idx]);
-            child.Activate(Us, PieceType.Rook, Castling.RookDestinations[idx]);
-            child.Deactivate(Us, PieceType.King, from);
-            child.Deactivate(Us, PieceType.Rook, to);
+            child.Accumulate(ref this);
         }
-        else if (victimPt != PieceType.NONE)
-        {
-            child.Activate(Us, m.IsPromotion ? m.PromoType : movingPt, to);
-            child.Deactivate(Us, movingPt, from);
-            child.Deactivate(Them, victimPt, !m.IsEnPassant ? to :
-                (Us == Color.White ? to - 8 : to + 8));
-        }
+
+        // king stays in its bucket -> incremental update (UE)
+
         else
         {
-            child.Activate(Us, m.IsPromotion ? m.PromoType : movingPt, to);
-            child.Deactivate(Us, movingPt, from);
+            parent.CopyTo(ref child);
+            Debug.Assert(parent.EqualContents(ref child));
+
+            if (m.IsCastling)
+            {
+                int idx = Castling.GetCastlingIdx(Us, from < to);
+                child.Activate(Us, PieceType.King, Castling.KingDestinations[idx]);
+                child.Activate(Us, PieceType.Rook, Castling.RookDestinations[idx]);
+                child.Deactivate(Us, PieceType.King, from);
+                child.Deactivate(Us, PieceType.Rook, to);
+            }
+            else if (victimPt != PieceType.NONE)
+            {
+                child.Activate(Us, m.IsPromotion ? m.PromoType : movingPt, to);
+                child.Deactivate(Us, movingPt, from);
+                child.Deactivate(Them, victimPt, !m.IsEnPassant ? to :
+                    (Us == Color.White ? to - 8 : to + 8));
+            }
+            else
+            {
+                child.Activate(Us, m.IsPromotion ? m.PromoType : movingPt, to);
+                child.Deactivate(Us, movingPt, from);
+            }
         }
 
         // swap the side-to-move
@@ -386,8 +400,8 @@ public unsafe partial struct Pos
     {
         // update (copy) accumulator
 
-        var child = thread.nodeStack[thread.ply + 1].acc;
-        var parent = thread.nodeStack[thread.ply].acc;
+        ref var child = ref thread.nodeStack[thread.ply + 1].acc;
+        ref var parent = ref thread.nodeStack[thread.ply].acc;
         parent.CopyTo(ref child);
         Debug.Assert(parent.EqualContents(ref child));
 
