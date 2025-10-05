@@ -101,8 +101,8 @@ public static partial class UCI
         else if (nameStr == "UCI_Temperature")
         {
             Debug.Assert(tokens.Length == 5);
-            ThreadPool.InitTemperature(double.Parse(valueStr.Replace('.', ',').Replace('\"', '0')));
-            Console.WriteLine($"info string set UCI_Temperature={ThreadPool.UCI_Temperature}");
+            ThreadPool.InitTemperature((double)int.Parse(valueStr) / 1000);
+            Console.WriteLine($"info string set UCI_Temperature={ThreadPool.UCI_Temperature} (value /= 1000)");
 
             if (ThreadPool.UCI_MultiPVCount == 1)
             {

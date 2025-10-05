@@ -141,7 +141,7 @@ public static class ThreadPool
 
             string wdl = WDL.UCI_showWDL ? $" wdl {(int)(w * 1000)} {(int)(d * 1000)} {(int)(l * 1000)}" : "";
 
-            return $" score {scoreString}{wdl} {MainThread.rootPos.PVs[idx].ToString()}";
+            return $" score {scoreString}{wdl} pv {MainThread.rootPos.PVs[idx].ToString()}";
         }
     }
 
@@ -218,24 +218,15 @@ public static class ThreadPool
             scores.Add(s);
         }
 
-        foreach (var sc in scores)
-            Console.WriteLine($"score: {sc}");
-
         // compute logits
 
         var max = scores.Max();
         var expScores = scores.Select(x => Math.Exp((double)(x) / 100.0d / ((double)UCI_Temperature))).ToList();
 
-        foreach (var es in expScores)
-            Console.WriteLine($"exps: {es}");
-
         // normalize logits
 
         double sum = expScores.Sum();
         var probs = expScores.Select(s => s / sum).ToList();
-
-        foreach (var p in probs)
-            Console.WriteLine($"prob: {p}");
 
         // random sampling
 
