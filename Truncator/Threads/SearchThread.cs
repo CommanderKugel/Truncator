@@ -186,14 +186,18 @@ public class SearchThread : IDisposable
     /// <summary>
     /// Clear the threads stored information inbetween games
     /// </summary>
-    public void Clear()
+    public void Clear(bool clearRootPos = true)
     {
         doSearch = true;
         Reset();
 
-        rootPos.Clear();
         history.Clear();
         CorrHist.Clear();
+
+        if (clearRootPos)
+        {
+            rootPos.Clear();
+        }
     }
 
     /// <summary>

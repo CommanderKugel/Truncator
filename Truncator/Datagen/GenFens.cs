@@ -63,7 +63,7 @@ public static class GenFens
                 TimeManager.depth = 10;
                 TimeManager.Start(thread.rootPos.p.Us);
 
-                thread.Clear();
+                thread.Clear(clearRootPos: false);
                 thread.rootPos.InitRootMoves();
                 
                 unsafe
