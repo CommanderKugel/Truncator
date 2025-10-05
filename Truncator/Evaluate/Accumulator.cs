@@ -2,11 +2,12 @@
 using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 using static Settings;
 using static Weights;
 
-public struct Accumulator : IDisposable
+public partial struct Accumulator : IDisposable
 {
 
     public unsafe short* WhiteAcc = null;
@@ -42,8 +43,8 @@ public struct Accumulator : IDisposable
         Debug.Assert(Utils.lsb(p.GetPieces(Color.White, PieceType.King)) == p.KingSquares[(int)Color.White]);
         Debug.Assert(Utils.lsb(p.GetPieces(Color.Black, PieceType.King)) == p.KingSquares[(int)Color.Black]);
 
-        this.wflip = GetFlip(p.KingSquares[(int)Color.White]);
-        this.bflip = GetFlip(p.KingSquares[(int)Color.Black]);
+        wflip = GetFlip(p.KingSquares[(int)Color.White]);
+        bflip = GetFlip(p.KingSquares[(int)Color.Black]);
 
         // copy bias
         // implicitly clears accumulator
@@ -74,6 +75,16 @@ public struct Accumulator : IDisposable
         return Utils.FileOf(ksq) > 3 ? 7 : 0;
     }
 
+    public (int, int) GetFeatureIdx(Color c, PieceType pt, int sq)
+    {
+        Debug.Assert(c != Color.NONE);
+        Debug.Assert(pt != PieceType.NONE);
+        Debug.Assert(sq >= 0 && sq < 64);
+        int w = (int)c * 384 + (int)pt * 64 + (sq ^ wflip);
+        int b = (int)(1 - c) * 384 + (int)pt * 64 + (sq ^ bflip ^ 56);
+        return (w, b);
+    }
+
 
     /// <summary>
     /// accumulate a newly activated feaure in the accumulator
@@ -96,21 +107,18 @@ public struct Accumulator : IDisposable
         Debug.Assert(pt != PieceType.NONE);
         Debug.Assert(sq >= 0 && sq < 64);
 
-        int widx = (int)c * 384 + (int)pt * 64 + (sq ^ wflip);
-        int bidx = ((int)c ^ 1) * 384 + (int)pt * 64 + (sq ^ bflip ^ 56);
-
-        var wWeightPrt = l1_weight + widx * L2_SIZE;
-        var bWeightPrt = l1_weight + bidx * L2_SIZE;
+        var (widx, bidx) = GetFeatureIdx(c, pt, sq);
 
         int vecSize = Vector<short>.Count;
+        Debug.Assert(L2_SIZE % vecSize == 0);
 
         for (int node = 0; node < L2_SIZE; node += vecSize)
         {
             var wacc = Vector.Load(WhiteAcc + node);
             var bacc = Vector.Load(BlackAcc + node);
 
-            var wWeight = Vector.Load(wWeightPrt + node);
-            var bWeight = Vector.Load(bWeightPrt + node);
+            var wWeight = Vector.Load(l1_weight + widx * L2_SIZE + node);
+            var bWeight = Vector.Load(l1_weight + bidx * L2_SIZE + node);
 
             Vector.Store(Vector.Add(wacc, wWeight), WhiteAcc + node);
             Vector.Store(Vector.Add(bacc, bWeight), BlackAcc + node);
@@ -125,21 +133,18 @@ public struct Accumulator : IDisposable
         Debug.Assert(pt != PieceType.NONE);
         Debug.Assert(sq >= 0 && sq < 64);
 
-        int widx = (int)c * 384 + (int)pt * 64 + (sq ^ wflip);
-        int bidx = ((int)c ^ 1) * 384 + (int)pt * 64 + (sq ^ bflip ^ 56);
+        var (widx, bidx) = GetFeatureIdx(c, pt, sq);
 
-        var wWeightPrt = l1_weight + widx * L2_SIZE;
-        var bWeightPrt = l1_weight + bidx * L2_SIZE;
-
-        int vecSize = Vector<short>.Count;
+        int vecSize = Vector256<short>.Count;
+        Debug.Assert(L2_SIZE % vecSize == 0);
 
         for (int node = 0; node < L2_SIZE; node += vecSize)
         {
             var wacc = Avx.LoadAlignedVector256(WhiteAcc + node);
             var bacc = Avx.LoadAlignedVector256(BlackAcc + node);
 
-            var wWeight = Avx.LoadAlignedVector256(wWeightPrt + node);
-            var bWeight = Avx.LoadAlignedVector256(bWeightPrt + node);
+            var wWeight = Avx.LoadAlignedVector256(l1_weight + widx * L2_SIZE + node);
+            var bWeight = Avx.LoadAlignedVector256(l1_weight + bidx * L2_SIZE + node);
 
             Avx.StoreAligned(WhiteAcc + node, Avx2.Add(wacc, wWeight));
             Avx.StoreAligned(BlackAcc + node, Avx2.Add(bacc, bWeight));
@@ -167,21 +172,18 @@ public struct Accumulator : IDisposable
         Debug.Assert(pt != PieceType.NONE);
         Debug.Assert(sq >= 0 && sq < 64);
 
-        int widx = (int)c * 384 + (int)pt * 64 + (sq ^ wflip);
-        int bidx = ((int)c ^ 1) * 384 + (int)pt * 64 + (sq ^ bflip ^ 56);
-
-        var wWeightPrt = l1_weight + widx * L2_SIZE;
-        var bWeightPrt = l1_weight + bidx * L2_SIZE;
+        var (widx, bidx) = GetFeatureIdx(c, pt, sq);
 
         int vecSize = Vector<short>.Count;
+        Debug.Assert(L2_SIZE % vecSize == 0);
 
         for (int node = 0; node < L2_SIZE; node += vecSize)
         {
             var wacc = Vector.Load(WhiteAcc + node);
             var bacc = Vector.Load(BlackAcc + node);
 
-            var wWeight = Vector.Load(wWeightPrt + node);
-            var bWeight = Vector.Load(bWeightPrt + node);
+            var wWeight = Vector.Load(l1_weight + widx * L2_SIZE + node);
+            var bWeight = Vector.Load(l1_weight + bidx * L2_SIZE + node);
 
             Vector.Store(Vector.Subtract(wacc, wWeight), WhiteAcc + node);
             Vector.Store(Vector.Subtract(bacc, bWeight), BlackAcc + node);
@@ -197,21 +199,18 @@ public struct Accumulator : IDisposable
         Debug.Assert(pt != PieceType.NONE);
         Debug.Assert(sq >= 0 && sq < 64);
 
-        int widx = (int)c * 384 + (int)pt * 64 + (sq ^ wflip);
-        int bidx = ((int)c ^ 1) * 384 + (int)pt * 64 + (sq ^ bflip ^ 56);
+        var (widx, bidx) = GetFeatureIdx(c, pt, sq);
 
-        var wWeightPrt = l1_weight + widx * L2_SIZE;
-        var bWeightPrt = l1_weight + bidx * L2_SIZE;
-
-        int vecSize = Vector<short>.Count;
+        int vecSize = Vector256<short>.Count;
+        Debug.Assert(L2_SIZE % vecSize == 0);
 
         for (int node = 0; node < L2_SIZE; node += vecSize)
         {
             var wacc = Avx.LoadAlignedVector256(WhiteAcc + node);
             var bacc = Avx.LoadAlignedVector256(BlackAcc + node);
 
-            var wWeight = Avx.LoadAlignedVector256(wWeightPrt + node);
-            var bWeight = Avx.LoadAlignedVector256(bWeightPrt + node);
+            var wWeight = Avx.LoadAlignedVector256(l1_weight + widx * L2_SIZE + node);
+            var bWeight = Avx.LoadAlignedVector256(l1_weight + bidx * L2_SIZE + node);
 
             Avx.StoreAligned(WhiteAcc + node, Avx2.Subtract(wacc, wWeight));
             Avx.StoreAligned(BlackAcc + node, Avx2.Subtract(bacc, bWeight));
