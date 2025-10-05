@@ -33,7 +33,7 @@ public static partial class UCI
             ThreadPool.UpdateMultiPv();
             Console.WriteLine($"info string set MultiPv={ThreadPool.UCI_MultiPVCount}");
         }
-        
+
         else if (nameStr == "UCI_Chess960")
         {
             if (tokens.Length == 5)
@@ -98,16 +98,28 @@ public static partial class UCI
             Console.WriteLine($"info string set hardnodes={TimeManager.UciHardnodes}");
         }
 
-        else if (SpsaUciOption.SpsaDict != null
-            && SpsaUciOption.SpsaDict.ContainsKey(nameStr))
+        else if (nameStr == "UCI_Temperature")
         {
-            SpsaUciOption.ChangeField(nameStr, int.Parse(valueStr));
+            Debug.Assert(tokens.Length == 5);
+            ThreadPool.InitTemperature(double.Parse(valueStr.Replace('.', ',')));
+            Console.WriteLine($"info string set UCI_Temperature={ThreadPool.UCI_Temperature}");
+
+            if (ThreadPool.UCI_MultiPVCount == 1)
+            {
+                Console.WriteLine($"info string Note that temperature needs to be used with Multipv to have any effect");
+            }
         }
 
-        else
-        {
-            Console.WriteLine($"info string {nameStr} was not found, setoption unsuccessfull");
-        }
+            else if (SpsaUciOption.SpsaDict != null
+                && SpsaUciOption.SpsaDict.ContainsKey(nameStr))
+            {
+                SpsaUciOption.ChangeField(nameStr, int.Parse(valueStr));
+            }
+
+            else
+            {
+                Console.WriteLine($"info string {nameStr} was not found, setoption unsuccessfull");
+            }
 
     }
 }

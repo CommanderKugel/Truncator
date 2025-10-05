@@ -40,6 +40,9 @@ public static partial class UCI
                 Console.WriteLine($"option name Softnodes type spin default {int.MaxValue} min {1} max {int.MaxValue}");
                 Console.WriteLine($"option name Hardnodes type spin default {int.MaxValue} min {1} max {int.MaxValue}");
 
+                // bigger values -> more random
+                Console.WriteLine($"option name UCI_Temperature type string default null");
+
 #if SPSA
                 SpsaUciOption.CollectOptions();
                 SpsaUciOption.PrintOptionsToUCI();

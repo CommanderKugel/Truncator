@@ -14,6 +14,8 @@ public static class ThreadPool
 
     public static int UCI_MultiPVCount = 1;
 
+    public static double? UCI_Temperature = null;
+    private static Random TempRng;
 
     /// <summary>
     /// Call this via uci options
@@ -178,6 +180,12 @@ public static class ThreadPool
 
     public static void ReportBestmove()
     {
+        if (UCI_Temperature is not null)
+        {
+            ReportBestMoveWithTemperature();
+            return;
+        }
+
         var bestThread = GetBestThread();
 
         while (bestThread.rootPos.PVs[0].BestMove.IsNull)
@@ -186,6 +194,68 @@ public static class ThreadPool
         }
 
         Console.WriteLine($"bestmove {bestThread.rootPos.PVs[0].BestMove} ponder {bestThread.rootPos.PVs[0].PonderMove}");
+    }
+
+
+    public static void InitTemperature(double temp)
+    {
+        UCI_Temperature = temp;
+        TempRng ??= new();
+    }
+
+    public static void ReportBestMoveWithTemperature()
+    {
+        Debug.Assert(UCI_Temperature is not null);
+        Debug.Assert(UCI_MultiPVCount > 1);
+
+        // collect pv-scores and later choose move based on scores index
+
+        List<int> scores = [];
+
+        for (int i = 0; i < MainThread.MultiPvCount; i++)
+        {
+            int s = MainThread.rootPos.PVs[i][MainThread.completedDepth];
+            scores.Add(s);
+        }
+
+        foreach (var sc in scores)
+            Console.WriteLine($"score: {sc}");
+
+        // compute logits
+
+        var max = scores.Max();
+        var expScores = scores.Select(x => Math.Exp((double)(x) / 100.0d / ((double)UCI_Temperature))).ToList();
+
+        foreach (var es in expScores)
+            Console.WriteLine($"exps: {es}");
+
+        // normalize logits
+
+        double sum = expScores.Sum();
+        var probs = expScores.Select(s => s / sum).ToList();
+
+        foreach (var p in probs)
+            Console.WriteLine($"prob: {p}");
+
+        // random sampling
+
+        double rand = TempRng.NextDouble();
+        int choiceIdx = 0;
+
+        for (double total = 0.0d; choiceIdx < MainThread.MultiPvCount; choiceIdx++)
+        {
+            total += probs[choiceIdx];
+
+            if (total >= rand)
+            {
+                break;
+            }
+        }
+
+        // uci reporting
+
+        ref var chosenPv = ref MainThread.rootPos.PVs[choiceIdx];
+        Console.WriteLine($"bestmove {chosenPv.BestMove} ponder {chosenPv.PonderMove}");
     }
 
     public static void Clear()
