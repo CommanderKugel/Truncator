@@ -1,5 +1,6 @@
 
 using System.Diagnostics;
+using System.Net.Http.Headers;
 
 public unsafe partial struct Pos
 {
@@ -345,28 +346,36 @@ public unsafe partial struct Pos
 
         else
         {
-            parent.CopyTo(ref child);
-            Debug.Assert(parent.EqualContents(ref child));
+            child.wflip = parent.wflip;
+            child.bflip = parent.bflip;
 
             if (m.IsCastling)
             {
                 int idx = Castling.GetCastlingIdx(Us, from < to);
-                child.Activate(Us, PieceType.King, Castling.KingDestinations[idx]);
-                child.Activate(Us, PieceType.Rook, Castling.RookDestinations[idx]);
-                child.Deactivate(Us, PieceType.King, from);
-                child.Deactivate(Us, PieceType.Rook, to);
+                child.AddAddSubSub(
+                    ref parent,
+                    Us, PieceType.King, Castling.KingDestinations[idx],
+                    Us, PieceType.Rook, Castling.RookDestinations[idx],
+                    Us, PieceType.King, from,
+                    Us, PieceType.Rook, to
+                );
             }
             else if (victimPt != PieceType.NONE)
             {
-                child.Activate(Us, m.IsPromotion ? m.PromoType : movingPt, to);
-                child.Deactivate(Us, movingPt, from);
-                child.Deactivate(Them, victimPt, !m.IsEnPassant ? to :
-                    (Us == Color.White ? to - 8 : to + 8));
+                child.AddSubSub(
+                    ref parent,
+                    Us, m.IsPromotion ? m.PromoType : movingPt, to,
+                    Us, movingPt, from,
+                    Them, victimPt, !m.IsEnPassant ? to : (Us == Color.White ? to - 8 : to + 8)
+                );
             }
             else
             {
-                child.Activate(Us, m.IsPromotion ? m.PromoType : movingPt, to);
-                child.Deactivate(Us, movingPt, from);
+                child.AddSub(
+                    ref parent,
+                    Us, m.IsPromotion ? m.PromoType : movingPt, to,
+                    Us, movingPt, from
+                );
             }
         }
 
