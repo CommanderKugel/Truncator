@@ -98,6 +98,12 @@ public static partial class UCI
             Console.WriteLine($"info string set hardnodes={TimeManager.UciHardnodes}");
         }
 
+        else if (nameStr == "Temperature")
+        {
+            ThreadPool.UCI_Temperature = double.Parse(valueStr.Replace(".", ",").Replace("\"", ""));
+            Console.WriteLine($"info string est Temperature={ThreadPool.UCI_Temperature}");
+        }
+
         else if (SpsaUciOption.SpsaDict != null
             && SpsaUciOption.SpsaDict.ContainsKey(nameStr))
         {

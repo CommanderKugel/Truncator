@@ -71,7 +71,10 @@ public class RootPos : IDisposable
         PVs = new PV[MultiPvCount];
 
         for (int i = 0; i < MultiPvCount; i++)
+        {
             PVs[i] = new();
+            PVs[i].Clear();
+        }
 
         GC.Collect();
     }

@@ -14,6 +14,9 @@ public static class ThreadPool
 
     public static int UCI_MultiPVCount = 1;
 
+    public static double? UCI_Temperature = null;
+    private static Random rng;
+
 
     /// <summary>
     /// Call this via uci options
@@ -178,6 +181,12 @@ public static class ThreadPool
 
     public static void ReportBestmove()
     {
+        if (UCI_MultiPVCount != 1 && UCI_Temperature is not null)
+        {
+            ReportRandomizedMultiPvMove();
+            return;
+        }
+
         var bestThread = GetBestThread();
 
         while (bestThread.rootPos.PVs[0].BestMove.IsNull)
@@ -187,6 +196,67 @@ public static class ThreadPool
 
         Console.WriteLine($"bestmove {bestThread.rootPos.PVs[0].BestMove} ponder {bestThread.rootPos.PVs[0].PonderMove}");
     }
+
+    public static void ReportRandomizedMultiPvMove()
+    {
+        Debug.Assert(ThreadCount == 1, "only supported for single threaded search for now");
+
+        // fetch scores of all pvs
+
+        List<int> scores = [];
+
+        for (int i = 0; i < Math.Min(UCI_MultiPVCount, MainThread.rootPos.moveCount); i++)
+        {
+            int score = MainThread.rootPos.PVs[i][MainThread.completedDepth];
+            scores.Add(score);
+            Debug.WriteLine($"{MainThread.rootPos.PVs[i].BestMove} - {score}");
+        }
+
+        // discard if scores get too high or low
+
+        int min = scores.Min();
+        int max = scores.Max();
+
+        if (min < -500 || max > 500)
+        {
+            Console.WriteLine($"bestmove {MainThread.rootPos.PVs[0].BestMove} ponder {MainThread.rootPos.PVs[0].PonderMove}");
+            return;
+        }
+
+        // compute probabilities of which move to choose
+
+        var smallerScores = scores.Select(s => (double)(s - max) / max).ToList();
+        var logits = smallerScores.Select(s => Math.Exp(s / (double)UCI_Temperature)).ToList();
+        var probs = logits.Select(s => s / logits.Sum()).ToList();
+
+        // ToTest: if (probs.Min() < n%) play bestmove
+        // maybe position is tactical and a low-prob random move blunders the game (?)
+
+        // choose random move by probability
+
+        rng ??= new();
+        double rand = rng.NextDouble();
+
+        double sum = 0.0d;
+        int choice = 0;
+
+        foreach (var p in probs)
+        {
+            sum += p;
+
+            if (sum > rand)
+                break;
+
+            // ToDo: if (p < n%) break
+        }
+
+        // final UCI reporting
+
+        ref var chosenPv = ref MainThread.rootPos.PVs[choice];
+        Console.WriteLine($"info depth {MainThread.completedDepth} seldepth {MainThread.seldepth} score cp {MainThread.rootPos.PVs[0][MainThread.completedDepth]} time {TimeManager.ElapsedMilliseconds} nodes {GetNodes()}");
+        Console.WriteLine($"bestmove {chosenPv.BestMove} ponder {chosenPv.PonderMove}");
+    }
+
 
     public static void Clear()
     {
