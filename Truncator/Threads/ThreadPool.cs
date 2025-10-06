@@ -219,6 +219,7 @@ public static class ThreadPool
 
         if (min < -500 || max > 500)
         {
+            Console.WriteLine($"info depth {MainThread.completedDepth} seldepth {MainThread.seldepth} score cp {MainThread.rootPos.PVs[0][MainThread.completedDepth]} time {TimeManager.ElapsedMilliseconds} nodes {GetNodes()}");
             Console.WriteLine($"bestmove {MainThread.rootPos.PVs[0].BestMove} ponder {MainThread.rootPos.PVs[0].PonderMove}");
             return;
         }
