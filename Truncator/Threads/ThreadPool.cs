@@ -245,9 +245,26 @@ public static class ThreadPool
             }
         }
 
+        // better not mess with false mates
+
+        if (Search.IsTerminal(scores.Max()) || Search.IsTerminal(scores.Min()))
+        {
+            choiceIdx = 0;
+        }
+
         // uci reporting
+        // fix awkward multipv info printing here
+        // because it does not properly work with cutechess right now
 
         ref var chosenPv = ref MainThread.rootPos.PVs[choiceIdx];
+
+        int depth = MainThread.completedDepth;
+        int seldepth = MainThread.seldepth;
+        int score = chosenPv[depth];
+        long nodes = GetNodes();
+        long time = TimeManager.ElapsedMilliseconds;
+        
+        Console.WriteLine($"info depht {depth} seldepth {seldepth} score {score} nodes {nodes} time {time} pv {chosenPv.ToString()}");
         Console.WriteLine($"bestmove {chosenPv.BestMove} ponder {chosenPv.PonderMove}");
     }
 
