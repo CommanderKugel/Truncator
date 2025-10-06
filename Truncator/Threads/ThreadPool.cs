@@ -193,7 +193,11 @@ public static class ThreadPool
             bestThread = GetBestThread();
         }
 
-        Console.WriteLine($"bestmove {bestThread.rootPos.PVs[0].BestMove} ponder {bestThread.rootPos.PVs[0].PonderMove}");
+        ref var bestPv = ref bestThread.rootPos.PVs[0];
+        Console.WriteLine($"info depth {bestThread.completedDepth} seldepth {bestThread.seldepth} score cp {bestPv[bestThread.completedDepth]} nodes {GetNodes()} time {TimeManager.ElapsedMilliseconds} pv {bestPv.ToString()}");
+        Console.WriteLine($"bestmove {bestPv.BestMove} ponder {bestPv.PonderMove}");
+
+        Console.WriteLine($"bestmove {bestPv.BestMove} ponder {bestPv.PonderMove}");
     }
 
 
