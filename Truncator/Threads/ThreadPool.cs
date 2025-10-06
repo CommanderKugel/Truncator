@@ -208,11 +208,13 @@ public static class ThreadPool
         Debug.Assert(UCI_Temperature is not null);
         Debug.Assert(UCI_MultiPVCount > 1);
 
+        int pvCount = Math.Min(UCI_MultiPVCount, MainThread.rootPos.RootMoves.Count);
+
         // collect pv-scores and later choose move based on scores index
 
         List<int> scores = [];
 
-        for (int i = 0; i < MainThread.MultiPvCount; i++)
+        for (int i = 0; i < pvCount; i++)
         {
             int s = MainThread.rootPos.PVs[i][MainThread.completedDepth];
             scores.Add(s);
@@ -233,7 +235,7 @@ public static class ThreadPool
         double rand = TempRng.NextDouble();
         int choiceIdx = 0;
 
-        for (double total = 0.0d; choiceIdx < MainThread.MultiPvCount; choiceIdx++)
+        for (double total = 0.0d; choiceIdx < pvCount; choiceIdx++)
         {
             total += probs[choiceIdx];
 
