@@ -220,6 +220,16 @@ public static class ThreadPool
             scores.Add(s);
         }
 
+        // dont do random-moves for big scores
+
+        if (Math.Abs(scores[0]) >= 750)
+        {
+            ref var fixPv = ref MainThread.rootPos.PVs[0];
+            Console.WriteLine($"info depth {MainThread.completedDepth} seldepth {MainThread.seldepth} score cp {fixPv[MainThread.completedDepth]} nodes {GetNodes()} time {TimeManager.ElapsedMilliseconds} pv {fixPv.ToString()}");
+            Console.WriteLine($"bestmove {fixPv.BestMove} ponder {fixPv.PonderMove}");
+            return;
+        }
+
         // compute logits
 
         var max = scores.Max();
@@ -257,14 +267,7 @@ public static class ThreadPool
         // because it does not properly work with cutechess right now
 
         ref var chosenPv = ref MainThread.rootPos.PVs[choiceIdx];
-
-        int depth = MainThread.completedDepth;
-        int seldepth = MainThread.seldepth;
-        int score = chosenPv[depth];
-        long nodes = GetNodes();
-        long time = TimeManager.ElapsedMilliseconds;
-        
-        Console.WriteLine($"info depht {depth} seldepth {seldepth} score {score} nodes {nodes} time {time} pv {chosenPv.ToString()}");
+        Console.WriteLine($"info depth {MainThread.completedDepth} seldepth {MainThread.seldepth} score cp {chosenPv[MainThread.completedDepth]} nodes {GetNodes()} time {TimeManager.ElapsedMilliseconds} pv {chosenPv.ToString()}");
         Console.WriteLine($"bestmove {chosenPv.BestMove} ponder {chosenPv.PonderMove}");
     }
 
