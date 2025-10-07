@@ -39,8 +39,8 @@ public static partial class UCI
 
                 Console.WriteLine($"option name Temperature type string default \"null\"");
 
-                //Console.WriteLine($"option name Softnodes type spin default {int.MaxValue} min {1} max {int.MaxValue}");
-                //Console.WriteLine($"option name Hardnodes type spin default {int.MaxValue} min {1} max {int.MaxValue}");
+                Console.WriteLine($"option name Softnodes type spin default {int.MaxValue} min {1} max {int.MaxValue}");
+                Console.WriteLine($"option name Hardnodes type spin default {int.MaxValue} min {1} max {int.MaxValue}");
 
 #if SPSA
                 SpsaUciOption.CollectOptions();
