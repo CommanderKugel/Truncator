@@ -7,7 +7,7 @@ public class Pgn
     public string Result;
     public List<PgnMove> MainLine;
 
-    public Pgn(SearchThread thread, StreamReader file)
+    public Pgn(SearchThread thread, StreamReader file, long[] dist = null)
     {
         MainLine = [];
         string? line;
@@ -104,6 +104,11 @@ public class Pgn
                     // make the move
 
                     thread.rootPos.MakeMove(m);
+
+                    if (dist is not null)
+                    {
+                        dist[Utils.popcnt(thread.rootPos.p.blocker)]++;
+                    }
                 }
             }
 
