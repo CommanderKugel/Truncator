@@ -101,14 +101,25 @@ public class Pgn
                     PgnMove pm = new(m, score, depth, seldepth, time, nodes);
                     MainLine.Add(pm);
 
+                    // count material distribution if wanted
+
+                    unsafe
+                    {
+                        if (dist is not null
+                            && Math.Abs(score) < 10_000
+                            && MainLine.Count > 8
+                            && !thread.rootPos.p.IsCapture(m)
+                            && !m.IsCastling
+                            && !m.IsPromotion
+                            && thread.rootPos.p.Checkers == 0)
+                        {
+                            dist[Utils.popcnt(thread.rootPos.p.blocker)]++;
+                        }
+                    }
+
                     // make the move
 
                     thread.rootPos.MakeMove(m);
-
-                    if (dist is not null)
-                    {
-                        dist[Utils.popcnt(thread.rootPos.p.blocker)]++;
-                    }
                 }
             }
 
