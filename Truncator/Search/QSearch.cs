@@ -43,6 +43,11 @@ public static partial class Search
         {
             ns->StaticEval = ns->UncorrectedStaticEval = -SCORE_MATE + thread.ply;
         }
+        else if (ttHit && ttEntry.Eval != -SCORE_MATE)
+        {
+            ns->UncorrectedStaticEval = ttEntry.Eval;
+            thread.CorrHist.Correct(thread, ref ns->p, ns);
+        }
         else
         {
             Accumulator.DoLazyUpdates(ns);

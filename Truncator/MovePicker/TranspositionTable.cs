@@ -64,7 +64,7 @@ public class TranspositionTable : IDisposable
         return false;
     }
 
-    public unsafe void Write(ulong key, int score, Move move, int depth, int flag, bool pv, SearchThread thread)
+    public unsafe void Write(ulong key, int score, int eval, Move move, int depth, int flag, bool pv, SearchThread thread)
     {
         Debug.Assert(tt != null);
         
@@ -73,6 +73,7 @@ public class TranspositionTable : IDisposable
 
         entry.Key = key;
         entry.Score = TTEntry.ConvertToSavescore(score, thread.ply);
+        entry.Eval = (short)eval;
         entry.MoveValue = move.value;
         entry.Depth = (byte)depth;
         entry.PackPVAgeFlag(pv, 0, flag);

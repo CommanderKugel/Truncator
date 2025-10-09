@@ -9,6 +9,7 @@ public struct TTEntry
 
     public ulong Key;
     public short Score;
+    public short Eval;
     public ushort MoveValue;
     public byte Depth;
 
@@ -27,10 +28,11 @@ public struct TTEntry
         }
     }
 
-    public TTEntry(ulong key, int score, Move move, int depht, int flag, bool pv, SearchThread thread)
+    public TTEntry(ulong key, int score, int eval, Move move, int depht, int flag, bool pv, SearchThread thread)
     {
         this.Key = key;
         this.Score = ConvertToSavescore(score, thread.ply);
+        this.Eval = (short)eval;
         this.MoveValue = move.value;
         Depth = (byte)depht;
         PackPVAgeFlag(pv, 0, flag);

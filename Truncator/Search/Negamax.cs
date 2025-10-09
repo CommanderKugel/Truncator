@@ -115,6 +115,7 @@ public static partial class Search
                 thread.tt.Write(
                     ns->p.ZobristKey,
                     TbScore,
+                    -SCORE_MATE,
                     Move.NullMove,
                     depth,
                     TbBound,
@@ -163,13 +164,18 @@ public static partial class Search
         {
             ns->StaticEval = ns->UncorrectedStaticEval = -SCORE_MATE;
         }
+        else if (ttHit && ttEntry.Eval != -SCORE_MATE)
+        {
+            ns->UncorrectedStaticEval = ttEntry.Eval;
+            thread.CorrHist.Correct(thread, ref ns->p, ns);
+        }
         else
         {
             if (!isRoot)
             {
                 Accumulator.DoLazyUpdates(ns);
             }
-            
+
             ns->UncorrectedStaticEval = NNUE.Evaluate(ref ns->p, ns->acc);
             thread.CorrHist.Correct(thread, ref ns->p, ns);
         }
@@ -301,6 +307,7 @@ public static partial class Search
                     thread.tt.Write(
                         ns->p.ZobristKey,
                         ProbCutScore,
+                        ns->UncorrectedStaticEval,
                         m,
                         ProbCutDepth + 1,
                         LOWER_BOUND,
@@ -654,6 +661,7 @@ public static partial class Search
             thread.tt.Write(
                 ns->p.ZobristKey,
                 bestscore,
+                ns->UncorrectedStaticEval,
                 flag == UPPER_BOUND ? ttMove : bestmove,
                 depth,
                 flag,
