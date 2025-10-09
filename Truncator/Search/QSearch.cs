@@ -4,7 +4,7 @@ using static Tunables;
 public static partial class Search
 {
 
-    public unsafe static int QSearch<Type>(SearchThread thread, Pos p, int alpha, int beta, Node* ns)
+    public unsafe static int QSearch<Type>(SearchThread thread, int alpha, int beta, Node* ns)
         where Type : NodeType
     {
         Debug.Assert(typeof(Type) != typeof(RootNode), "QSearch can never examine root-nodes");
@@ -20,7 +20,7 @@ public static partial class Search
 
         // probe the tt for a transposition
 
-        bool ttHit = thread.tt.Probe(p.ZobristKey, out TTEntry ttEntry, thread.ply);
+        bool ttHit = thread.tt.Probe(ns->p.ZobristKey, out TTEntry ttEntry, thread.ply);
         Move ttMove = ttHit ? new(ttEntry.MoveValue) : Move.NullMove;
 
         // try for tt-cutoff if the entry is any good
@@ -35,7 +35,7 @@ public static partial class Search
             return ttEntry.Score;
         }
 
-        ns->InCheck = p.Checkers != 0;
+        ns->InCheck = ns->p.Checkers != 0;
 
         // stand pat logic
         // stop captureing pieces (& return) if it does not increase evaluation
@@ -45,8 +45,9 @@ public static partial class Search
         }
         else
         {
-            ns->UncorrectedStaticEval = NNUE.Evaluate(ref p, ns->acc);
-            thread.CorrHist.Correct(thread, ref p, ns);
+            Accumulator.DoLazyUpdates(ns);
+            ns->UncorrectedStaticEval = NNUE.Evaluate(ref ns->p, ns->acc);
+            thread.CorrHist.Correct(thread, ref ns->p, ns);
         }
 
         int bestscore = ns->StaticEval;
@@ -76,7 +77,7 @@ public static partial class Search
 
         // main move loop
 
-        for (Move m = picker.Next(ref p); m.NotNull; m = picker.Next(ref p))
+        for (Move m = picker.Next(ref ns->p); m.NotNull; m = picker.Next(ref ns->p))
         {
             Debug.Assert(m.NotNull);
 
@@ -84,7 +85,7 @@ public static partial class Search
             // quiets are only generated when in check anyways
 
             if (ns->InCheck
-                && !p.IsCapture(m)
+                && !ns->p.IsCapture(m)
                 && !IsLoss(bestscore))
             {
                 continue;
@@ -92,15 +93,15 @@ public static partial class Search
 
             // only make legal moves
 
-            if (!p.IsLegal(thread, m))
+            if (!ns->p.IsLegal(thread, m))
             {
                 continue;
             }
 
-            Pos next = p;
-            next.MakeMove(m, thread);
+            (ns + 1)->p = ns->p;
+            (ns + 1)->p.MakeMove(m, thread, updateAcc: false);
 
-            int score = -QSearch<Type>(thread, next, -beta, -alpha, ns + 1);
+            int score = -QSearch<Type>(thread, -beta, -alpha, ns + 1);
 
             // ~unmake
             thread.ply--;

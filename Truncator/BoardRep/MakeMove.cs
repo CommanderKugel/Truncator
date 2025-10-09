@@ -163,7 +163,7 @@ public unsafe partial struct Pos
             || (AttackerTo(ksq, block) & ColorBB[(int)Them] & ~(1ul << to)) == 0;
     }
 
-    public void MakeMove(Move m, SearchThread thread)
+    public void MakeMove(Move m, SearchThread thread, bool updateAcc = true)
     {
         Debug.Assert(m.NotNull, "can not make null-moves the normal way!");
         int from = m.from;
@@ -328,38 +328,30 @@ public unsafe partial struct Pos
                        ^ Zobrist.GetCastlingKey(CastlingRights);
         }
 
-        // update accumulator
-
-        var child = thread.nodeStack[thread.ply + 1].acc;
-        var parent = thread.nodeStack[thread.ply].acc;
-        parent.CopyTo(ref child);
-        Debug.Assert(parent.EqualContents(ref child));
-
-        if (m.IsCastling)
-        {
-            int idx = Castling.GetCastlingIdx(Us, from < to);
-            child.Activate(Us, PieceType.King, Castling.KingDestinations[idx]);
-            child.Activate(Us, PieceType.Rook, Castling.RookDestinations[idx]);
-            child.Deactivate(Us, PieceType.King, from);
-            child.Deactivate(Us, PieceType.Rook, to);
-        }
-        else if (victimPt != PieceType.NONE)
-        {
-            child.Activate(Us, m.IsPromotion ? m.PromoType : movingPt, to);
-            child.Deactivate(Us, movingPt, from);
-            child.Deactivate(Them, victimPt, !m.IsEnPassant ? to :
-                (Us == Color.White ? to - 8 : to + 8));
-        }
-        else
-        {
-            child.Activate(Us, m.IsPromotion ? m.PromoType : movingPt, to);
-            child.Deactivate(Us, movingPt, from);
-        }
+        Node* n = &thread.nodeStack[thread.ply];
+        n->MovedPieceType = movingPt;
+        n->CapturedPieceType = victimPt;
+        n->move = m;
+        n->ContHist = thread.history.ContHist[Us, movingPt, m.to];
 
         // swap the side-to-move
 
         Us = Them;
         ZobristKey ^= Zobrist.stmKey;
+
+        // update accumulator
+
+        (n + 1)->acc.needsRefresh = movingPt == PieceType.King && Accumulator.GetFlip(from) != Accumulator.GetFlip(KingSquares[(int)Them]);
+        (n + 1)->acc.needsUpdate = !(n + 1)->acc.needsRefresh;
+
+        if (updateAcc && (n + 1)->acc.needsUpdate)
+        {
+            (n + 1)->acc.Update(thread.nodeStack + thread.ply, ref this);
+        }
+        else if (updateAcc && (n + 1)->acc.needsRefresh)
+        {
+            (n + 1)->acc.Accumulate(ref this);
+        }
 
         // miscellaneous
 
@@ -369,10 +361,6 @@ public unsafe partial struct Pos
 
         // update thread and search-stack data
 
-        thread.nodeStack[thread.ply].MovedPieceType = movingPt;
-        thread.nodeStack[thread.ply].CapturedPieceType = victimPt;
-        thread.nodeStack[thread.ply].move = m;
-        thread.nodeStack[thread.ply].ContHist = thread.history.ContHist[Them, movingPt, m.to];
         thread.nodeCount++;
         thread.ply++;
 
@@ -382,15 +370,8 @@ public unsafe partial struct Pos
         Debug.Assert(Utils.popcnt(GetPieces(Color.Black, PieceType.King)) == 1);
     }
 
-    public void MakeNullMove(SearchThread thread)
+    public void MakeNullMove(SearchThread thread, bool updateAcc = true)
     {
-        // update (copy) accumulator
-
-        var child = thread.nodeStack[thread.ply + 1].acc;
-        var parent = thread.nodeStack[thread.ply].acc;
-        parent.CopyTo(ref child);
-        Debug.Assert(parent.EqualContents(ref child));
-
         // swap the side-to-move
 
         Us = Them;
@@ -411,12 +392,22 @@ public unsafe partial struct Pos
 
         // update thread and search-stack data
 
-        thread.nodeStack[thread.ply].MovedPieceType = PieceType.NONE;
-        thread.nodeStack[thread.ply].CapturedPieceType = PieceType.NONE;
-        thread.nodeStack[thread.ply].move = Move.NullMove;
-        thread.nodeStack[thread.ply].ContHist = thread.history.ContHist.NullHist;
+        Node* n = &thread.nodeStack[thread.ply];
+        n->MovedPieceType = PieceType.NONE;
+        n->CapturedPieceType = PieceType.NONE;
+        n->move = Move.NullMove;
+        n->ContHist = thread.history.ContHist.NullHist;
+
         thread.nodeCount++;
         thread.ply++;
+
+        (n + 1)->acc.needsUpdate = true;
+        (n + 1)->acc.needsRefresh = false;
+
+        if (updateAcc)
+        {
+            (n + 1)->acc.Update(n, ref this);
+        }
     }
 
 }

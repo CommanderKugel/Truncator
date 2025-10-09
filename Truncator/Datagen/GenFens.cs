@@ -68,7 +68,7 @@ public static class GenFens
                     TimeManager.depth = 10;
                     TimeManager.Start(thread.rootPos.p.Us);
 
-                    thread.Clear(containRootpos: true);
+                    thread.Clear(clearRootPos: false);
                     thread.rootPos.InitRootMoves();
 
                     unsafe
@@ -92,7 +92,35 @@ public static class GenFens
             }
             catch
             {
+<<<<<<< HEAD
                 continue;
+=======
+
+                TimeManager.Reset();
+                TimeManager.depth = 10;
+                TimeManager.Start(thread.rootPos.p.Us);
+
+                thread.Clear(clearRootPos: false);
+                thread.rootPos.InitRootMoves();
+                
+                unsafe
+                {
+                    thread.nodeStack[0].acc.Accumulate(ref thread.rootPos.p);
+                }
+
+                Search.IterativeDeepen(thread, isBench: true);
+                int score = thread.rootPos.PVs[0][thread.completedDepth];
+
+                // filter out very imbalanced positions
+
+                if (Math.Abs(score) > 500)
+                {
+                    continue;
+                }
+
+                Console.WriteLine($"info string genfens {thread.rootPos.p.GetFen()}");
+                positions++;
+>>>>>>> main
             }
         }
     }

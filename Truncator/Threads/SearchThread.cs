@@ -57,14 +57,17 @@ public class SearchThread : IDisposable
     }
 
 
-    public SearchThread(int id)
+    public SearchThread(int id, int multPvCount=1)
     {
         isReady = false;
         IsDisposed = false;
 
         this.id = id;
+        MultiPvCount = multPvCount;
 
         rootPos = new RootPos(this);
+        rootPos.ResizeMultiPV(multPvCount);
+
         repTable = new RepetitionTable();
         castling = new Castling();
 
@@ -87,6 +90,9 @@ public class SearchThread : IDisposable
             for (int i = 0; i < 8; i++)
             {
                 (NodePtr + i)->ContHist = history.ContHist.NullHist;
+                (NodePtr + i)->acc.Dispose();
+                (NodePtr + i)->acc.needsRefresh = false;
+                (NodePtr + i)->acc.needsUpdate = false;
             }
 
             for (int i = 0; i < 256; i++)
@@ -183,7 +189,7 @@ public class SearchThread : IDisposable
     /// <summary>
     /// Clear the threads stored information inbetween games
     /// </summary>
-    public void Clear(bool containRootpos = false)
+    public void Clear(bool clearRootPos = true)
     {
         doSearch = true;
         Reset();
@@ -191,7 +197,7 @@ public class SearchThread : IDisposable
         history.Clear();
         CorrHist.Clear();
 
-        if (!containRootpos)
+        if (clearRootPos)
         {
             rootPos.Clear();
         }

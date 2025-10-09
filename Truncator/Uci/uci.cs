@@ -134,6 +134,13 @@ public static partial class UCI
                 Viriformat.ConvertDirWithPgnsToViriformat(ThreadPool.MainThread, tokens[1]);
             }
 
+            else if (tokens[0] == "pgncountmaterial")
+            {
+                Debug.Assert(state == UciState.Idle);
+                Debug.Assert(tokens.Length == 2);
+                CountMatDist.CountPgnsMaterialDistribution(ThreadPool.MainThread, tokens[1]);
+            }
+
 #if SPSA
             else if (command == "spsainput")
             {
@@ -159,6 +166,7 @@ public static partial class UCI
                     {
                         int eval = NNUE.Evaluate(ref ThreadPool.MainThread.rootPos.p, ThreadPool.MainThread.nodeStack[0].acc);
                         Console.WriteLine($"eval: {eval}");
+                        Console.WriteLine($"{ThreadPool.MainThread.nodeStack[0].acc.wflip}, {ThreadPool.MainThread.nodeStack[0].acc.bflip}");
                     }
                 }
             }

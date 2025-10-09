@@ -5,7 +5,7 @@ using static Tunables;
 public static partial class Search
 {
 
-    public static unsafe int Negamax<Type>(SearchThread thread, Pos p, int alpha, int beta, int depth, Node* ns, bool cutnode)
+    public static unsafe int Negamax<Type>(SearchThread thread, int alpha, int beta, int depth, Node* ns, bool cutnode)
         where Type : NodeType
     {
         Debug.Assert(thread.ply < 256);
@@ -27,7 +27,7 @@ public static partial class Search
             // + fiftx move rule
             // - stalemate (covered by move-generation)
 
-            if (p.IsDraw(thread))
+            if (ns->p.IsDraw(thread))
             {
                 return SCORE_DRAW;
             }
@@ -49,12 +49,12 @@ public static partial class Search
 
         if (depth <= 0 || thread.ply >= 128)
         {
-            return QSearch<Type>(thread, p, alpha, beta, ns);
+            return QSearch<Type>(thread, alpha, beta, ns);
         }
 
         // probe the transposition table for already visited positions
 
-        bool ttHit = thread.tt.Probe(p.ZobristKey, out TTEntry ttEntry, thread.ply);
+        bool ttHit = thread.tt.Probe(ns->p.ZobristKey, out TTEntry ttEntry, thread.ply);
         Move ttMove = ttHit ? new(ttEntry.MoveValue) : Move.NullMove;
         bool ttPV = ttHit && ttEntry.PV == 1 || isPV;
 
@@ -79,13 +79,13 @@ public static partial class Search
 
         if (!isRoot
             && Fathom.DoTbProbing
-            && p.CastlingRights == 0
-            && p.FiftyMoveRule == 0
+            && ns->p.CastlingRights == 0
+            && ns->p.FiftyMoveRule == 0
             && thread.ply >= Fathom.SyzygyProbePly
-            && Utils.popcnt(p.blocker) <= Fathom.TbLargest)
+            && Utils.popcnt(ns->p.blocker) <= Fathom.TbLargest)
         {
 
-            int res = Fathom.ProbeWdl(ref p);
+            int res = Fathom.ProbeWdl(ref ns->p);
             Debug.Assert(res >= (int)TbResult.TbLoss && res <= (int)TbResult.TbWin, "unexpected tb probing result");
 
             thread.tbHits++;
@@ -113,7 +113,7 @@ public static partial class Search
                 || TbBound == LOWER_BOUND && TbScore >= beta)
             {
                 thread.tt.Write(
-                    p.ZobristKey,
+                    ns->p.ZobristKey,
                     TbScore,
                     Move.NullMove,
                     depth,
@@ -152,7 +152,7 @@ public static partial class Search
         }
 
         
-        ns->InCheck = p.Checkers != 0;
+        ns->InCheck = ns->p.Checkers != 0;
 
         // static evaluaton
         // although this might be a noisy position and we have to distrust the static
@@ -165,8 +165,13 @@ public static partial class Search
         }
         else
         {
-            ns->UncorrectedStaticEval = NNUE.Evaluate(ref p, ns->acc);
-            thread.CorrHist.Correct(thread, ref p, ns);
+            if (!isRoot)
+            {
+                Accumulator.DoLazyUpdates(ns);
+            }
+            
+            ns->UncorrectedStaticEval = NNUE.Evaluate(ref ns->p, ns->acc);
+            thread.CorrHist.Correct(thread, ref ns->p, ns);
         }
 
         // the past series of moves improved our static evaluation and indicates
@@ -201,7 +206,7 @@ public static partial class Search
             && !IsTerminal(alpha)
             && ns->StaticEval + RazoringMargin + RazoringMult * depth <= alpha)
         {
-            int RazoringScore = QSearch<NonPVNode>(thread, p, alpha, beta, ns);
+            int RazoringScore = QSearch<NonPVNode>(thread, alpha, beta, ns);
 
             if (RazoringScore <= alpha)
             {
@@ -213,12 +218,12 @@ public static partial class Search
 
         if ((ns - 1)->move.NotNull
             && ns->StaticEval >= beta
-            && p.HasNonPawnMaterial(p.Us)
+            && ns->p.HasNonPawnMaterial(ns->p.Us)
             && (!ttHit || ttEntry.Flag > UPPER_BOUND || ttEntry.Score >= beta))
         {
-            Pos PosAfterNull = p;
-            PosAfterNull.MakeNullMove(thread);
-            thread.repTable.Push(PosAfterNull.ZobristKey);
+            (ns + 1)->p = ns->p;
+            (ns + 1)->p.MakeNullMove(thread, updateAcc: false);
+            thread.repTable.Push((ns + 1)->p.ZobristKey);
 
             int R = NmpBaseReduction + depth / NmpDepthDivisor;
 
@@ -227,7 +232,7 @@ public static partial class Search
                 R += Math.Min((ns->StaticEval - beta) / NmpEvalDivisor, 3);
             }
 
-            int ScoreAfterNull = -Negamax<NonPVNode>(thread, PosAfterNull, -beta, -alpha, depth - R, ns + 1, !cutnode);
+            int ScoreAfterNull = -Negamax<NonPVNode>(thread, -beta, -alpha, depth - R, ns + 1, !cutnode);
 
             thread.UndoMove();
 
@@ -244,7 +249,7 @@ public static partial class Search
         int ProbCutBeta = beta + ProbcutBetaMargin;
         if (depth >= ProbuctMinDepth
             && ttHit
-            && (ttMove.IsNull || p.IsCapture(ttMove) || ttMove.IsPromotion)
+            && (ttMove.IsNull || ns->p.IsCapture(ttMove) || ttMove.IsPromotion)
             && ttEntry.Score >= beta
             && !IsTerminal(beta))
         {
@@ -261,11 +266,11 @@ public static partial class Search
                 ProbCutBeta - ns->StaticEval
             );
 
-            for (Move m = ProbcutPicker.Next(ref p); m.NotNull; m = ProbcutPicker.Next(ref p))
+            for (Move m = ProbcutPicker.Next(ref ns->p); m.NotNull; m = ProbcutPicker.Next(ref ns->p))
             {
                 // skip bad and illegal moves
 
-                if (!p.IsLegal(thread, m))
+                if (!ns->p.IsLegal(thread, m))
                 {
                     continue;
                 }
@@ -273,17 +278,17 @@ public static partial class Search
                 // make the move and
                 // verify with a quick qsearch that the capture really is not loosing
 
-                Pos copy = p;
-                copy.MakeMove(m, thread);
-                thread.repTable.Push(copy.ZobristKey);
+                (ns + 1)->p = ns->p;
+                (ns + 1)->p.MakeMove(m, thread, updateAcc: false);
+                thread.repTable.Push((ns + 1)->p.ZobristKey);
 
-                int ProbCutScore = -QSearch<NonPVNode>(thread, copy, -ProbCutBeta, -ProbCutBeta + 1, ns + 1);
+                int ProbCutScore = -QSearch<NonPVNode>(thread, -ProbCutBeta, -ProbCutBeta + 1, ns + 1);
 
                 // if qsearch passed, do a shallow search
 
                 if (ProbCutScore >= ProbCutBeta && ProbCutDepth > 0)
                 {
-                    ProbCutScore = -Negamax<NonPVNode>(thread, copy, -ProbCutBeta, -ProbCutBeta + 1, ProbCutDepth, ns + 1, !cutnode);
+                    ProbCutScore = -Negamax<NonPVNode>(thread, -ProbCutBeta, -ProbCutBeta + 1, ProbCutDepth, ns + 1, !cutnode);
                 }
 
                 thread.UndoMove();
@@ -294,7 +299,7 @@ public static partial class Search
                 if (ProbCutScore >= ProbCutBeta && !IsTerminal(ProbCutScore))
                 {
                     thread.tt.Write(
-                        p.ZobristKey,
+                        ns->p.ZobristKey,
                         ProbCutScore,
                         m,
                         ProbCutDepth + 1,
@@ -348,7 +353,7 @@ public static partial class Search
 
         // main move loop
         
-        for (Move m = picker.Next(ref p); m.NotNull; m = picker.Next(ref p))
+        for (Move m = picker.Next(ref ns->p); m.NotNull; m = picker.Next(ref ns->p))
         {
             Debug.Assert(m.NotNull);
 
@@ -369,15 +374,15 @@ public static partial class Search
             long startnodes = thread.nodeCount;
             bool notLoosing = !IsLoss(bestscore);
 
-            bool isCapture = p.IsCapture(m);
+            bool isCapture = ns->p.IsCapture(m);
             bool isNoisy = isCapture || m.IsPromotion; // ToDo: GivesCheck()
 
-            PieceType pt = p.PieceTypeOn(m.from);
+            PieceType pt = ns->p.PieceTypeOn(m.from);
 
             ns->HistScore = isCapture ? 0 :
-                (ButterflySearchMult * thread.history.Butterfly[p.Threats, p.Us, m]
-                + Conthist1plySearchMult * (*(ns - 1)->ContHist)[p.Us, pt, m.to]
-                + Conthist2plySearchMult * (*(ns - 2)->ContHist)[p.Us, pt, m.to])
+                (ButterflySearchMult * thread.history.Butterfly[ns->p.Threats, ns->p.Us, m]
+                + Conthist1plySearchMult * (*(ns - 1)->ContHist)[ns->p.Us, pt, m.to]
+                + Conthist2plySearchMult * (*(ns - 2)->ContHist)[ns->p.Us, pt, m.to])
                 / 1024;
 
             // move loop pruning
@@ -418,7 +423,7 @@ public static partial class Search
             // ToDo: margin -= histScore / 8
             if (!isRoot
                 && notLoosing
-                && !SEE.SEE_threshold(m, ref p, isCapture ? SEENoisyMult * depth : SEEQuietMult * depth * depth))
+                && !SEE.SEE_threshold(m, ref ns->p, isCapture ? SEENoisyMult * depth : SEEQuietMult * depth * depth))
             {
                 continue;
             }
@@ -440,7 +445,7 @@ public static partial class Search
                 int singularDepth = (depth - 1) / 2;
 
                 ns->ExcludedMove = m;
-                int singularScore = Negamax<NonPVNode>(thread, p, singularBeta - 1, singularBeta, singularDepth, ns, cutnode);
+                int singularScore = Negamax<NonPVNode>(thread, singularBeta - 1, singularBeta, singularDepth, ns, cutnode);
                 ns->ExcludedMove = Move.NullMove;
 
                 if (singularScore < singularBeta)
@@ -458,16 +463,16 @@ public static partial class Search
 
             // skip illegal moves for obvious reasons
 
-            if (!p.IsLegal(thread, m))
+            if (!ns->p.IsLegal(thread, m))
             {
                 continue;
             }
 
             // make the move and update the boardstate
 
-            Pos next = p;
-            next.MakeMove(m, thread);
-            thread.repTable.Push(next.ZobristKey);
+            (ns + 1)->p = ns->p;
+            (ns + 1)->p.MakeMove(m, thread, updateAcc: false);
+            thread.repTable.Push((ns + 1)->p.ZobristKey);
 
             movesPlayed++;
             if (!isCapture) quietMoves[quitesCount++] = m;
@@ -514,13 +519,13 @@ public static partial class Search
                 // or lower-bound. if a move unexpectedly beats the pv, we need to re-search it at full depth,
                 // to confirm it is really better than the pv and obtain its exact value.
 
-                score = -Negamax<NonPVNode>(thread, next, -alpha - 1, -alpha, depth - R, ns + 1, true);
+                score = -Negamax<NonPVNode>(thread, -alpha - 1, -alpha, depth - R, ns + 1, true);
 
                 // re-search if LMR seems to beat the current best move
 
                 if (score > alpha && R > 1)
                 {
-                    score = -Negamax<NonPVNode>(thread, next, -alpha - 1, -alpha, depth - 1, ns + 1, !cutnode);
+                    score = -Negamax<NonPVNode>(thread, -alpha - 1, -alpha, depth - 1, ns + 1, !cutnode);
                 }
             }
 
@@ -529,7 +534,7 @@ public static partial class Search
 
             else if (nonPV || movesPlayed > 1)
             {
-                score = -Negamax<NonPVNode>(thread, next, -alpha - 1, -alpha, depth + extension - 1, ns + 1, !cutnode);
+                score = -Negamax<NonPVNode>(thread, -alpha - 1, -alpha, depth + extension - 1, ns + 1, !cutnode);
             }
 
             // full-window-search (FWS)
@@ -537,7 +542,7 @@ public static partial class Search
 
             if (isPV && (score > alpha || movesPlayed == 1))
             {
-                score = -Negamax<PVNode>(thread, next, -beta, -alpha, depth + extension - 1, ns + 1, false);
+                score = -Negamax<PVNode>(thread, -beta, -alpha, depth + extension - 1, ns + 1, false);
             }
 
             thread.UndoMove();
@@ -600,7 +605,7 @@ public static partial class Search
 
                             int HistDelta = temp * temp;
 
-                            thread.history.UpdateQuietMoves(thread, ns, HistDelta, -HistDelta, ref p, ref quietMoves, quitesCount, m);
+                            thread.history.UpdateQuietMoves(thread, ns, HistDelta, -HistDelta, ref ns->p, ref quietMoves, quitesCount, m);
 
                             // update killer-move
                             ns->KillerMove = m;
@@ -647,7 +652,7 @@ public static partial class Search
         if (!inSingularity)
         {
             thread.tt.Write(
-                p.ZobristKey,
+                ns->p.ZobristKey,
                 bestscore,
                 flag == UPPER_BOUND ? ttMove : bestmove,
                 depth,
@@ -665,12 +670,12 @@ public static partial class Search
         if (!inSingularity
             && !ns->InCheck
             && !IsTerminal(bestscore)
-            && (bestmove.IsNull || !p.IsCapture(bestmove) && !bestmove.IsPromotion)
+            && (bestmove.IsNull || !ns->p.IsCapture(bestmove) && !bestmove.IsPromotion)
             && (flag == EXACT_BOUND
                 || flag == UPPER_BOUND && bestscore < ns->StaticEval
                 || flag == LOWER_BOUND && bestscore > ns->StaticEval))
         {
-            thread.CorrHist.Update(thread, ref p, ns, bestscore, ns->StaticEval, depth);
+            thread.CorrHist.Update(thread, ref ns->p, ns, bestscore, ns->StaticEval, depth);
         }
 
         // when recieving exact scores (only in pv/root nodes)

@@ -43,7 +43,10 @@ public static class ThreadPool
         pool = new SearchThread[count];
         for (int i = 0; i < count; i++)
         {
-            pool[i] = new SearchThread(i);
+            pool[i] = new SearchThread(i, UCI_MultiPVCount);
+
+            while (!pool[i].isReady)
+            { }
         }
 
         Console.WriteLine($"info string resized the threadpool to {ThreadCount}");
