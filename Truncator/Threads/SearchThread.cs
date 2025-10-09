@@ -90,6 +90,9 @@ public class SearchThread : IDisposable
             for (int i = 0; i < 8; i++)
             {
                 (NodePtr + i)->ContHist = history.ContHist.NullHist;
+                (NodePtr + i)->acc.Dispose();
+                (NodePtr + i)->acc.needsRefresh = false;
+                (NodePtr + i)->acc.needsUpdate = false;
             }
 
             for (int i = 0; i < 256; i++)

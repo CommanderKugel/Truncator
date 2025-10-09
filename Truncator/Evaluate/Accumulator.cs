@@ -4,6 +4,7 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
+using System.Text;
 using static Settings;
 using static Weights;
 
@@ -16,6 +17,9 @@ public partial struct Accumulator : IDisposable
     public int wflip;
     public int bflip;
 
+    public bool needsUpdate;
+    public bool needsRefresh;
+
 
     public unsafe Accumulator()
     {
@@ -24,6 +28,9 @@ public partial struct Accumulator : IDisposable
 
         wflip = 0;
         bflip = 0;
+
+        needsUpdate = true;
+        needsRefresh = true;
     }
 
 
@@ -64,6 +71,127 @@ public partial struct Accumulator : IDisposable
                     int sq = Utils.popLsb(ref pieces);
                     Activate(c, pt, sq);
                 }
+            }
+        }
+
+        needsUpdate = false;
+        needsRefresh = false;
+    }
+
+
+    /// <summary>
+    /// ~makes a move
+    /// add and subtract features UE style to/from this accumulator
+    /// </summary>
+    public unsafe void Update(Node* parent, ref Pos p)
+    {
+        Debug.Assert(!parent->acc.needsUpdate);
+        Debug.Assert(!parent->acc.needsRefresh);
+        Debug.Assert(parent->acc.WhiteAcc != null);
+        Debug.Assert(parent->acc.BlackAcc != null);
+
+        Color Us = p.Them;
+        Color Them = p.Us;
+
+        PieceType pt = parent->MovedPieceType;
+        PieceType vict = parent->CapturedPieceType;
+
+        Move m = parent->move;
+        int from = m.from;
+        int to = m.to;
+
+        // assume the king stays in its bucket -> merged efficient updates (UE)
+
+        wflip = parent->acc.wflip;
+        bflip = parent->acc.bflip;
+
+        if (m.IsNull)
+        {
+            parent->acc.CopyTo(ref this);
+        }
+        else if (m.IsCastling)
+        {
+            int idx = Castling.GetCastlingIdx(Us, from < to);
+            AddAddSubSub(
+                ref parent->acc,
+                Us, PieceType.King, Castling.KingDestinations[idx],
+                Us, PieceType.Rook, Castling.RookDestinations[idx],
+                Us, PieceType.King, from,
+                Us, PieceType.Rook, to
+            );
+        }
+        else if (vict != PieceType.NONE)
+        {
+            AddSubSub(
+                ref parent->acc,
+                Us, m.IsPromotion ? m.PromoType : pt, to,
+                Us, pt, from,
+                Them, vict, !m.IsEnPassant ? to : (Us == Color.White ? to - 8 : to + 8)
+            );
+        }
+        else
+        {
+            AddSub(
+                ref parent->acc,
+                Us, m.IsPromotion ? m.PromoType : pt, to,
+                Us, pt, from
+            );
+        }
+
+        needsUpdate = false;
+        needsRefresh = false;
+    }
+
+
+    /// <summary>
+    /// We waited to make incremental updates to the accumulator for as long as possible
+    /// Backtrack to the last usefull accumulator and propagate the updates
+    /// upwards until the current accumulator is up-to-date
+    /// After fighting with this piece of code for hours, i looked for some help in Lizards's code.
+    /// Thanks Liam amd Ciekce!
+    /// https://github.com/liamt19/Lizard/blob/9ee703cf9e6befd8d0395f86856afc06472fb082/Logic/NN/Bucketed768.cs#L735
+    /// </summary>
+    public static unsafe void DoLazyUpdates(Node* n)
+    {
+        // if current accumulator needs a full refresh
+        // refresh it and skip all this
+
+        if (n->acc.needsRefresh)
+        {
+            n->acc.Accumulate(ref n->p);
+            return;
+        }
+        
+        // if current accumulator does not need updates, skip all this
+
+        if (!n->acc.needsUpdate)
+        {
+            return;            
+        }
+
+        // find last nodes accumulator does not need an update/refresh
+
+        Node* m = n - 1;
+        while (m->acc.needsUpdate && !m->acc.needsRefresh)
+        {
+            m--;
+        }
+
+        if (m->acc.needsRefresh)
+        {
+            // if last useful accumulator needs a full refresh, 
+            // just refresh the current one instead
+
+            n->acc.Accumulate(ref n->p);
+        }
+        else
+        {
+            // incremental updates until current accumulator is up-to-date
+
+            while (m != n)
+            {
+                m++;
+                m->acc.Update(m - 1, ref m->p);
             }
         }
     }

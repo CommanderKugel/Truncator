@@ -45,6 +45,7 @@ public static partial class Search
         }
         else
         {
+            Accumulator.DoLazyUpdates(ns);
             ns->UncorrectedStaticEval = NNUE.Evaluate(ref ns->p, ns->acc);
             thread.CorrHist.Correct(thread, ref ns->p, ns);
         }
@@ -98,7 +99,7 @@ public static partial class Search
             }
 
             (ns + 1)->p = ns->p;
-            (ns + 1)->p.MakeMove(m, thread);
+            (ns + 1)->p.MakeMove(m, thread, updateAcc: false);
 
             int score = -QSearch<Type>(thread, -beta, -alpha, ns + 1);
 
