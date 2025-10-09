@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 /// </summary>
 public struct Node
 {
+    public Pos p;
 
     public PieceType MovedPieceType;
     public PieceType CapturedPieceType;
