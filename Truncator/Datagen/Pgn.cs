@@ -7,7 +7,7 @@ public class Pgn
     public string Result;
     public List<PgnMove> MainLine;
 
-    public Pgn(SearchThread thread, StreamReader file)
+    public Pgn(SearchThread thread, StreamReader file, long[] dist = null)
     {
         MainLine = [];
         string? line;
@@ -18,7 +18,6 @@ public class Pgn
             // [FEN "<fen>"]
             if (line.StartsWith("[FEN"))
             {
-                Debug.Assert(Fen == null);
                 Fen = line[6..(line.Length - 2)];
                 thread.rootPos.SetNewFen(Fen);
             }
@@ -27,6 +26,21 @@ public class Pgn
             else if (line.StartsWith("[Result"))
             {
                 Result = line[9..(line.Length - 2)];
+            }
+
+            // skip crashed games
+            else if (line == "[Termination \"stalled connection\"]")
+            {
+                // skip until next game in file, then parse anew
+                while (!string.IsNullOrWhiteSpace(line) || ++emptyCount < 2)
+                {
+                    line = file.ReadLine();
+                    Debug.WriteLine("skipping: " + line);
+                }
+
+                // now start reading next game
+                emptyCount = 0;
+                continue;
             }
 
             else if (!line.StartsWith('[') && line != "")
@@ -90,6 +104,11 @@ public class Pgn
                     // make the move
 
                     thread.rootPos.MakeMove(m);
+
+                    if (dist is not null)
+                    {
+                        dist[Utils.popcnt(thread.rootPos.p.blocker)]++;
+                    }
                 }
             }
 
@@ -98,6 +117,10 @@ public class Pgn
                 break;
             }
         }
+
+        Debug.Assert(Fen is not null);
+        Debug.Assert(Result is not null);
+        Debug.Assert(MainLine.Count > 0);
     }
 
 
