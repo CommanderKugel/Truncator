@@ -131,6 +131,7 @@ public static partial class Search
             }
         }
 
+        Debug.Assert(bestscore >= -SCORE_MATE && bestscore <= SCORE_MATE);
         return bestscore;
     }
 

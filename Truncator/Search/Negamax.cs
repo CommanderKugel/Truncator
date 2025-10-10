@@ -686,6 +686,7 @@ public static partial class Search
             bestscore = Math.Clamp(bestscore, SyzygyMin, SyzygyMax);
         }
 
+        Debug.Assert(bestscore >= -SCORE_MATE && bestscore <= SCORE_MATE);
         return bestscore;
     }
 }
