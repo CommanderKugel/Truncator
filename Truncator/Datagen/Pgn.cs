@@ -113,7 +113,7 @@ public class Pgn
                             && !m.IsPromotion
                             && thread.rootPos.p.Checkers == 0)
                         {
-                            dist[Utils.popcnt(thread.rootPos.p.blocker)]++;
+                            dist[Utils.popcnt(thread.rootPos.p.blocker) - 3]++;
                         }
                     }
 

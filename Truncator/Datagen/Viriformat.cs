@@ -19,9 +19,6 @@ public static class Viriformat
         string outFileName = "convertd.viriformat";
         var outPath = Path.Combine(PgnPath, outFileName);
 
-        long totalGames = 0;
-        long totalPos = 0;
-
         if (!File.Exists(outPath))
         {
             var stream = new FileStream(outPath, FileMode.Create);
@@ -35,6 +32,10 @@ public static class Viriformat
 
         Console.WriteLine($"viriformat file can be found as '{outPath}'");
 
+        long totalGames = 0;
+        long totalPos = 0;
+        var dist = new long[30];
+
         foreach (var file in files)
         {
             Console.WriteLine($"now parsing: {file}");
@@ -42,7 +43,8 @@ public static class Viriformat
             var (gameCount, posCount) = ConvertPgnToViriformat(
                 thread,
                 Path.Combine(PgnPath, file),
-                outPath
+                outPath,
+                dist
             );
 
             totalGames += gameCount;
@@ -52,9 +54,17 @@ public static class Viriformat
         }
 
         Console.WriteLine("Done!");
+
+        Console.WriteLine("{");
+        for (int i = 0; i < dist.Length; i++)
+            Console.WriteLine($"\t\"{i + 3}\": {dist[i]},");
+        Console.WriteLine($"\"total fens\": {totalPos},");
+        Console.WriteLine($"\"total quiet fens\": {dist.Count()},");
+        Console.WriteLine($"\"games\": {totalGames}");
+        Console.WriteLine("}");
     }
 
-    public static (long, long) ConvertPgnToViriformat(SearchThread thread, string PgnPath, string ViriPath)
+    public static (long, long) ConvertPgnToViriformat(SearchThread thread, string PgnPath, string ViriPath, long[] dist = null)
     {
 
         // read all games from the file
@@ -68,7 +78,7 @@ public static class Viriformat
 
         while (!PgnReader.EndOfStream)
         {
-            var pgn = new Pgn(thread, PgnReader);
+            var pgn = new Pgn(thread, PgnReader, dist);
 
             gameCount++;
             posCount += pgn.MainLine.Count;
