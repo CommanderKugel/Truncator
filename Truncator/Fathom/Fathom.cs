@@ -233,9 +233,9 @@ public static partial class Fathom
         // try to extract the Fathom dll from this programms assembly
         // should fail if extraction does not work properly
 
-        if (!OperatingSystem.IsWindows())
+        if (!OperatingSystem.IsWindows() && !OperatingSystem.IsLinux())
         {
-            Console.WriteLine($"info string Fathom support is only available for Windows atm. (Linux support is under development)");
+            Console.WriteLine($"info string Fathom support is only available for Windows and Linux at this moment.");
             return;
         }
 
