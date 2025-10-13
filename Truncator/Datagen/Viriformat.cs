@@ -1,4 +1,6 @@
 
+using System.Diagnostics;
+
 /// <summary>
 /// Virifirmat is a highly compressed binary format to store chess games
 /// mostly, the games are used for NNUE training
@@ -11,12 +13,15 @@
 public static class Viriformat
 {
 
-    public static void ConvertDirWithPgnsToViriformat(SearchThread thread, string PgnPath)
+    public static void ConvertDirWithPgnsToViriformat(SearchThread thread, string PgnPath, bool tbCorrect = false)
     {
+        Debug.Assert(tbCorrect && Fathom.DoTbProbing, "forgot to initialize Syzygy?");
+        Console.WriteLine($"use tb correction: {tbCorrect && Fathom.DoTbProbing}");
+
         var files = Directory.GetFiles(PgnPath, "*.PGN");
         Console.WriteLine($"{files.Length} PGN files found");
 
-        string outFileName = "convertd.viriformat";
+        string outFileName = (tbCorrect && Fathom.DoTbProbing ? "convertd_tbcorr" : "converted") + ".viriformat";
         var outPath = Path.Combine(PgnPath, outFileName);
 
         if (!File.Exists(outPath))
@@ -34,21 +39,25 @@ public static class Viriformat
 
         long totalGames = 0;
         long totalPos = 0;
+        long tbCorrections = 0;
         var dist = new long[30];
 
-        foreach (var file in files)
+        for (int i=0; i<files.Length; i++)
         {
-            Console.WriteLine($"now parsing: {file}");
+            var file = files[i];
+            Console.WriteLine($"({i+1}/{files.Length}): {file}");
 
-            var (gameCount, posCount) = ConvertPgnToViriformat(
+            var (gameCount, posCount, tbCorrCount) = ConvertPgnToViriformat(
                 thread,
                 Path.Combine(PgnPath, file),
                 outPath,
-                dist
+                dist,
+                tbCorrect
             );
 
             totalGames += gameCount;
             totalPos += posCount;
+            tbCorrections += tbCorrCount;
 
             Console.WriteLine($"parsed {gameCount} games, {posCount} poitions, to total {totalGames} games and total {totalPos} positions");
         }
@@ -57,16 +66,16 @@ public static class Viriformat
 
         Console.WriteLine("{");
         for (int i = 0; i < dist.Length; i++)
-            Console.WriteLine($"\t\"{i + 3}\": {dist[i]},");
-        Console.WriteLine($"\"total fens\": {totalPos},");
-        Console.WriteLine($"\"total quiet fens\": {dist.Count()},");
+            Console.WriteLine($"\"{i + 3}\": {dist[i]},");
+        Console.WriteLine($"\"all fens\": {totalPos},");
+        Console.WriteLine($"\"quiet fens\": {dist.Sum()},");
         Console.WriteLine($"\"games\": {totalGames}");
+        Console.WriteLine($"\"TbCorrections\": {tbCorrections}");
         Console.WriteLine("}");
     }
 
-    public static (long, long) ConvertPgnToViriformat(SearchThread thread, string PgnPath, string ViriPath, long[] dist = null)
+    public static (long, long, long) ConvertPgnToViriformat(SearchThread thread, string PgnPath, string ViriPath, long[] dist = null, bool TbCorrect = false)
     {
-
         // read all games from the file
         // and instantly convert them to viriformat
 
@@ -75,10 +84,11 @@ public static class Viriformat
 
         long gameCount = 0;
         long posCount = 0;
+        long tbCorrCount = 0;
 
         while (!PgnReader.EndOfStream)
         {
-            var pgn = new Pgn(thread, PgnReader, dist);
+            var pgn = new Pgn(thread, PgnReader, dist, TbCorrect);
 
             gameCount++;
             posCount += pgn.MainLine.Count;
@@ -86,6 +96,11 @@ public static class Viriformat
             // Marlinformat Headder
 
             Marlinformat headder = new(thread, pgn);
+
+            if (pgn.FirstTbResult != -1 && pgn.ResultToInt() != pgn.FirstTbResult)
+            {
+                tbCorrCount++;
+            }
 
             // main line as (Move, score) pair
             // surprisingly my move-struct is identical to viriformat moves
@@ -118,6 +133,6 @@ public static class Viriformat
             ViriWriter.Write(mainLineBuff);
         }
 
-        return (gameCount, posCount);
+        return (gameCount, posCount, tbCorrCount);
     }
 }

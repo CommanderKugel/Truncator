@@ -5,16 +5,21 @@ public class Pgn
 {
     public string Fen;
     public string Result;
+    public int FirstTbResult = -1;
     public List<PgnMove> MainLine;
 
-    public Pgn(SearchThread thread, StreamReader file, long[] dist = null)
+    public Pgn(SearchThread thread, StreamReader file, long[] dist = null, bool TbCorrect = false)
     {
         MainLine = [];
         string? line;
         int emptyCount = 0;
 
+        List<string> lines = [];
+
         while (!file.EndOfStream && (line = file.ReadLine()) != null)
         {
+            lines.Add(line);
+
             // [FEN "<fen>"]
             if (line.StartsWith("[FEN"))
             {
@@ -96,11 +101,6 @@ public class Pgn
                         score = -score;
                     }
 
-                    // save the move-data
-
-                    PgnMove pm = new(m, score, depth, seldepth, time, nodes);
-                    MainLine.Add(pm);
-
                     // count material distribution if wanted
 
                     unsafe
@@ -117,6 +117,57 @@ public class Pgn
                         }
                     }
 
+                    // use the tb-result to correct the game-outcome in case of non optimal play
+
+                    if (TbCorrect
+                        && Utils.popcnt(thread.rootPos.p.blocker) <= Fathom.TbLargest
+                        && thread.rootPos.p.Checkers == 0
+                        && thread.rootPos.p.CastlingRights == 0
+                        && thread.rootPos.p.EnPassantSquare == (int)Square.NONE)
+                    {
+                        thread.rootPos.p.FiftyMoveRule = 0;
+                        int res = Fathom.ProbeWdl(ref thread.rootPos.p);
+
+                        if (thread.rootPos.p.Us == Color.Black)
+                        {
+                            res = 4 - res;
+                        }
+
+                        // save the first valid tb-result for later use
+
+                        if (FirstTbResult == -1)
+                        {
+                            FirstTbResult = res switch
+                            {
+                                (int)TbResult.TbWin => 2,
+                                (int)TbResult.TbCursedWin => 2,
+                                (int)TbResult.TbDraw => 1,
+                                (int)TbResult.TbBlessedLoss => 0,
+                                (int)TbResult.TbLoss => 0,
+                                _ => throw null,
+                            };
+                        }
+
+                        // skip any positions that disagree with the first received tb-result
+
+                        else if (res != FirstTbResult)
+                        {
+                            // skip until end of game
+
+                            while (!string.IsNullOrWhiteSpace(line))
+                            {
+                                line = file.ReadLine();
+                            }
+
+                            return;
+                        }
+                    }
+
+                    // save the move-data
+
+                    PgnMove pm = new(m, score, depth, seldepth, time, nodes);
+                    MainLine.Add(pm);
+
                     // make the move
 
                     thread.rootPos.MakeMove(m);
@@ -132,6 +183,19 @@ public class Pgn
         Debug.Assert(Fen is not null);
         Debug.Assert(Result is not null);
         Debug.Assert(MainLine.Count > 0);
+    }
+    
+
+    public int ResultToInt()
+    {
+        Debug.Assert(Result is not null);
+        return Result switch
+        {
+            "1-0" => 2,
+            "0-1" => 0,
+            "1/2-1/2" => 1,
+            _ => throw new ArgumentException($"invalid gameresult '{Result}'"),
+        };
     }
 
 
