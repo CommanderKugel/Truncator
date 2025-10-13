@@ -147,8 +147,10 @@ public static class NNUE
 
     public static int GetOutputBucket(ref Pos p)
     {
-        const int DIV = (32 + 1) / OUTPUT_BUCKETS;
-        return (Utils.popcnt(p.blocker) - 2) / DIV;
+        int pieceCount = Utils.popcnt(p.blocker);
+        Debug.Assert(pieceCount >= 2);
+        Debug.Assert(pieceCount <= 32);
+        return OutputBuckets[pieceCount];
     }
 
 }
