@@ -155,7 +155,9 @@ public static class TimeManager
     public static bool IsHardTimeout(SearchThread thread)
     {
         Debug.Assert(!IsSelfManaging || HardTimeout != 0);
-        return IsSelfManaging && watch.ElapsedMilliseconds > HardTimeout
+        return IsSelfManaging 
+            && (thread.nodeCount & 512) == 0 
+            && watch.ElapsedMilliseconds > HardTimeout
             || thread.nodeCount >= hardnodes;
     }
 
