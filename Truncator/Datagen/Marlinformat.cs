@@ -1,4 +1,5 @@
 
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
@@ -92,13 +93,16 @@ public struct Marlinformat
             pieces[i] = (byte)((pieceArray[2 * i + 1] << 4) | (pieceArray[2 * i]));
         }
 
-        gameResult = pgn.Result switch
+        // copy gameresult
+        // except for tb corrections, take them instead
+
+        gameResult = (byte)pgn.ResultToInt();
+        Debug.Assert(gameResult >= 0 && gameResult <= 2);
+
+        if (pgn.FirstTbResult != -1)
         {
-            "1-0" => 2,
-            "0-1" => 0,
-            "1/2-1/2" => 1,
-            _ => throw new ArgumentException($"invalid gameresult '{pgn.Result}'"),
-        };
+            gameResult = (byte)pgn.FirstTbResult;
+        }
     }
 
 

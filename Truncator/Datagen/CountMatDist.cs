@@ -6,7 +6,7 @@ public static class CountMatDist
         var files = Directory.GetFiles(PgnPath, "*.PGN");
         Console.WriteLine($"{files.Length} PGN files found");
 
-        var dist = new long[33];
+        var dist = new long[30];
 
         long gamesCount = 0;
         long posCount = 0;
