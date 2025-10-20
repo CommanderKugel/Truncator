@@ -16,6 +16,7 @@ public static class GenFens
         string BookPath = args[5];
 
         bool dfrc = args.Length > 6 && args[6] == "dfrc";
+        Castling.UCI_Chess960 = dfrc;
 
         Console.WriteLine($"info string generating {N} fens, using the seed {seed}, book found at {BookPath}, and dfrc={dfrc}");
 
