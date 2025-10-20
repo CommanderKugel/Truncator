@@ -4,9 +4,7 @@ public static class GenFens
 
     public static void Generate(string[] args)
     {
-        Console.WriteLine("info string starting to generate fens");
-
-        // accept commands of form of:
+        // accepts arguments in the form of:
         // genfens N seed S book <None|Books/my_book.epd> <?extra>
 
         if (!int.TryParse(args[1], out int N))
@@ -17,7 +15,10 @@ public static class GenFens
 
         string BookPath = args[5];
 
-        Console.WriteLine($"info string generating {N} fens, using the seed {seed} and book found at {BookPath}");
+        bool dfrc = args.Length > 6 && args[6] == "dfrc";
+        Castling.UCI_Chess960 = dfrc;
+
+        Console.WriteLine($"info string generating {N} fens, using the seed {seed}, book found at {BookPath}, and dfrc={dfrc}");
 
         // ignore extra for now
 
@@ -33,56 +34,66 @@ public static class GenFens
         {
             // ToDo: read fen from book here
 
-            thread.rootPos.SetNewFen(Utils.startpos);
-            bool success = true;
-
-            for (int i = 0; i < RandomMoves; i++)
+            try
             {
-                moves.Clear();
-                int moveCount = MoveGen.GenerateLegaMoves(thread, ref moves, ref thread.rootPos.p);
 
-                // position is terminal, make a new one
+                string fen = !dfrc ? Utils.startpos : Frc.GetDfrcFen(rng.Next() % 960, rng.Next() % 960);
+                thread.rootPos.SetNewFen(fen);
 
-                if (moveCount == 0)
+                bool success = true;
+
+                for (int i = 0; i < RandomMoves; i++)
                 {
-                    success = false;
-                    break;
+                    moves.Clear();
+                    int moveCount = MoveGen.GenerateLegaMoves(thread, ref moves, ref thread.rootPos.p);
+
+                    // position is terminal, make a new one
+
+                    if (moveCount == 0)
+                    {
+                        success = false;
+                        break;
+                    }
+
+                    // position is not terminal, thus make a random move
+
+                    thread.rootPos.MakeMove(moves[rng.Next() % moveCount]);
                 }
 
-                // position is not terminal, thus make a random move
+                // if the position didnt become terminal and is not terminal right now - print it
 
-                thread.rootPos.MakeMove(moves[rng.Next() % moveCount]);
+                if (success && MoveGen.GenerateLegaMoves(thread, ref moves, ref thread.rootPos.p) > 0)
+                {
+
+                    TimeManager.Reset();
+                    TimeManager.depth = 10;
+                    TimeManager.Start(thread.rootPos.p.Us);
+
+                    thread.Clear(clearRootPos: false);
+                    thread.rootPos.InitRootMoves();
+
+                    unsafe
+                    {
+                        thread.nodeStack[0].acc.Accumulate(ref thread.rootPos.p);
+                    }
+
+                    Search.IterativeDeepen(thread, isBench: true);
+                    int score = thread.rootPos.PVs[0][thread.completedDepth];
+
+                    // filter out very imbalanced positions
+
+                    if (Math.Abs(score) > 250)
+                    {
+                        continue;
+                    }
+
+                    Console.WriteLine($"info string genfens {thread.rootPos.p.GetFen()}");
+                    positions++;
+                }
             }
-
-            // if the position didnt become terminal and is not terminal right now - print it
-
-            if (success && MoveGen.GenerateLegaMoves(thread, ref moves, ref thread.rootPos.p) > 0)
+            catch
             {
-
-                TimeManager.Reset();
-                TimeManager.depth = 10;
-                TimeManager.Start(thread.rootPos.p.Us);
-
-                thread.Clear(clearRootPos: false);
-                thread.rootPos.InitRootMoves();
-                
-                unsafe
-                {
-                    thread.nodeStack[0].acc.Accumulate(ref thread.rootPos.p);
-                }
-
-                Search.IterativeDeepen(thread, isBench: true);
-                int score = thread.rootPos.PVs[0][thread.completedDepth];
-
-                // filter out very imbalanced positions
-
-                if (Math.Abs(score) > 500)
-                {
-                    continue;
-                }
-
-                Console.WriteLine($"info string genfens {thread.rootPos.p.GetFen()}");
-                positions++;
+                continue;
             }
         }
     }
