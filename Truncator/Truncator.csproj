@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Evaluate/Nets/768hl_hm_8ob_0.5wdl_scheduled.bin"/>
+    <EmbeddedResource Include="Evaluate/Nets/768hl_hm_8ob_maxEvalIncorr+1000.bin"/>
   </ItemGroup>
 
 </Project>
