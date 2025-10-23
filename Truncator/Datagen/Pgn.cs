@@ -8,7 +8,7 @@ public class Pgn
     public int FirstTbResult = -1;
     public List<PgnMove> MainLine;
 
-    public Pgn(SearchThread thread, StreamReader file, long[] dist = null, bool TbCorrect = false)
+    public Pgn(SearchThread thread, StreamReader file, long[] dist = null, int distMinPly = 16, bool TbCorrect = false)
     {
         MainLine = [];
         string? line;
@@ -107,7 +107,7 @@ public class Pgn
                     {
                         if (dist is not null
                             && Math.Abs(score) < 10_000
-                            && MainLine.Count > 8
+                            && MainLine.Count >= distMinPly
                             && !thread.rootPos.p.IsCapture(m)
                             && !m.IsCastling
                             && !m.IsPromotion

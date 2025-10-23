@@ -88,7 +88,7 @@ public static class Viriformat
 
         while (!PgnReader.EndOfStream)
         {
-            var pgn = new Pgn(thread, PgnReader, dist, TbCorrect);
+            var pgn = new Pgn(thread, PgnReader, dist, TbCorrect: TbCorrect);
 
             gameCount++;
             posCount += pgn.MainLine.Count;
