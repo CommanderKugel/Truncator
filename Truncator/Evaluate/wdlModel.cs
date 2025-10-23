@@ -3,52 +3,36 @@ public static class WDL
 {
     public static bool UCI_showWDL = false;
 
-    /*
-    Sigmoid with a and b approx. poly2(s) = c0 + s * (c1 + s * c2)
-    for -300 < s < 300
+    private static ReadOnlySpan<double> a_s => [
+        -286.38282197, 481.40620520, -766.67969579, 1455.15773716
+    ];
 
-    const double c0 = 217.27325121630592;   ~ 217
-    const double c1 = 1.6805903050754072;   ~ 42 / 25
-    const double c2 = 0.03211224307882097;  ~ 4 / 125
-    */
+    private static ReadOnlySpan<double> b_s => [
+        -265.30570860, 524.70618459, -176.87926038, 374.60512747
+    ];
 
-    /// <summary>
-    /// Approximates Sigmoid((a-x)/b) for a=105, b=95, -300 < s < 300
-    /// just returns 100% win/loss for scores outside of bounds
-    /// </summary>
-    private static int ApproxSigmoid(int s)
-        => s < -300 ? -1000 : s > 300 ? 1000
-        : 217 + s * (42 + s * 4 / 125) / 25;
-
-    /// <summary>
-    /// Approximates the fitted WDL Model with a polynomial,
-    /// only usefull for scores in [-300, 300] range
-    /// </summary>
-    public static (int, int, int) ApproxWDLModel(int score)
-    {
-        int w = ApproxSigmoid(score);
-        int l = ApproxSigmoid(-score);
-        int d = 1000 - w - l;
-        return (w, d, l);
-    }
 
     /// <summary>
     /// Computes the predicted Win/Draw/Loss probabilities
-    /// fitte to datagenerated through self-ply
+    /// fitted to data gathered from ltc selfplay games
     /// </summary>
-    public static (int, double, double, double) GetWDL(int score)
+    public static (int, int, int, int) GetWDL(int score, int mom)
     {
-        const double a = 105.25220935229856;
-        const double b = 95.9031373937154;
-        double WeightedSigmoid(double x) => 1.0 / (1.0 + Math.Exp(-(x - a) / b));
+        if (Search.IsTerminal(score))
+        {
+            return score > 0 ? (score, 1000, 0, 0) : (score, 0, 0, 1000);
+        }
 
-        double w = WeightedSigmoid(score);
-        double l = WeightedSigmoid(-score);
-        double d = 1.0 - w - l;
+        double a = ((a_s[0] * mom / 58 + a_s[1]) * mom / 58 + a_s[2]) * mom / 58 + a_s[3];
+        double b = ((b_s[0] * mom / 58 + b_s[1]) * mom / 58 + b_s[2]) * mom / 58 + b_s[3];
 
-        int normalizedScore = (int)(score * 100 / a);
+        double weighted_sigmoid(int x) => 1.0d / (1.0d + Math.Exp(-(x - a) / b));
 
-        return (normalizedScore, w, d, l);
+        int w = (int)(1000 * weighted_sigmoid(score));
+        int l = (int)(1000 * weighted_sigmoid(-score));
+        int d = (int)(1000 - w - l);
+
+        return ((int)(score * 100 / a), w, d, l);
     }
 
 }

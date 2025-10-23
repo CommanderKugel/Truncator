@@ -27,11 +27,9 @@ public static partial class UCI
                 Console.WriteLine($"option name Threads type spin default 1 min 1 max {ThreadPool.MAX_THREAD_COUNT}");
                 Console.WriteLine($"option name MultiPv type spin default 1 min 1 max 256");
                 Console.WriteLine($"option name UCI_Chess960 type button default false");
+                Console.WriteLine($"option name UCI_ShowWDL type check default false");
 
                 Console.WriteLine($"option name Move Overhead type spin default {TimeManager.MoveOverhead} min 0 max 999999");
-
-                // disabled for now, dont have an up-to-date model
-                //Console.WriteLine($"option name UCI_ShowWDL type check default false");
 
                 Console.WriteLine($"option name SyzygyPath type string default <empty>");
                 Console.WriteLine($"optino name SyzygyProbePly type spin default 40 min 1 max 256");

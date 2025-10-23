@@ -56,14 +56,11 @@ public static partial class UCI
             Console.WriteLine($"info string set Move Overhead={TimeManager.MoveOverhead}");
         }
 
-        /*
-        // disabled for now
-        else if (nameStr == "UCI_ShowWDL" && tokens.Length >= 5)
+        else if (nameStr == "UCI_ShowWDL")
         {
-            WDL.UCI_showWDL = valueStr == "true";
+            WDL.UCI_showWDL = valueStr != "" ? valueStr == "true" : !WDL.UCI_showWDL;
             Console.WriteLine($"info string set UCI_ShowWDL to {WDL.UCI_showWDL}");
         }
-        */
 
         else if (nameStr == "SyzygyPath" && tokens.Length >= 5)
         {

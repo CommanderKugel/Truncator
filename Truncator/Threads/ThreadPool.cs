@@ -134,10 +134,10 @@ public static class ThreadPool
         string GetMultipvInfo(int idx)
         {
             int dirty_score = MainThread.rootPos.PVs[idx][depth];
-            var (norm_score, w, d, l) = WDL.GetWDL(dirty_score);
+            var (norm_score, w, d, l) = WDL.GetWDL(dirty_score, Utils.popcnt(MainThread.rootPos.p.blocker));
             string scoreString = Search.IsTerminal(dirty_score) ? $"mate {(Math.Abs(dirty_score) - Search.SCORE_MATE) / 2}" : $"cp {norm_score}";
 
-            string wdl = WDL.UCI_showWDL ? $" wdl {(int)(w * 1000)} {(int)(d * 1000)} {(int)(l * 1000)}" : "";
+            string wdl = WDL.UCI_showWDL ? $" wdl {w} {d} {l}" : "";
 
             return $" score {scoreString}{wdl} {MainThread.rootPos.PVs[idx].ToString()}";
         }
