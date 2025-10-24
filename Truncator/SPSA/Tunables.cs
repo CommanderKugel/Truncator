@@ -80,12 +80,12 @@ public static class Tunables
     public static SpsaValue CorrhistDelta = new("CorrhistDelta", 160, 1, 512);
     public static SpsaValue CorrhistFinalDiv = new("CorrhistFinalDiv", 2048, 256, 4096);
 
-    public static SpsaValue PawnCorrhistWeight = new("PawnCorrhistWeight", 13 * 8, 1, 64);
-    public static SpsaValue NpCorrhistWeight = new("NpCorrhistWeight", 16 * 8, 1, 64);
-    public static SpsaValue MinorCorrhistWeight = new("MinorCorrhistWeight", 19 * 8, 1, 64);
-    public static SpsaValue MajorCorrhistWeight = new("MajorCorrhistWeight", 17 * 8, 1, 64);
-    public static SpsaValue ThreatCorrhistWeight = new("ThreatCorrhistWeight", 14 * 8, 1, 64);
-    public static SpsaValue PrevPieceCorrhistWeight = new("PrevPieceCorrhistWeight", 13 * 8, 1, 64);
+    public static SpsaValue PawnCorrhistWeight = new("PawnCorrhistWeight", 13 * 8, 1, 256);
+    public static SpsaValue NpCorrhistWeight = new("NpCorrhistWeight", 16 * 8, 1, 256);
+    public static SpsaValue MinorCorrhistWeight = new("MinorCorrhistWeight", 19 * 8, 1, 256);
+    public static SpsaValue MajorCorrhistWeight = new("MajorCorrhistWeight", 17 * 8, 1, 256);
+    public static SpsaValue ThreatCorrhistWeight = new("ThreatCorrhistWeight", 14 * 8, 1, 256);
+    public static SpsaValue PrevPieceCorrhistWeight = new("PrevPieceCorrhistWeight", 13 * 8, 1, 256);
 
     public static SpsaValue PawnCorrhistDiv = new("PawnCorrhistDiv", 1287, 256, 4096);
     public static SpsaValue NpCorrhistDiv = new("NpCorrhistDiv", 1246, 256, 4096);
