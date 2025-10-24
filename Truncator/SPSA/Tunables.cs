@@ -6,6 +6,8 @@ public static class Tunables
 
     // Aspiration Windows
     public static SpsaValue AspDelta = new("AspDelta", 31, 5, 50);
+    public static SpsaValue AspWidenFactor = new("AspWidenFactor", 1024, 256, 4096);
+    public static SpsaValue AspDeltaGrowthFactor = new("AspDeltaGrowthFactor", 1024, 256, 4096);
 
     // Reverse Futility Pruning
     public static SpsaValue RfpDepth = new("RfpDepth", 6, 1, 16);
@@ -57,7 +59,7 @@ public static class Tunables
     public static SpsaValue SEEQueenMaterial = new("SEEQueenMaterial", 1376, 768, 2048);
 
     // Singular Extensions
-    public static SpsaValue SEBetaDepthMult = new("SEBetaDepthMult", 2, 1, 16);
+    public static SpsaValue SEBetaDepthMargin = new("SEBetaDepthMargin", 12, 1, 16);
     public static SpsaValue SEDoubleMargin = new("SEDoubleMargin", 4, 1, 128);
 
     // Late Move Reductions
@@ -76,14 +78,14 @@ public static class Tunables
 
     // Correction History
     public static SpsaValue CorrhistDelta = new("CorrhistDelta", 160, 1, 512);
-    public static SpsaValue CorrhistFinalDiv = new("CorrhistFinalDiv", 256, 256, 4096);
+    public static SpsaValue CorrhistFinalDiv = new("CorrhistFinalDiv", 2048, 256, 4096);
 
-    public static SpsaValue PawnCorrhistWeight = new("PawnCorrhistWeight", 13, 1, 64);
-    public static SpsaValue NpCorrhistWeight = new("NpCorrhistWeight", 16, 1, 64);
-    public static SpsaValue MinorCorrhistWeight = new("MinorCorrhistWeight", 19, 1, 64);
-    public static SpsaValue MajorCorrhistWeight = new("MajorCorrhistWeight", 17, 1, 64);
-    public static SpsaValue ThreatCorrhistWeight = new("ThreatCorrhistWeight", 14, 1, 64);
-    public static SpsaValue PrevPieceCorrhistWeight = new("PrevPieceCorrhistWeight", 13, 1, 64);
+    public static SpsaValue PawnCorrhistWeight = new("PawnCorrhistWeight", 13 * 8, 1, 64);
+    public static SpsaValue NpCorrhistWeight = new("NpCorrhistWeight", 16 * 8, 1, 64);
+    public static SpsaValue MinorCorrhistWeight = new("MinorCorrhistWeight", 19 * 8, 1, 64);
+    public static SpsaValue MajorCorrhistWeight = new("MajorCorrhistWeight", 17 * 8, 1, 64);
+    public static SpsaValue ThreatCorrhistWeight = new("ThreatCorrhistWeight", 14 * 8, 1, 64);
+    public static SpsaValue PrevPieceCorrhistWeight = new("PrevPieceCorrhistWeight", 13 * 8, 1, 64);
 
     public static SpsaValue PawnCorrhistDiv = new("PawnCorrhistDiv", 1287, 256, 4096);
     public static SpsaValue NpCorrhistDiv = new("NpCorrhistDiv", 1246, 256, 4096);
