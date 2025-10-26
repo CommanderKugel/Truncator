@@ -483,7 +483,8 @@ public static partial class Search
             // searching them at a cheaper shallower depth. if a move seems to beat the current best move,
             // we need to re-search that move at full depth to confirm its the better move.
 
-            if (movesPlayed > 1 && depth >= 2)
+            if (movesPlayed > (isPV ? 2 : 1)
+                && depth >= 2)
             {
                 int R = 1;
 
