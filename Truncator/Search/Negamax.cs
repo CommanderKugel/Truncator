@@ -441,7 +441,7 @@ public static partial class Search
                 && thread.ply < thread.completedDepth * 2)
             {
 
-                int singularBeta = Math.Max(-SCORE_MATE + 1, ttEntry.Score - depth * SEBetaDepthMult);
+                int singularBeta = Math.Max(-SCORE_MATE + 1, ttEntry.Score - depth - SEBetaDepthMargin);
                 int singularDepth = (depth - 1) / 2;
 
                 ns->ExcludedMove = m;

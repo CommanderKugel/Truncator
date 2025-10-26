@@ -64,9 +64,9 @@ public static partial class Search
             // widen the window and try again 
             if (score <= alpha || score >= beta)
             {
-                alpha -= IsTerminal(alpha) ? -SCORE_MATE : delta;
-                beta += IsTerminal(beta) ? SCORE_MATE : delta;
-                delta += delta;
+                alpha -= IsTerminal(alpha) ? -SCORE_MATE : delta * Tunables.AspWidenFactor / 1024;
+                beta += IsTerminal(beta) ? SCORE_MATE : delta * Tunables.AspWidenFactor / 1024;
+                delta += delta * Tunables.AspDeltaGrowthFactor / 1024;
                 continue;
             }
 
