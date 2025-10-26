@@ -499,6 +499,8 @@ public static partial class Search
 
                     if (ttPV) R--;
 
+                    if (cutnode) R += 2;
+
                     // ToDo: R += isAllnode
                     if ((ns + 1)->CutoffCount > 2) R++;
 
