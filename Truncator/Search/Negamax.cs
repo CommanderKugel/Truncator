@@ -490,7 +490,7 @@ public static partial class Search
                 if (!isCapture)
                 {
 
-                    R = GetBaseLmr(depth, movesPlayed);
+                    R = GetQuietLmr(depth, movesPlayed);
 
                     // reduce more for bad history values
                     R += -ns->HistScore / LmrHistDiv;
@@ -507,9 +507,11 @@ public static partial class Search
                     R = Math.Max(1, R);
                 }
 
-                else if (picker.stage == Stage.BadCaptures) // isCapture
+                else
                 {
-                    R++;
+                    R = GetNoisyLmr(depth, movesPlayed);
+
+                    if (picker.stage == Stage.BadCaptures) R++;
                 }
 
                 // zero-window-search (ZWS)

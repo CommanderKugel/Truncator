@@ -31,10 +31,11 @@ public static partial class Search
     ];
 
 
-    private static unsafe int* LmrBase = (int*)NativeMemory.Alloc(sizeof(int) * 64 * 64);
+    private static unsafe int* LmrBaseQuiet = (int*)NativeMemory.Alloc(sizeof(int) * 64 * 64);
+    private static unsafe int* LmrBaseNoisy = (int*)NativeMemory.Alloc(sizeof(int) * 64 * 64);
 
-    public static unsafe int GetBaseLmr(int depth, int moves)
-        => LmrBase[Math.Min(depth, 63) * 64 + Math.Min(moves, 63)];
+    public static unsafe int GetQuietLmr(int depth, int moves) => LmrBaseQuiet[Math.Min(depth, 63) * 64 + Math.Min(moves, 63)];
+    public static unsafe int GetNoisyLmr(int depth, int moves) => LmrBaseNoisy[Math.Min(depth, 63) * 64 + Math.Min(moves, 63)];
 
     public static unsafe void ComputeLmrTable()
     {
@@ -43,17 +44,20 @@ public static partial class Search
             for (int moves = 0; moves < 64; moves++)
             {
                 int idx = depth * 64 + moves;
-                LmrBase[idx] = Math.Max((LmrBaseBase + LmrBaseMult * Log_[moves] * Log_[depth] / 4) / 1024, 2);
+                LmrBaseQuiet[idx] = Math.Max((LmrBaseBase + LmrBaseMult * Log_[moves] * Log_[depth] / 4) / 1024, 2);
+                LmrBaseNoisy[idx] = LmrBaseQuiet[idx] / 2;
             }
         }
     }
 
     public static unsafe void Dispose()
     {
-        if (LmrBase != null)
+        if (LmrBaseQuiet != null)
         {
-            NativeMemory.Free(LmrBase);
-            LmrBase = null;
+            NativeMemory.Free(LmrBaseQuiet);
+            NativeMemory.Free(LmrBaseNoisy);
+            LmrBaseQuiet = null;
+            LmrBaseNoisy = null;
         }
     }
 
