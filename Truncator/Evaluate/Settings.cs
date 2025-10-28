@@ -8,7 +8,7 @@ public static class Settings
 
     public const int EVAL_SCALE = 400;
 
-    public const string NET_NAME = "768hl_hm_8ob_fasterLrDevcay";
+    public const string NET_NAME = "finetune";
 
     public const int QA = 255;
     public const int QB = 64;
