@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Evaluate/Nets/finetune.bin"/>
+    <EmbeddedResource Include="Evaluate/Nets/finetune_b.bin"/>
   </ItemGroup>
 
 </Project>
