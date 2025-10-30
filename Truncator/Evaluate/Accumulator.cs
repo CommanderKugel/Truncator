@@ -4,7 +4,6 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
-using System.Text;
 using static Settings;
 using static Weights;
 
@@ -14,8 +13,8 @@ public partial struct Accumulator : IDisposable
     public unsafe short* WhiteAcc = null;
     public unsafe short* BlackAcc = null;
 
-    public int wflip;
-    public int bflip;
+    public unsafe fixed int flip[2];
+    public unsafe fixed int bucket[2];
 
     public bool needsUpdate;
     public bool needsRefresh;
@@ -26,8 +25,11 @@ public partial struct Accumulator : IDisposable
         WhiteAcc = (short*)NativeMemory.AlignedAlloc((nuint)sizeof(short) * L2_SIZE, 256);
         BlackAcc = (short*)NativeMemory.AlignedAlloc((nuint)sizeof(short) * L2_SIZE, 256);
 
-        wflip = 0;
-        bflip = 0;
+        flip[0] = 0;
+        flip[1] = 0;
+
+        bucket[0] = 0;
+        bucket[1] = 0;
 
         needsUpdate = true;
         needsRefresh = true;
@@ -50,8 +52,11 @@ public partial struct Accumulator : IDisposable
         Debug.Assert(Utils.lsb(p.GetPieces(Color.White, PieceType.King)) == p.KingSquares[(int)Color.White]);
         Debug.Assert(Utils.lsb(p.GetPieces(Color.Black, PieceType.King)) == p.KingSquares[(int)Color.Black]);
 
-        wflip = GetFlip(p.KingSquares[(int)Color.White]);
-        bflip = GetFlip(p.KingSquares[(int)Color.Black]);
+        flip[(int)Color.White] = GetFlip(p.KingSquares[(int)Color.White]);
+        flip[(int)Color.Black] = GetFlip(p.KingSquares[(int)Color.Black]);
+
+        bucket[(int)Color.White] = GetBucket(Color.White, p.KingSquares[(int)Color.White], flip[(int)Color.White]);
+        bucket[(int)Color.Black] = GetBucket(Color.Black, p.KingSquares[(int)Color.Black], flip[(int)Color.Black]);
 
         // copy bias
         // implicitly clears accumulator
@@ -102,8 +107,16 @@ public partial struct Accumulator : IDisposable
 
         // assume the king stays in its bucket -> merged efficient updates (UE)
 
-        wflip = parent->acc.wflip;
-        bflip = parent->acc.bflip;
+        flip[(int)Color.White] = parent->acc.flip[(int)Color.White];
+        flip[(int)Color.Black] = parent->acc.flip[(int)Color.Black];
+
+        bucket[(int)Color.White] = parent->acc.bucket[(int)Color.White];
+        bucket[(int)Color.Black] = parent->acc.bucket[(int)Color.Black];
+
+        Debug.Assert(flip[(int)Color.White] == GetFlip(p.KingSquares[(int)Color.White]));
+        Debug.Assert(flip[(int)Color.Black] == GetFlip(p.KingSquares[(int)Color.Black]));
+        Debug.Assert(bucket[(int)Color.White] == GetBucket(Color.White, p.KingSquares[(int)Color.White], flip[(int)Color.White]));
+        Debug.Assert(bucket[(int)Color.Black] == GetBucket(Color.Black, p.KingSquares[(int)Color.Black], flip[(int)Color.Black]));
 
         if (m.IsNull)
         {
@@ -203,13 +216,23 @@ public partial struct Accumulator : IDisposable
         return Utils.FileOf(ksq) > 3 ? 7 : 0;
     }
 
-    public (int, int) GetFeatureIdx(Color c, PieceType pt, int sq)
+    public static int GetBucket(Color c, int ksq, int flip)
+    {
+        Debug.Assert(c != Color.NONE);
+        return KingBucketsLayout[ksq ^ flip ^ ((int)c * 56)];
+    }
+
+
+    public unsafe (int, int) GetFeatureIdx(Color c, PieceType pt, int sq)
     {
         Debug.Assert(c != Color.NONE);
         Debug.Assert(pt != PieceType.NONE);
         Debug.Assert(sq >= 0 && sq < 64);
-        int w = (int)c * 384 + (int)pt * 64 + (sq ^ wflip);
-        int b = (int)(1 - c) * 384 + (int)pt * 64 + (sq ^ bflip ^ 56);
+        Debug.Assert(bucket[(int)Color.White] >= 0 && bucket[(int)Color.White] < INPUT_BUCKETS);
+        Debug.Assert(bucket[(int)Color.Black] >= 0 && bucket[(int)Color.Black] < INPUT_BUCKETS);
+
+        int w = bucket[(int)Color.White] * 768 + (int)c * 384 + (int)pt * 64 + (sq ^ flip[(int)Color.White]);
+        int b = bucket[(int)Color.Black] * 768 + (int)(1 - c) * 384 + (int)pt * 64 + (sq ^ flip[(int)Color.Black] ^ 56);
         return (w, b);
     }
 
@@ -358,8 +381,11 @@ public partial struct Accumulator : IDisposable
         NativeMemory.Copy(WhiteAcc, child.WhiteAcc, (nuint)sizeof(short) * L2_SIZE);
         NativeMemory.Copy(BlackAcc, child.BlackAcc, (nuint)sizeof(short) * L2_SIZE);
 
-        child.wflip = this.wflip;
-        child.bflip = this.bflip;
+        child.flip[(int)Color.White] = flip[(int)Color.White];
+        child.flip[(int)Color.Black] = flip[(int)Color.Black];
+
+        child.bucket[(int)Color.White] = bucket[(int)Color.White];
+        child.bucket[(int)Color.Black] = bucket[(int)Color.Black];
     }
 
     /// <summary>
@@ -373,8 +399,11 @@ public partial struct Accumulator : IDisposable
         NativeMemory.Clear(WhiteAcc, sizeof(float) * L2_SIZE);
         NativeMemory.Clear(BlackAcc, sizeof(float) * L2_SIZE);
 
-        wflip = 0;
-        bflip = 0;
+        flip[(int)Color.White] = 0;
+        flip[(int)Color.Black] = 0;
+
+        bucket[(int)Color.White] = 0;
+        bucket[(int)Color.Black] = 0;
     }
 
     /// <summary>
@@ -394,10 +423,17 @@ public partial struct Accumulator : IDisposable
 
     public unsafe bool EqualContents(ref Accumulator other)
     {
-        if (other.wflip != wflip || other.bflip != bflip)
-        {
-            return false;
-        }
+        if (other.flip[(int)Color.White] != flip[(int)Color.White])
+            throw new Exception($"wflip {other.flip[(int)Color.White]} != {flip[(int)Color.White]}");
+
+        if (other.flip[(int)Color.Black] != flip[(int)Color.Black])
+            throw new Exception($"bflip {other.flip[(int)Color.Black]} != {flip[(int)Color.Black]}");;
+
+        if (other.bucket[(int)Color.White] != bucket[(int)Color.White])
+            throw new Exception($"wbuck {other.bucket[(int)Color.White]} != {bucket[(int)Color.White]}");;
+
+        if (other.bucket[(int)Color.Black] != bucket[(int)Color.Black])
+            throw new Exception($"bbuck {other.bucket[(int)Color.Black]} != {bucket[(int)Color.Black]}");;
 
         for (int i = 0; i < L2_SIZE; i++)
             {

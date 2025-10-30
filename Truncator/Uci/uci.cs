@@ -35,8 +35,8 @@ public static partial class UCI
                 Console.WriteLine($"optino name SyzygyProbePly type spin default 40 min 1 max 256");
                 Console.WriteLine($"optino name UCI_TbLargest type spin default 7 min 1 max 7");
 
-                Console.WriteLine($"option name Softnodes type spin default {int.MaxValue} min {1} max {int.MaxValue}");
-                Console.WriteLine($"option name Hardnodes type spin default {int.MaxValue} min {1} max {int.MaxValue}");
+                //Console.WriteLine($"option name Softnodes type spin default {int.MaxValue} min {1} max {int.MaxValue}");
+                //Console.WriteLine($"option name Hardnodes type spin default {int.MaxValue} min {1} max {int.MaxValue}");
 
 #if SPSA
                 SpsaUciOption.CollectOptions();
@@ -159,16 +159,14 @@ public static partial class UCI
                     "rn2kb1r/pp3ppp/2p1pn2/q7/3P4/2P2B1P/PP3PP1/RNBQ1RK1 b kq - 1 9"})
                 {
                     ThreadPool.MainThread.rootPos.SetNewFen(fen);
-                    Console.WriteLine($"fen: {fen}");
+                    Console.WriteLine($"FEN: {fen}");
                     unsafe
                     {
                         int eval = NNUE.Evaluate(ref ThreadPool.MainThread.rootPos.p, ThreadPool.MainThread.nodeStack[0].acc);
-                        Console.WriteLine($"eval: {eval}");
-                        Console.WriteLine($"{ThreadPool.MainThread.nodeStack[0].acc.wflip}, {ThreadPool.MainThread.nodeStack[0].acc.bflip}");
+                        Console.WriteLine($"EVAL: {eval}");
                     }
                 }
             }
-
         }
     }
 
