@@ -370,8 +370,8 @@ public partial struct Accumulator : IDisposable
         Debug.Assert(WhiteAcc != null);
         Debug.Assert(BlackAcc != null);
 
-        NativeMemory.Clear(WhiteAcc, sizeof(float) * L2_SIZE);
-        NativeMemory.Clear(BlackAcc, sizeof(float) * L2_SIZE);
+        NativeMemory.Clear(WhiteAcc, sizeof(short) * L2_SIZE);
+        NativeMemory.Clear(BlackAcc, sizeof(short) * L2_SIZE);
 
         wflip = 0;
         bflip = 0;
