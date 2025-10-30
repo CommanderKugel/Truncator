@@ -341,7 +341,8 @@ public unsafe partial struct Pos
 
         // update accumulator
 
-        (n + 1)->acc.needsRefresh = movingPt == PieceType.King && Accumulator.GetFlip(from) != Accumulator.GetFlip(KingSquares[(int)Them]);
+        var flip = (int)Them * 56;
+        (n + 1)->acc.needsRefresh = movingPt == PieceType.King && (m.IsCastling || Settings.KingBucketsLayout[from ^ flip] != Settings.KingBucketsLayout[to ^ flip]);
         (n + 1)->acc.needsUpdate = !(n + 1)->acc.needsRefresh;
 
         if (updateAcc && (n + 1)->acc.needsUpdate)
