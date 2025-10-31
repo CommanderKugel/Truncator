@@ -9,9 +9,7 @@ public static class Truncator
 
         ThreadPool.Resize(1);
         Search.ComputeLmrTable();
-        Console.WriteLine("loading weights now");
         Weights.Load();
-        Console.WriteLine($"weights loaded");
 
         while (!ThreadPool.MainThread.isReady)
         {

@@ -8,7 +8,7 @@ public static class Settings
 
     public const int EVAL_SCALE = 400;
 
-    public const string NET_NAME = "768hl_ib";
+    public const string NET_NAME = "768hl_ib-2";
 
     public const int QA = 255;
     public const int QB = 64;
