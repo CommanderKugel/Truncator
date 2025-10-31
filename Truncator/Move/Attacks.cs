@@ -301,6 +301,9 @@ public static class Attacks
                 RookMagic_[i].Dispose();
             }
 
+            NativeMemory.Free(BishopMagic_);
+            NativeMemory.Free(RookMagic_);
+
             BishopMagic_ = null;
             RookMagic_ = null;
         }
