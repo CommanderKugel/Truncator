@@ -20,10 +20,10 @@ public static class GenFens
 
         Console.WriteLine($"info string generating {N} fens, using the seed {seed}, book found at {BookPath}, and dfrc={dfrc}");
 
-        var arg = "";
+        using StreamWriter f = new(@"C:\Users\nikol\Desktop\Truncator\Truncator\Datagen\temp.txt");
         foreach (var a in args)
-            arg += arg + " ";
-        Console.WriteLine($"info string genfens '{arg}'");
+            f.WriteLine(a);
+        f.Close();
 
         // ignore extra for now
 
