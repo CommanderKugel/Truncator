@@ -20,6 +20,11 @@ public static class GenFens
 
         Console.WriteLine($"info string generating {N} fens, using the seed {seed}, book found at {BookPath}, and dfrc={dfrc}");
 
+        var arg = "";
+        foreach (var a in args)
+            arg += arg + " ";
+        Console.WriteLine($"info string genfens '{arg}'");
+
         // ignore extra for now
 
         Random rng = new Random(seed);
