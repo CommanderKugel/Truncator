@@ -59,7 +59,13 @@ public static partial class UCI
         else if (nameStr == "UCI_ShowWDL")
         {
             WDL.UCI_showWDL = valueStr != "" ? valueStr == "true" : !WDL.UCI_showWDL;
-            Console.WriteLine($"info string set UCI_ShowWDL to {WDL.UCI_showWDL}");
+            Console.WriteLine($"info string set UCI_ShowWDL={WDL.UCI_showWDL}");
+        }
+
+        else if (nameStr == "UCI_NormaliseScore")
+        {
+            WDL.UCI_NormaliseScore = valueStr != "" ? valueStr == "true" : !WDL.UCI_NormaliseScore;
+            Console.WriteLine($"info string set UCI_NormaliseScore={WDL.UCI_NormaliseScore}");
         }
 
         else if (nameStr == "SyzygyPath" && tokens.Length >= 5)

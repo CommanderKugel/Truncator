@@ -114,6 +114,12 @@ public static class ThreadPool
 
         long time = TimeManager.ElapsedMilliseconds;
         long nps = nodes * 1000 / time;
+
+        int mom = Utils.popcnt(MainThread.rootPos.p.PieceBB[(int)PieceType.Pawn]) * 1
+            + Utils.popcnt(MainThread.rootPos.p.PieceBB[(int)PieceType.Knight]) * 3
+            + Utils.popcnt(MainThread.rootPos.p.PieceBB[(int)PieceType.Bishop]) * 3
+            + Utils.popcnt(MainThread.rootPos.p.PieceBB[(int)PieceType.Rook]) * 5
+            + Utils.popcnt(MainThread.rootPos.p.PieceBB[(int)PieceType.Queen]) * 9;
         
         string info = $"info depth {depth} seldepth {seldepth} nodes {nodes} tbhits {tbHits} time {time} nps {nps} hashfull {hashfull}";
 
@@ -134,12 +140,12 @@ public static class ThreadPool
         string GetMultipvInfo(int idx)
         {
             int dirty_score = MainThread.rootPos.PVs[idx][depth];
-            var (norm_score, w, d, l) = WDL.GetWDL(dirty_score, Utils.popcnt(MainThread.rootPos.p.blocker));
-            string scoreString = Search.IsTerminal(dirty_score) ? $"mate {(Math.Abs(dirty_score) - Search.SCORE_MATE) / 2}" : $"cp {norm_score}";
+            var (norm_score, w, d, l) = WDL.GetWDL(dirty_score, mom);
+            string scoreString = Search.IsTerminal(dirty_score) ? $"mate {(Math.Abs(dirty_score) - Search.SCORE_MATE) / 2}" : $"cp {(WDL.UCI_NormaliseScore ? norm_score : dirty_score)}";
 
             string wdl = WDL.UCI_showWDL ? $" wdl {w} {d} {l}" : "";
 
-            return $" score {scoreString}{wdl} {MainThread.rootPos.PVs[idx].ToString()}";
+            return $" score {scoreString}{wdl} pv {MainThread.rootPos.PVs[idx].ToString()}";
         }
     }
 
