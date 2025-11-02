@@ -14,14 +14,10 @@ public static class GenFens
             throw new ArgumentException("info string coudnt parse the seed to initialize rng from!");
 
         string BookPath = args[5];
+        var bookStartingIndex = seed & 0xFFFF_FFFF;
 
         bool dfrc = args.Length > 6 && args[6] == "dfrc";
         Castling.UCI_Chess960 = dfrc;
-
-        using StreamWriter f = new(@"C:\Users\nikol\Desktop\Truncator\Truncator\Datagen\temp.txt");
-        foreach (var a in args)
-            f.WriteLine(a);
-        f.Close();
 
         Console.WriteLine($"info string generating {N} fens, using the seed {seed}, book found at {BookPath}, and dfrc={dfrc}");
 
@@ -31,18 +27,35 @@ public static class GenFens
         SearchThread thread = ThreadPool.MainThread;
         Span<Move> moves = stackalloc Move[256];
 
-        // ToDo: open books for position here
+        // open book and read fens from there
 
-        int RandomMoves = 8;
+        StreamReader book = null;
+
+        if (BookPath != "None")
+        {
+            Console.WriteLine($"info string trying to use opening book");
+            book = new(BookPath);
+
+            // skip to part of book assigned to this instance
+            
+            for (int i=0; i<bookStartingIndex; i++)
+            {
+                book.ReadLine();
+            }
+        }
+        
+        // make random moves from book/dfrc/starting position
+
+        int RandomMoves = 4;
 
         for (int positions = 0; positions < N;)
         {
-            // ToDo: read fen from book here
-
             try
             {
-
-                string fen = !dfrc ? Utils.startpos : Frc.GetDfrcFen(rng.Next() % 960, rng.Next() % 960);
+                string fen = book != null ? (book.ReadLine() ?? Utils.startpos)
+                    : !dfrc ? Utils.startpos
+                    : Frc.GetDfrcFen(rng.Next() % 960, rng.Next() % 960);
+                
                 thread.rootPos.SetNewFen(fen);
 
                 bool success = true;
