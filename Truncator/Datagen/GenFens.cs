@@ -34,7 +34,7 @@ public static class GenFens
         if (BookPath != "None")
         {
             Console.WriteLine($"info string trying to use opening book");
-            book = new(BookPath);
+            book = new(Path.Combine(Directory.GetCurrentDirectory(), BookPath));
 
             // skip to part of book assigned to this instance
             
