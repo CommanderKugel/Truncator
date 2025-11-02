@@ -1,4 +1,6 @@
 
+using System.Diagnostics;
+
 public static class GenFens
 {
 
@@ -33,8 +35,11 @@ public static class GenFens
 
         if (BookPath != "None")
         {
-            Console.WriteLine($"info string trying to use opening book");
-            book = new(Path.Combine(Directory.GetCurrentDirectory(), BookPath));
+            var exeDir = Directory.GetCurrentDirectory();
+            var parentDir = Directory.GetParent(exeDir) ?? throw new DirectoryNotFoundException("parent dir does not exist");
+            var bookDir = Path.Combine(parentDir.FullName, BookPath);
+            Debug.Assert(Directory.Exists(Path.Combine(parentDir.FullName, "Books")), "cant find 'Books' directory");
+            book = new(bookDir);
 
             // skip to part of book assigned to this instance
             
