@@ -28,7 +28,7 @@ public static partial class UCI
                 Console.WriteLine($"option name MultiPv type spin default 1 min 1 max 256");
                 Console.WriteLine($"option name UCI_Chess960 type button default false");
                 Console.WriteLine($"option name UCI_ShowWDL type button default false");
-                Console.WriteLine($"option name UCI_NormaliseScore type button default true");
+                Console.WriteLine($"option name UCI_NormaliseScore type button default false");
 
                 Console.WriteLine($"option name Move Overhead type spin default {TimeManager.MoveOverhead} min 0 max 999999");
 
