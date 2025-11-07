@@ -73,7 +73,7 @@ public class Pgn
 
                     // remove full move counter
 
-                    if (thread.rootPos.p.Us == Color.White)
+                    if (thread.rootPos.p.FullMoveCounter == 0 || thread.rootPos.p.Us == Color.White)
                     {
                         info = info[1..];
                     }

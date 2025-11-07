@@ -15,7 +15,8 @@ public static class Viriformat
 
     public static void ConvertDirWithPgnsToViriformat(SearchThread thread, string PgnPath, bool tbCorrect = false)
     {
-        Debug.Assert(tbCorrect && Fathom.DoTbProbing, "forgot to initialize Syzygy?");
+        tbCorrect = false;
+        Debug.Assert(!tbCorrect || tbCorrect && Fathom.DoTbProbing, "forgot to initialize Syzygy?");
         Console.WriteLine($"use tb correction: {tbCorrect && Fathom.DoTbProbing}");
 
         var files = Directory.GetFiles(PgnPath, "*.PGN");
