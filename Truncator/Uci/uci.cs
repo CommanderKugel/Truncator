@@ -130,7 +130,7 @@ public static partial class UCI
             {
                 Debug.Assert(state == UciState.Idle, "command only available, when engine is idle!");
                 Debug.Assert(tokens.Length == 2);
-                Viriformat.ConvertDirWithPgnsToViriformat(ThreadPool.MainThread, tokens[1], tbCorrect: true);
+                Viriformat.ConvertDirWithPgnsToViriformat(ThreadPool.MainThread, tokens[1]);
             }
 
             else if (tokens[0] == "pgncountmaterial")

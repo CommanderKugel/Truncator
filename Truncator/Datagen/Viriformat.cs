@@ -13,15 +13,12 @@ using System.Diagnostics;
 public static class Viriformat
 {
 
-    public static void ConvertDirWithPgnsToViriformat(SearchThread thread, string PgnPath, bool tbCorrect = false)
+    public static void ConvertDirWithPgnsToViriformat(SearchThread thread, string PgnPath)
     {
-        Debug.Assert(tbCorrect && Fathom.DoTbProbing, "forgot to initialize Syzygy?");
-        Console.WriteLine($"use tb correction: {tbCorrect && Fathom.DoTbProbing}");
-
         var files = Directory.GetFiles(PgnPath, "*.PGN");
         Console.WriteLine($"{files.Length} PGN files found");
 
-        string outFileName = (tbCorrect && Fathom.DoTbProbing ? "convertd_tbcorr" : "converted") + ".viriformat";
+        string outFileName = "converted.viriformat";
         var outPath = Path.Combine(PgnPath, outFileName);
 
         if (!File.Exists(outPath))
@@ -39,7 +36,6 @@ public static class Viriformat
 
         long totalGames = 0;
         long totalPos = 0;
-        long tbCorrections = 0;
         var dist = new long[30];
 
         for (int i=0; i<files.Length; i++)
@@ -47,17 +43,15 @@ public static class Viriformat
             var file = files[i];
             Console.WriteLine($"({i+1}/{files.Length}): {file}");
 
-            var (gameCount, posCount, tbCorrCount) = ConvertPgnToViriformat(
+            var (gameCount, posCount) = ConvertPgnToViriformat(
                 thread,
                 Path.Combine(PgnPath, file),
                 outPath,
-                dist,
-                tbCorrect
+                dist
             );
 
             totalGames += gameCount;
             totalPos += posCount;
-            tbCorrections += tbCorrCount;
 
             Console.WriteLine($"parsed {gameCount} games, {posCount} poitions, to total {totalGames} games and total {totalPos} positions");
         }
@@ -70,11 +64,10 @@ public static class Viriformat
         Console.WriteLine($"\"all fens\": {totalPos},");
         Console.WriteLine($"\"quiet fens\": {dist.Sum()},");
         Console.WriteLine($"\"games\": {totalGames}");
-        Console.WriteLine($"\"TbCorrections\": {tbCorrections}");
         Console.WriteLine("}");
     }
 
-    public static (long, long, long) ConvertPgnToViriformat(SearchThread thread, string PgnPath, string ViriPath, long[] dist = null, bool TbCorrect = false)
+    public static (long, long) ConvertPgnToViriformat(SearchThread thread, string PgnPath, string ViriPath, long[] dist = null)
     {
         // read all games from the file
         // and instantly convert them to viriformat
@@ -84,11 +77,10 @@ public static class Viriformat
 
         long gameCount = 0;
         long posCount = 0;
-        long tbCorrCount = 0;
 
         while (!PgnReader.EndOfStream)
         {
-            var pgn = new Pgn(thread, PgnReader, dist, TbCorrect: TbCorrect);
+            var pgn = new Pgn(thread, PgnReader, dist);
 
             gameCount++;
             posCount += pgn.MainLine.Count;
@@ -96,11 +88,6 @@ public static class Viriformat
             // Marlinformat Headder
 
             Marlinformat headder = new(thread, pgn);
-
-            if (pgn.FirstTbResult != -1 && pgn.ResultToInt() != pgn.FirstTbResult)
-            {
-                tbCorrCount++;
-            }
 
             // main line as (Move, score) pair
             // surprisingly my move-struct is identical to viriformat moves
@@ -133,6 +120,6 @@ public static class Viriformat
             ViriWriter.Write(mainLineBuff);
         }
 
-        return (gameCount, posCount, tbCorrCount);
+        return (gameCount, posCount);
     }
 }

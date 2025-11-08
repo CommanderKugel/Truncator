@@ -5,10 +5,10 @@ public class Pgn
 {
     public string Fen;
     public string Result;
-    public int FirstTbResult = -1;
+
     public List<PgnMove> MainLine;
 
-    public Pgn(SearchThread thread, StreamReader file, long[] dist = null, int distMinPly = 16, bool TbCorrect = false)
+    public Pgn(SearchThread thread, StreamReader file, long[] dist = null, int distMinPly = 16)
     {
         MainLine = [];
         string? line;
@@ -21,6 +21,7 @@ public class Pgn
             lines.Add(line);
 
             // [FEN "<fen>"]
+
             if (line.StartsWith("[FEN"))
             {
                 Fen = line[6..(line.Length - 2)];
@@ -28,15 +29,20 @@ public class Pgn
             }
 
             // [Result "1-0"]
+
             else if (line.StartsWith("[Result"))
             {
                 Result = line[9..(line.Length - 2)];
             }
 
-            // skip crashed games
-            else if (line == "[Termination \"stalled connection\"]")
+            // skip crashes/timeouts/unterminated games
+
+            else if (line.EndsWith("stalled connection\"]")
+                || line.EndsWith("unterminated\"]")
+                || line.EndsWith("time forfeit\"]"))
             {
                 // skip until next game in file, then parse anew
+
                 while (!string.IsNullOrWhiteSpace(line) || ++emptyCount < 2)
                 {
                     line = file.ReadLine();
@@ -44,6 +50,7 @@ public class Pgn
                 }
 
                 // now start reading next game
+
                 emptyCount = 0;
                 continue;
             }
@@ -73,7 +80,7 @@ public class Pgn
 
                     // remove full move counter
 
-                    if (thread.rootPos.p.Us == Color.White)
+                    if (MainLine.Count == 0 || thread.rootPos.p.Us == Color.White)
                     {
                         info = info[1..];
                     }
@@ -114,52 +121,6 @@ public class Pgn
                             && thread.rootPos.p.Checkers == 0)
                         {
                             dist[Utils.popcnt(thread.rootPos.p.blocker) - 3]++;
-                        }
-                    }
-
-                    // use the tb-result to correct the game-outcome in case of non optimal play
-
-                    if (TbCorrect
-                        && Utils.popcnt(thread.rootPos.p.blocker) <= Fathom.TbLargest
-                        && thread.rootPos.p.Checkers == 0
-                        && thread.rootPos.p.CastlingRights == 0
-                        && thread.rootPos.p.EnPassantSquare == (int)Square.NONE)
-                    {
-                        thread.rootPos.p.FiftyMoveRule = 0;
-                        int res = Fathom.ProbeWdl(ref thread.rootPos.p);
-
-                        if (thread.rootPos.p.Us == Color.Black)
-                        {
-                            res = 4 - res;
-                        }
-
-                        // save the first valid tb-result for later use
-
-                        if (FirstTbResult == -1)
-                        {
-                            FirstTbResult = res switch
-                            {
-                                (int)TbResult.TbWin => 2,
-                                (int)TbResult.TbCursedWin => 2,
-                                (int)TbResult.TbDraw => 1,
-                                (int)TbResult.TbBlessedLoss => 0,
-                                (int)TbResult.TbLoss => 0,
-                                _ => throw null,
-                            };
-                        }
-
-                        // skip any positions that disagree with the first received tb-result
-
-                        else if (res != FirstTbResult)
-                        {
-                            // skip until end of game
-
-                            while (!string.IsNullOrWhiteSpace(line))
-                            {
-                                line = file.ReadLine();
-                            }
-
-                            return;
                         }
                     }
 

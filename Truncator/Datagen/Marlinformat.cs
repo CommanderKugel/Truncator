@@ -98,11 +98,6 @@ public struct Marlinformat
 
         gameResult = (byte)pgn.ResultToInt();
         Debug.Assert(gameResult >= 0 && gameResult <= 2);
-
-        if (pgn.FirstTbResult != -1)
-        {
-            gameResult = (byte)pgn.FirstTbResult;
-        }
     }
 
 

@@ -2,7 +2,7 @@
 public static class WDL
 {
     public static bool UCI_showWDL = false;
-    public static bool UCI_NormaliseScore = true;
+    public static bool UCI_NormaliseScore = false;
 
     private static ReadOnlySpan<double> a_s => [
         -286.38282197, 481.40620520, -766.67969579, 1455.15773716
