@@ -23,8 +23,8 @@ public partial struct Accumulator : IDisposable
 
     public unsafe Accumulator()
     {
-        WhiteAcc = (short*)NativeMemory.AlignedAlloc((nuint)sizeof(short) * L2_SIZE, 256);
-        BlackAcc = (short*)NativeMemory.AlignedAlloc((nuint)sizeof(short) * L2_SIZE, 256);
+        WhiteAcc = (short*)NativeMemory.AlignedAlloc((nuint)sizeof(short) * L1_SIZE, 256);
+        BlackAcc = (short*)NativeMemory.AlignedAlloc((nuint)sizeof(short) * L1_SIZE, 256);
 
         wflip = 0;
         bflip = 0;
@@ -56,8 +56,8 @@ public partial struct Accumulator : IDisposable
         // copy bias
         // implicitly clears accumulator
 
-        NativeMemory.Copy(l1_bias, WhiteAcc, sizeof(short) * L2_SIZE);
-        NativeMemory.Copy(l1_bias, BlackAcc, sizeof(short) * L2_SIZE);
+        NativeMemory.Copy(l1_bias, WhiteAcc, sizeof(short) * L1_SIZE);
+        NativeMemory.Copy(l1_bias, BlackAcc, sizeof(short) * L1_SIZE);
 
         // accumulate weights for every piece on the board
 
@@ -238,15 +238,15 @@ public partial struct Accumulator : IDisposable
         var (widx, bidx) = GetFeatureIdx(c, pt, sq);
 
         int vecSize = Vector<short>.Count;
-        Debug.Assert(L2_SIZE % vecSize == 0);
+        Debug.Assert(L1_SIZE % vecSize == 0);
 
-        for (int node = 0; node < L2_SIZE; node += vecSize)
+        for (int node = 0; node < L1_SIZE; node += vecSize)
         {
             var wacc = Vector.Load(WhiteAcc + node);
             var bacc = Vector.Load(BlackAcc + node);
 
-            var wWeight = Vector.Load(l1_weight + widx * L2_SIZE + node);
-            var bWeight = Vector.Load(l1_weight + bidx * L2_SIZE + node);
+            var wWeight = Vector.Load(l1_weight + widx * L1_SIZE + node);
+            var bWeight = Vector.Load(l1_weight + bidx * L1_SIZE + node);
 
             Vector.Store(Vector.Add(wacc, wWeight), WhiteAcc + node);
             Vector.Store(Vector.Add(bacc, bWeight), BlackAcc + node);
@@ -264,15 +264,15 @@ public partial struct Accumulator : IDisposable
         var (widx, bidx) = GetFeatureIdx(c, pt, sq);
 
         int vecSize = Vector256<short>.Count;
-        Debug.Assert(L2_SIZE % vecSize == 0);
+        Debug.Assert(L1_SIZE % vecSize == 0);
 
-        for (int node = 0; node < L2_SIZE; node += vecSize)
+        for (int node = 0; node < L1_SIZE; node += vecSize)
         {
             var wacc = Avx.LoadAlignedVector256(WhiteAcc + node);
             var bacc = Avx.LoadAlignedVector256(BlackAcc + node);
 
-            var wWeight = Avx.LoadAlignedVector256(l1_weight + widx * L2_SIZE + node);
-            var bWeight = Avx.LoadAlignedVector256(l1_weight + bidx * L2_SIZE + node);
+            var wWeight = Avx.LoadAlignedVector256(l1_weight + widx * L1_SIZE + node);
+            var bWeight = Avx.LoadAlignedVector256(l1_weight + bidx * L1_SIZE + node);
 
             Avx.StoreAligned(WhiteAcc + node, Avx2.Add(wacc, wWeight));
             Avx.StoreAligned(BlackAcc + node, Avx2.Add(bacc, bWeight));
@@ -303,15 +303,15 @@ public partial struct Accumulator : IDisposable
         var (widx, bidx) = GetFeatureIdx(c, pt, sq);
 
         int vecSize = Vector<short>.Count;
-        Debug.Assert(L2_SIZE % vecSize == 0);
+        Debug.Assert(L1_SIZE % vecSize == 0);
 
-        for (int node = 0; node < L2_SIZE; node += vecSize)
+        for (int node = 0; node < L1_SIZE; node += vecSize)
         {
             var wacc = Vector.Load(WhiteAcc + node);
             var bacc = Vector.Load(BlackAcc + node);
 
-            var wWeight = Vector.Load(l1_weight + widx * L2_SIZE + node);
-            var bWeight = Vector.Load(l1_weight + bidx * L2_SIZE + node);
+            var wWeight = Vector.Load(l1_weight + widx * L1_SIZE + node);
+            var bWeight = Vector.Load(l1_weight + bidx * L1_SIZE + node);
 
             Vector.Store(Vector.Subtract(wacc, wWeight), WhiteAcc + node);
             Vector.Store(Vector.Subtract(bacc, bWeight), BlackAcc + node);
@@ -330,15 +330,15 @@ public partial struct Accumulator : IDisposable
         var (widx, bidx) = GetFeatureIdx(c, pt, sq);
 
         int vecSize = Vector256<short>.Count;
-        Debug.Assert(L2_SIZE % vecSize == 0);
+        Debug.Assert(L1_SIZE % vecSize == 0);
 
-        for (int node = 0; node < L2_SIZE; node += vecSize)
+        for (int node = 0; node < L1_SIZE; node += vecSize)
         {
             var wacc = Avx.LoadAlignedVector256(WhiteAcc + node);
             var bacc = Avx.LoadAlignedVector256(BlackAcc + node);
 
-            var wWeight = Avx.LoadAlignedVector256(l1_weight + widx * L2_SIZE + node);
-            var bWeight = Avx.LoadAlignedVector256(l1_weight + bidx * L2_SIZE + node);
+            var wWeight = Avx.LoadAlignedVector256(l1_weight + widx * L1_SIZE + node);
+            var bWeight = Avx.LoadAlignedVector256(l1_weight + bidx * L1_SIZE + node);
 
             Avx.StoreAligned(WhiteAcc + node, Avx2.Subtract(wacc, wWeight));
             Avx.StoreAligned(BlackAcc + node, Avx2.Subtract(bacc, bWeight));
@@ -355,8 +355,8 @@ public partial struct Accumulator : IDisposable
         Debug.Assert(child.WhiteAcc != null);
         Debug.Assert(child.BlackAcc != null);
 
-        NativeMemory.Copy(WhiteAcc, child.WhiteAcc, (nuint)sizeof(short) * L2_SIZE);
-        NativeMemory.Copy(BlackAcc, child.BlackAcc, (nuint)sizeof(short) * L2_SIZE);
+        NativeMemory.Copy(WhiteAcc, child.WhiteAcc, (nuint)sizeof(short) * L1_SIZE);
+        NativeMemory.Copy(BlackAcc, child.BlackAcc, (nuint)sizeof(short) * L1_SIZE);
 
         child.wflip = this.wflip;
         child.bflip = this.bflip;
@@ -370,8 +370,8 @@ public partial struct Accumulator : IDisposable
         Debug.Assert(WhiteAcc != null);
         Debug.Assert(BlackAcc != null);
 
-        NativeMemory.Clear(WhiteAcc, sizeof(short) * L2_SIZE);
-        NativeMemory.Clear(BlackAcc, sizeof(short) * L2_SIZE);
+        NativeMemory.Clear(WhiteAcc, sizeof(short) * L1_SIZE);
+        NativeMemory.Clear(BlackAcc, sizeof(short) * L1_SIZE);
 
         wflip = 0;
         bflip = 0;
@@ -399,13 +399,13 @@ public partial struct Accumulator : IDisposable
             return false;
         }
 
-        for (int i = 0; i < L2_SIZE; i++)
+        for (int i = 0; i < L1_SIZE; i++)
+        {
+            if (WhiteAcc[i] != other.WhiteAcc[i] || BlackAcc[i] != other.BlackAcc[i])
             {
-                if (WhiteAcc[i] != other.WhiteAcc[i] || BlackAcc[i] != other.BlackAcc[i])
-                {
-                    return false;
-                }
+                return false;
             }
+        }
 
         return true;
     }

@@ -30,10 +30,10 @@ public static class NNUE
         var QAVector = new Vector<short>(QA);
         var ZeroVector = Vector<short>.Zero;
 
-        var wWeightPtr = l2_weight + outputBucket * L2_SIZE * 2;
-        var bWeightPrt = l2_weight + outputBucket * L2_SIZE * 2 + L2_SIZE;
+        var wWeightPtr = l2_weight + outputBucket * L1_SIZE * 2;
+        var bWeightPrt = l2_weight + outputBucket * L1_SIZE * 2 + L1_SIZE;
 
-        for (int node = 0; node < L2_SIZE; node += vecSize)
+        for (int node = 0; node < L1_SIZE; node += vecSize)
         {
             // load accumulator into vectors
 
@@ -99,12 +99,12 @@ public static class NNUE
         int outputBucket = GetOutputBucket(ref p);
         var OutputAccumulator = Vector256<int>.Zero;
         
-        var wWeightPtr = l2_weight + outputBucket * L2_SIZE * 2;
-        var bWeightPrt = l2_weight + outputBucket * L2_SIZE * 2 + L2_SIZE;
+        var wWeightPtr = l2_weight + outputBucket * L1_SIZE * 2;
+        var bWeightPrt = l2_weight + outputBucket * L1_SIZE * 2 + L1_SIZE;
 
         // main accumulation loop
 
-        for (int node = 0; node < L2_SIZE; node += VEC_SIZE)
+        for (int node = 0; node < L1_SIZE; node += VEC_SIZE)
         {
             // load accumulator into vectors
 
