@@ -5,6 +5,23 @@ using System.Runtime.Intrinsics.X86;
 using static Settings;
 using static Weights;
 
+/// <summary>
+/// FEN: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+/// EVAL: 68.46922
+/// FEN: r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1 
+/// EVAL: -187.20619
+/// FEN: r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1     
+/// EVAL: 91.976326
+/// FEN: rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8
+/// EVAL: -158.03488
+/// FEN: 8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1
+/// EVAL: 151.46396
+/// FEN: r1b1k1nr/ppq3pp/2n1p3/2ppPp2/3P4/P1P1B1Q1/2P2PPP/R3KBNR b KQkq - 3 9 
+/// EVAL: -132.1614
+/// FEN: rn2kb1r/pp3ppp/2p1pn2/q7/3P4/2P2B1P/PP3PP1/RNBQ1RK1 b kq - 1 9       
+/// EVAL: -222.8141
+/// </summary>
+
 public static class NNUE
 {
 
@@ -92,13 +109,13 @@ public static class NNUE
         short* BlackAcc = p.Us == Color.White ? acc.BlackAcc : acc.WhiteAcc;
 
         const int VEC_SIZE = 16; // avx2 uses 256 bit registers
-        
+
         var QAVector = Vector256.Create((short)QA);
         var ZeroVector = Vector256<short>.Zero;
 
         int outputBucket = GetOutputBucket(ref p);
         var OutputAccumulator = Vector256<int>.Zero;
-        
+
         var wWeightPtr = l2_weight + outputBucket * L1_SIZE * 2;
         var bWeightPrt = l2_weight + outputBucket * L1_SIZE * 2 + L1_SIZE;
 
