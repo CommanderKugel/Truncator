@@ -6,7 +6,7 @@ public static class Settings
 
     public const int OUTPUT_BUCKETS = 8;
 
-    public const int EVAL_SCALE = 400;
+    public const int EVAL_SCALE = 532;
 
     public const string NET_NAME = "3_20ksn_0.5";
 
