@@ -169,6 +169,11 @@ public static partial class UCI
                     }
                 }
             }
+            
+            else if (command == "scale")
+            {
+                Scale.ComputeScale();
+            }
 
         }
     }
