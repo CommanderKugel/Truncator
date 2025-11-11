@@ -8,7 +8,7 @@ public static class Settings
 
     public const int EVAL_SCALE = 400;
 
-    public const string NET_NAME = "3_20ksn_0.5";
+    public const string NET_NAME = "pretrain_relabeled";
 
     public const int QA = 255;
     public const int QB = 64;
