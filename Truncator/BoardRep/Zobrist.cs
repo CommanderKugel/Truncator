@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 
 public static class Zobrist
 {
-    public static unsafe ulong stmKey = 1;
+    public static ulong stmKey = 1;
     private static unsafe ulong* PieceKeys;
     private static unsafe ulong* CastlingKeys;
     private static unsafe ulong* EpKeys;
@@ -33,7 +33,7 @@ public static class Zobrist
             EpKeys[f] = NextRandomUlong(rng);
         }
 
-        unsafe ulong NextRandomUlong(Random rng)
+        static ulong NextRandomUlong(Random rng)
         {
             var buffer = new byte[sizeof(ulong)];
             rng.NextBytes(buffer);
@@ -95,7 +95,7 @@ public static class Zobrist
         }
     }
 
-    public static unsafe ulong GetColoredPieceKey(Color c, PieceType pt, ref Pos p)
+    public static ulong GetColoredPieceKey(Color c, PieceType pt, ref Pos p)
     {
         ulong key = 0;
         for (ulong pieces = p.GetPieces(c, pt); pieces != 0; )
@@ -106,7 +106,7 @@ public static class Zobrist
         return key;
     }
 
-    public static unsafe ulong GetNonPawnKey(Color c, ref Pos p)
+    public static ulong GetNonPawnKey(Color c, ref Pos p)
     {
         ulong key = 0;
         for (PieceType pt = PieceType.Knight; pt <= PieceType.King; pt++)
