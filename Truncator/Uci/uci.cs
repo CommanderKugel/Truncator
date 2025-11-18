@@ -159,13 +159,14 @@ public static partial class UCI
                     "r1b1k1nr/ppq3pp/2n1p3/2ppPp2/3P4/P1P1B1Q1/2P2PPP/R3KBNR b KQkq - 3 9",
                     "rn2kb1r/pp3ppp/2p1pn2/q7/3P4/2P2B1P/PP3PP1/RNBQ1RK1 b kq - 1 9"})
                 {
-                    ThreadPool.MainThread.rootPos.SetNewFen(fen);
-                    Console.WriteLine($"fen: {fen}");
                     unsafe
                     {
+                        ThreadPool.MainThread.rootPos.SetNewFen(fen);
+                        Accumulator.DoLazyUpdates(&ThreadPool.MainThread.nodeStack[0]);
                         int eval = NNUE.Evaluate(ref ThreadPool.MainThread.rootPos.p, ThreadPool.MainThread.nodeStack[0].acc);
-                        Console.WriteLine($"eval: {eval}");
-                        Console.WriteLine($"{ThreadPool.MainThread.nodeStack[0].acc.wflip}, {ThreadPool.MainThread.nodeStack[0].acc.bflip}");
+
+                        Console.WriteLine($"FEN: {fen}");
+                        Console.WriteLine($"EVAL: {eval}");
                     }
                 }
             }
