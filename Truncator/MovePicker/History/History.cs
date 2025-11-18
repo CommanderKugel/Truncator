@@ -27,7 +27,7 @@ public struct History : IDisposable
 
             Butterfly[p.Threats, p.Us, m].Update(delta, ButterflyDiv);
 
-            int contHistSum = (*(n - 1)->ContHist)[p.Us, pt, m.to] + (*(n - 1)->ContHist)[p.Us, pt, m.to];
+            int contHistSum = ((*(n - 1)->ContHist)[p.Us, pt, m.to] + (*(n - 1)->ContHist)[p.Us, pt, m.to]) / 2;
 
             if ((n - 1)->ContHist != NullHist)
             {
