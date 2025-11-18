@@ -27,14 +27,16 @@ public struct History : IDisposable
 
             Butterfly[p.Threats, p.Us, m].Update(delta, ButterflyDiv);
 
+            int contHistSum = (*(n - 1)->ContHist)[p.Us, pt, m.to] + (*(n - 1)->ContHist)[p.Us, pt, m.to];
+
             if ((n - 1)->ContHist != NullHist)
             {
-                (*(n - 1)->ContHist)[p.Us, pt, m.to].Update(delta, Conthist1PlyDiv);
+                (*(n - 1)->ContHist)[p.Us, pt, m.to].Update(delta, Conthist1PlyDiv, contHistSum);
             }
 
             if ((n - 2)->ContHist != NullHist)
             {
-                (*(n - 2)->ContHist)[p.Us, pt, m.to].Update(delta, Conthist2PlyDiv);
+                (*(n - 2)->ContHist)[p.Us, pt, m.to].Update(delta, Conthist2PlyDiv, contHistSum);
             }
         }
     }

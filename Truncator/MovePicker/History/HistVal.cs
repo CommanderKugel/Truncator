@@ -11,6 +11,8 @@ public struct HistVal
     /// </summary>
     public void Update(int delta, int div) => value += (short)(delta - value * Math.Abs(delta) / div);
 
+    public void Update(int delta, int div, int multiVal) => value += (short)(delta - multiVal * Math.Abs(delta) / div);
+
     public static implicit operator short(HistVal val) => val.value;
     public static implicit operator int(HistVal val) => val.value;
 
