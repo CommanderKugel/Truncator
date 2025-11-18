@@ -62,7 +62,7 @@ public static class NNUE
         {
             for (int l1node = 0; l1node < L1_SIZE; l1node++)
             {
-                l2[l2node] += l1[l1node] * l1_weight[bucket, l1node, l2node];
+                l2[l2node] += l1[l1node] * l1_weight[bucket * L1_SIZE * L2_SIZE + l1node * L2_SIZE + l2node];
             }
         }
 
@@ -72,7 +72,7 @@ public static class NNUE
 
         for (int i = 0; i < L2_SIZE; i++)
         {
-            l2[i] = l2[i] * L1_NORM + l1_bias[bucket, i];
+            l2[i] = l2[i] * L1_NORM + l1_bias[bucket * L2_SIZE + i];
             l2[i] = Math.Clamp(l2[i], 0, 1);
             l2[i] *= l2[i];
         }
@@ -86,7 +86,7 @@ public static class NNUE
         {
             for (int l2node = 0; l2node < L2_SIZE; l2node++)
             {
-                l3[l3node] += l2[l2node] * l2_weight[bucket, l2node, l3node];
+                l3[l3node] += l2[l2node] * l2_weight[bucket * L2_SIZE * L3_SIZE + l2node * L3_SIZE + l3node];
             }
         }
 
@@ -98,9 +98,9 @@ public static class NNUE
 
         for (int i = 0; i < L3_SIZE; i++)
         {
-            l3[i] += l2_bias[bucket, i];
+            l3[i] += l2_bias[bucket * L3_SIZE + i];
             l3[i] = Math.Clamp(l3[i], 0, 1);
-            output += l3[i] * l3[i] * l3_weight[bucket, i];
+            output += l3[i] * l3[i] * l3_weight[bucket * L3_SIZE + i];
         }
 
         return output * EVAL_SCALE;
