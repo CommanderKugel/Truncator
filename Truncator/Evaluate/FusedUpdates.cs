@@ -9,6 +9,137 @@ using static Weights;
 
 public partial struct Accumulator
 {
+    /// <summary>
+    /// accumulate a newly activated feaure in the accumulator
+    /// ~a piece has been placed on the board somewhere
+    /// </summary>
+    public void Activate(Color c, PieceType pt, int sq)
+    {
+        if (Avx2.IsSupported)
+            ActivateAvx2(c, pt, sq);
+        else
+            ActivateFallback(c, pt, sq);
+    }
+
+    private unsafe void ActivateFallback(Color c, PieceType pt, int sq)
+    {
+        Debug.Assert(Avx2.IsSupported);
+        Debug.Assert(WhiteAcc != null);
+        Debug.Assert(BlackAcc != null);
+        Debug.Assert(c != Color.NONE);
+        Debug.Assert(pt != PieceType.NONE);
+        Debug.Assert(sq >= 0 && sq < 64);
+
+        var (widx, bidx) = GetFeatureIdx(c, pt, sq);
+
+        int vecSize = Vector<short>.Count;
+        Debug.Assert(L1_SIZE % vecSize == 0);
+
+        for (int node = 0; node < L1_SIZE; node += vecSize)
+        {
+            var wacc = Vector.Load(WhiteAcc + node);
+            var bacc = Vector.Load(BlackAcc + node);
+
+            var wWeight = Vector.Load(l0_weight + widx * L1_SIZE + node);
+            var bWeight = Vector.Load(l0_weight + bidx * L1_SIZE + node);
+
+            Vector.Store(Vector.Add(wacc, wWeight), WhiteAcc + node);
+            Vector.Store(Vector.Add(bacc, bWeight), BlackAcc + node);
+        }
+    }
+
+    private unsafe void ActivateAvx2(Color c, PieceType pt, int sq)
+    {
+        Debug.Assert(WhiteAcc != null);
+        Debug.Assert(BlackAcc != null);
+        Debug.Assert(c != Color.NONE);
+        Debug.Assert(pt != PieceType.NONE);
+        Debug.Assert(sq >= 0 && sq < 64);
+
+        var (widx, bidx) = GetFeatureIdx(c, pt, sq);
+
+        int vecSize = Vector256<short>.Count;
+        Debug.Assert(L1_SIZE % vecSize == 0);
+
+        for (int node = 0; node < L1_SIZE; node += vecSize)
+        {
+            var wacc = Avx.LoadAlignedVector256(WhiteAcc + node);
+            var bacc = Avx.LoadAlignedVector256(BlackAcc + node);
+
+            var wWeight = Avx.LoadAlignedVector256(l0_weight + widx * L1_SIZE + node);
+            var bWeight = Avx.LoadAlignedVector256(l0_weight + bidx * L1_SIZE + node);
+
+            Avx.StoreAligned(WhiteAcc + node, Avx2.Add(wacc, wWeight));
+            Avx.StoreAligned(BlackAcc + node, Avx2.Add(bacc, bWeight));
+        }
+    }
+
+
+    /// <summary>
+    /// remove the accumulation of a formerly activated feaure from the accumulator
+    /// ~a piece has been removed from the board somewhere
+    /// </summary>
+    public void Deactivate(Color c, PieceType pt, int sq)
+    {
+        if (Avx2.IsSupported)
+            DeactivateAvx2(c, pt, sq);
+        else
+            DeactivateFallback(c, pt, sq);
+    }
+
+    private unsafe void DeactivateFallback(Color c, PieceType pt, int sq)
+    {
+        Debug.Assert(WhiteAcc != null);
+        Debug.Assert(BlackAcc != null);
+        Debug.Assert(c != Color.NONE);
+        Debug.Assert(pt != PieceType.NONE);
+        Debug.Assert(sq >= 0 && sq < 64);
+
+        var (widx, bidx) = GetFeatureIdx(c, pt, sq);
+
+        int vecSize = Vector<short>.Count;
+        Debug.Assert(L1_SIZE % vecSize == 0);
+
+        for (int node = 0; node < L1_SIZE; node += vecSize)
+        {
+            var wacc = Vector.Load(WhiteAcc + node);
+            var bacc = Vector.Load(BlackAcc + node);
+
+            var wWeight = Vector.Load(l0_weight + widx * L1_SIZE + node);
+            var bWeight = Vector.Load(l0_weight + bidx * L1_SIZE + node);
+
+            Vector.Store(Vector.Subtract(wacc, wWeight), WhiteAcc + node);
+            Vector.Store(Vector.Subtract(bacc, bWeight), BlackAcc + node);
+        }
+    }
+
+    private unsafe void DeactivateAvx2(Color c, PieceType pt, int sq)
+    {
+        Debug.Assert(Avx2.IsSupported);
+        Debug.Assert(WhiteAcc != null);
+        Debug.Assert(BlackAcc != null);
+        Debug.Assert(c != Color.NONE);
+        Debug.Assert(pt != PieceType.NONE);
+        Debug.Assert(sq >= 0 && sq < 64);
+
+        var (widx, bidx) = GetFeatureIdx(c, pt, sq);
+
+        int vecSize = Vector256<short>.Count;
+        Debug.Assert(L1_SIZE % vecSize == 0);
+
+        for (int node = 0; node < L1_SIZE; node += vecSize)
+        {
+            var wacc = Avx.LoadAlignedVector256(WhiteAcc + node);
+            var bacc = Avx.LoadAlignedVector256(BlackAcc + node);
+
+            var wWeight = Avx.LoadAlignedVector256(l0_weight + widx * L1_SIZE + node);
+            var bWeight = Avx.LoadAlignedVector256(l0_weight + bidx * L1_SIZE + node);
+
+            Avx.StoreAligned(WhiteAcc + node, Avx2.Subtract(wacc, wWeight));
+            Avx.StoreAligned(BlackAcc + node, Avx2.Subtract(bacc, bWeight));
+        }
+    }
+
 
     public unsafe void AddSub(
         ref Accumulator parent,
@@ -43,15 +174,15 @@ public partial struct Accumulator
         var (wsub, bsub) = GetFeatureIdx(c2, pt2, sq2);
 
         int vecSize = Vector256<short>.Count;
-        Debug.Assert(L2_SIZE % vecSize == 0);
+        Debug.Assert(L1_SIZE % vecSize == 0);
 
-        for (int node = 0; node < L2_SIZE; node += vecSize)
+        for (int node = 0; node < L1_SIZE; node += vecSize)
         {
-            var wacc = Avx2.Add(Avx.LoadAlignedVector256(parent.WhiteAcc + node), Avx.LoadAlignedVector256(l1_weight + wadd * L2_SIZE + node));
-            var bacc = Avx2.Add(Avx.LoadAlignedVector256(parent.BlackAcc + node), Avx.LoadAlignedVector256(l1_weight + badd * L2_SIZE + node));
+            var wacc = Avx2.Add(Avx.LoadAlignedVector256(parent.WhiteAcc + node), Avx.LoadAlignedVector256(l0_weight + wadd * L1_SIZE + node));
+            var bacc = Avx2.Add(Avx.LoadAlignedVector256(parent.BlackAcc + node), Avx.LoadAlignedVector256(l0_weight + badd * L1_SIZE + node));
 
-            wacc = Avx2.Subtract(wacc, Avx.LoadAlignedVector256(l1_weight + wsub * L2_SIZE + node));
-            bacc = Avx2.Subtract(bacc, Avx.LoadAlignedVector256(l1_weight + bsub * L2_SIZE + node));
+            wacc = Avx2.Subtract(wacc, Avx.LoadAlignedVector256(l0_weight + wsub * L1_SIZE + node));
+            bacc = Avx2.Subtract(bacc, Avx.LoadAlignedVector256(l0_weight + bsub * L1_SIZE + node));
 
             Avx.StoreAligned(WhiteAcc + node, wacc);
             Avx.StoreAligned(BlackAcc + node, bacc);
@@ -68,18 +199,18 @@ public partial struct Accumulator
         var (wsub, bsub) = GetFeatureIdx(c2, pt2, sq2);
 
         int vecSize = Vector<short>.Count;
-        Debug.Assert(L2_SIZE % vecSize == 0);
+        Debug.Assert(L1_SIZE % vecSize == 0);
 
-        for (int node = 0; node < L2_SIZE; node += vecSize)
+        for (int node = 0; node < L1_SIZE; node += vecSize)
         {
             // add -> sub -> store
             // ToDo: load from parent-accumulator & avoid previous parent.CopyTo(this)
 
-            var wacc = Vector.Add(Vector.Load(parent.WhiteAcc + node), Vector.Load(l1_weight + wadd * L2_SIZE + node));
-            var bacc = Vector.Add(Vector.Load(parent.BlackAcc + node), Vector.Load(l1_weight + badd * L2_SIZE + node));
+            var wacc = Vector.Add(Vector.Load(parent.WhiteAcc + node), Vector.Load(l0_weight + wadd * L1_SIZE + node));
+            var bacc = Vector.Add(Vector.Load(parent.BlackAcc + node), Vector.Load(l0_weight + badd * L1_SIZE + node));
 
-            wacc = Vector.Subtract(wacc, Vector.Load(l1_weight + wsub * L2_SIZE + node));
-            bacc = Vector.Subtract(bacc, Vector.Load(l1_weight + bsub * L2_SIZE + node));
+            wacc = Vector.Subtract(wacc, Vector.Load(l0_weight + wsub * L1_SIZE + node));
+            bacc = Vector.Subtract(bacc, Vector.Load(l0_weight + bsub * L1_SIZE + node));
 
             Vector.Store(wacc, WhiteAcc + node);
             Vector.Store(bacc, BlackAcc + node);
@@ -126,18 +257,18 @@ public partial struct Accumulator
         var (wsub2, bsub2) = GetFeatureIdx(c3, pt3, sq3);
 
         int vecSize = Vector256<short>.Count;
-        Debug.Assert(L2_SIZE % vecSize == 0);
+        Debug.Assert(L1_SIZE % vecSize == 0);
 
-        for (int node = 0; node < L2_SIZE; node += vecSize)
+        for (int node = 0; node < L1_SIZE; node += vecSize)
         {
-            var wacc = Avx2.Add(Avx.LoadAlignedVector256(parent.WhiteAcc + node), Avx.LoadAlignedVector256(l1_weight + wadd * L2_SIZE + node));
-            var bacc = Avx2.Add(Avx.LoadAlignedVector256(parent.BlackAcc + node), Avx.LoadAlignedVector256(l1_weight + badd * L2_SIZE + node));
+            var wacc = Avx2.Add(Avx.LoadAlignedVector256(parent.WhiteAcc + node), Avx.LoadAlignedVector256(l0_weight + wadd * L1_SIZE + node));
+            var bacc = Avx2.Add(Avx.LoadAlignedVector256(parent.BlackAcc + node), Avx.LoadAlignedVector256(l0_weight + badd * L1_SIZE + node));
 
-            wacc = Avx2.Subtract(wacc, Avx.LoadAlignedVector256(l1_weight + wsub1 * L2_SIZE + node));
-            bacc = Avx2.Subtract(bacc, Avx.LoadAlignedVector256(l1_weight + bsub1 * L2_SIZE + node));
+            wacc = Avx2.Subtract(wacc, Avx.LoadAlignedVector256(l0_weight + wsub1 * L1_SIZE + node));
+            bacc = Avx2.Subtract(bacc, Avx.LoadAlignedVector256(l0_weight + bsub1 * L1_SIZE + node));
 
-            wacc = Avx2.Subtract(wacc, Avx.LoadAlignedVector256(l1_weight + wsub2 * L2_SIZE + node));
-            bacc = Avx2.Subtract(bacc, Avx.LoadAlignedVector256(l1_weight + bsub2 * L2_SIZE + node));
+            wacc = Avx2.Subtract(wacc, Avx.LoadAlignedVector256(l0_weight + wsub2 * L1_SIZE + node));
+            bacc = Avx2.Subtract(bacc, Avx.LoadAlignedVector256(l0_weight + bsub2 * L1_SIZE + node));
 
             Avx.StoreAligned(WhiteAcc + node, wacc);
             Avx.StoreAligned(BlackAcc + node, bacc);
@@ -156,18 +287,18 @@ public partial struct Accumulator
         var (wsub2, bsub2) = GetFeatureIdx(c3, pt3, sq3);
 
         int vecSize = Vector<short>.Count;
-        Debug.Assert(L2_SIZE % vecSize == 0);
+        Debug.Assert(L1_SIZE % vecSize == 0);
 
-        for (int node = 0; node < L2_SIZE; node += vecSize)
+        for (int node = 0; node < L1_SIZE; node += vecSize)
         {
-            var wacc = Vector.Add(Vector.Load(parent.WhiteAcc + node), Vector.Load(l1_weight + wadd * L2_SIZE + node));
-            var bacc = Vector.Add(Vector.Load(parent.BlackAcc + node), Vector.Load(l1_weight + badd * L2_SIZE + node));
+            var wacc = Vector.Add(Vector.Load(parent.WhiteAcc + node), Vector.Load(l0_weight + wadd * L1_SIZE + node));
+            var bacc = Vector.Add(Vector.Load(parent.BlackAcc + node), Vector.Load(l0_weight + badd * L1_SIZE + node));
 
-            wacc = Vector.Subtract(wacc, Vector.Load(l1_weight + wsub1 * L2_SIZE + node));
-            bacc = Vector.Subtract(bacc, Vector.Load(l1_weight + bsub1 * L2_SIZE + node));
+            wacc = Vector.Subtract(wacc, Vector.Load(l0_weight + wsub1 * L1_SIZE + node));
+            bacc = Vector.Subtract(bacc, Vector.Load(l0_weight + bsub1 * L1_SIZE + node));
 
-            wacc = Vector.Subtract(wacc, Vector.Load(l1_weight + wsub2 * L2_SIZE + node));
-            bacc = Vector.Subtract(bacc, Vector.Load(l1_weight + bsub2 * L2_SIZE + node));
+            wacc = Vector.Subtract(wacc, Vector.Load(l0_weight + wsub2 * L1_SIZE + node));
+            bacc = Vector.Subtract(bacc, Vector.Load(l0_weight + bsub2 * L1_SIZE + node));
 
             Vector.Store(wacc, WhiteAcc + node);
             Vector.Store(bacc, BlackAcc + node);
@@ -217,21 +348,21 @@ public partial struct Accumulator
         var (wsub2, bsub2) = GetFeatureIdx(c4, pt4, sq4);
 
         int vecSize = Vector256<short>.Count;
-        Debug.Assert(L2_SIZE % vecSize == 0);
+        Debug.Assert(L1_SIZE % vecSize == 0);
 
-        for (int node = 0; node < L2_SIZE; node += vecSize)
+        for (int node = 0; node < L1_SIZE; node += vecSize)
         {
-            var wacc = Avx2.Add(Avx.LoadAlignedVector256(parent.WhiteAcc + node), Avx.LoadAlignedVector256(l1_weight + wadd1 * L2_SIZE + node));
-            var bacc = Avx2.Add(Avx.LoadAlignedVector256(parent.BlackAcc + node), Avx.LoadAlignedVector256(l1_weight + badd1 * L2_SIZE + node));
+            var wacc = Avx2.Add(Avx.LoadAlignedVector256(parent.WhiteAcc + node), Avx.LoadAlignedVector256(l0_weight + wadd1 * L1_SIZE + node));
+            var bacc = Avx2.Add(Avx.LoadAlignedVector256(parent.BlackAcc + node), Avx.LoadAlignedVector256(l0_weight + badd1 * L1_SIZE + node));
 
-            wacc = Avx2.Add(wacc, Avx.LoadAlignedVector256(l1_weight + wadd2 * L2_SIZE + node));
-            bacc = Avx2.Add(bacc, Avx.LoadAlignedVector256(l1_weight + badd2 * L2_SIZE + node));
+            wacc = Avx2.Add(wacc, Avx.LoadAlignedVector256(l0_weight + wadd2 * L1_SIZE + node));
+            bacc = Avx2.Add(bacc, Avx.LoadAlignedVector256(l0_weight + badd2 * L1_SIZE + node));
 
-            wacc = Avx2.Subtract(wacc, Avx.LoadAlignedVector256(l1_weight + wsub1 * L2_SIZE + node));
-            bacc = Avx2.Subtract(bacc, Avx.LoadAlignedVector256(l1_weight + bsub1 * L2_SIZE + node));
+            wacc = Avx2.Subtract(wacc, Avx.LoadAlignedVector256(l0_weight + wsub1 * L1_SIZE + node));
+            bacc = Avx2.Subtract(bacc, Avx.LoadAlignedVector256(l0_weight + bsub1 * L1_SIZE + node));
 
-            wacc = Avx2.Subtract(wacc, Avx.LoadAlignedVector256(l1_weight + wsub2 * L2_SIZE + node));
-            bacc = Avx2.Subtract(bacc, Avx.LoadAlignedVector256(l1_weight + bsub2 * L2_SIZE + node));
+            wacc = Avx2.Subtract(wacc, Avx.LoadAlignedVector256(l0_weight + wsub2 * L1_SIZE + node));
+            bacc = Avx2.Subtract(bacc, Avx.LoadAlignedVector256(l0_weight + bsub2 * L1_SIZE + node));
 
             Avx.StoreAligned(WhiteAcc + node, wacc);
             Avx.StoreAligned(BlackAcc + node, bacc); 
@@ -252,21 +383,21 @@ public partial struct Accumulator
         var (wsub2, bsub2) = GetFeatureIdx(c4, pt4, sq4);
 
         int vecSize = Vector<short>.Count;
-        Debug.Assert(L2_SIZE % vecSize == 0);
+        Debug.Assert(L1_SIZE % vecSize == 0);
 
-        for (int node = 0; node < L2_SIZE; node += vecSize)
+        for (int node = 0; node < L1_SIZE; node += vecSize)
         {
-            var wacc = Vector.Add(Vector.Load(parent.WhiteAcc + node), Vector.Load(l1_weight + wadd1 * L2_SIZE + node));
-            var bacc = Vector.Add(Vector.Load(parent.BlackAcc + node), Vector.Load(l1_weight + badd1 * L2_SIZE + node));
+            var wacc = Vector.Add(Vector.Load(parent.WhiteAcc + node), Vector.Load(l0_weight + wadd1 * L1_SIZE + node));
+            var bacc = Vector.Add(Vector.Load(parent.BlackAcc + node), Vector.Load(l0_weight + badd1 * L1_SIZE + node));
 
-            wacc = Vector.Add(wacc, Vector.Load(l1_weight + wadd2 * L2_SIZE + node));
-            bacc = Vector.Add(bacc, Vector.Load(l1_weight + badd2 * L2_SIZE + node));
+            wacc = Vector.Add(wacc, Vector.Load(l0_weight + wadd2 * L1_SIZE + node));
+            bacc = Vector.Add(bacc, Vector.Load(l0_weight + badd2 * L1_SIZE + node));
 
-            wacc = Vector.Subtract(wacc, Vector.Load(l1_weight + wsub1 * L2_SIZE + node));
-            bacc = Vector.Subtract(bacc, Vector.Load(l1_weight + bsub1 * L2_SIZE + node));
+            wacc = Vector.Subtract(wacc, Vector.Load(l0_weight + wsub1 * L1_SIZE + node));
+            bacc = Vector.Subtract(bacc, Vector.Load(l0_weight + bsub1 * L1_SIZE + node));
 
-            wacc = Vector.Subtract(wacc, Vector.Load(l1_weight + wsub2 * L2_SIZE + node));
-            bacc = Vector.Subtract(bacc, Vector.Load(l1_weight + bsub2 * L2_SIZE + node));
+            wacc = Vector.Subtract(wacc, Vector.Load(l0_weight + wsub2 * L1_SIZE + node));
+            bacc = Vector.Subtract(bacc, Vector.Load(l0_weight + bsub2 * L1_SIZE + node));
 
             Vector.Store(wacc, WhiteAcc + node);
             Vector.Store(bacc, BlackAcc + node);
