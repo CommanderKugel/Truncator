@@ -29,7 +29,7 @@ public static class NNUE
         {
             ActivatePairwiseCrelu(l1ptr, wacc, bacc);
             ComputeL2(l2ptr, l1ptr, bucket);
-            var eval = ComputeL3(l3ptr, l2ptr, bucket);
+            ComputeL3(l3ptr, l2ptr, bucket, out int eval);
             
             return Math.Clamp((int)eval , -Search.SCORE_EVAL_MAX, Search.SCORE_EVAL_MAX);
         }
@@ -56,6 +56,12 @@ public static class NNUE
             var b_clamp_1 = Vector256.Clamp(b_vec_1, Vector256<short>.Zero, Vector256.Create(QA));
             var b_clamp_2 = Vector256.Clamp(b_vec_2, Vector256<short>.Zero, Vector256.Create(QA));
 
+            // we want to compute ((clamp_a * clamp_b) >> SHIFT) but that will probably overflows
+            // as 255 * 255 does not fit into a short
+            // we need to multiply high which only takes the upper 16 bits of the resulting integer
+            // which is effectifely a right shift by 16
+            // so we counteract that by  (16 - SHIFT) and get the resullt we want
+
             var w_mul = Avx2.MultiplyHigh(Avx2.ShiftLeftLogical(w_clamp_1, 16 - SHIFT), w_clamp_2);
             var b_mul = Avx2.MultiplyHigh(Avx2.ShiftLeftLogical(b_clamp_1, 16 - SHIFT), b_clamp_2);
 
@@ -67,23 +73,33 @@ public static class NNUE
 
     public static unsafe void ComputeL2(float* l2, short* l1, int bucket)
     {
-        var step = Vector256<float>.Count;
+        var steps = Vector256<short>.Count;
+        var stepf = Vector256<float>.Count;
 
         // weights
 
         for (int l2node = 0; l2node < L2_SIZE; l2node++)
         {
-            for (int l1node = 0; l1node < L1_SIZE; l1node++)
+            var l2Acc = Vector256<int>.Zero;
+
+            for (int l1node = 0; l1node < L1_SIZE; l1node += steps)
             {
-                l2[l2node] += l1[l1node] * l1_weight[bucket * L1_SIZE * L2_SIZE + l1node * L2_SIZE + l2node];
+                var weight = Avx.LoadAlignedVector256(&l1_weight[bucket * L1_SIZE * L2_SIZE + l2node * L1_SIZE + l1node]);
+                var l1Vec = Avx.LoadVector256(&l1[l1node]);
+
+                var mulAdd = Avx2.MultiplyAddAdjacent(weight, l1Vec);
+
+                l2Acc = Avx2.Add(mulAdd, l2Acc);
             }
+
+            l2[l2node] = Vector256.Sum(l2Acc);
         }
 
         // normalize
         // bias
         // screlu
 
-        for (int i = 0; i < L2_SIZE; i += step)
+        for (int i = 0; i < L2_SIZE; i += stepf)
         {
             var l2Vec = Vector256.Load(&l2[i]);
             var normVec = Vector256.Create(L1_NORM);
@@ -97,7 +113,7 @@ public static class NNUE
         }
     }
 
-    public static unsafe float ComputeL3(float* l3, float* l2, int bucket)
+    public static unsafe void ComputeL3(float* l3, float* l2, int bucket, out int output)
     {
         var step = Vector256<float>.Count;
 
@@ -139,9 +155,7 @@ public static class NNUE
             outAcc = Fma.MultiplyAdd(square, l3Weight, outAcc);
         }
 
-        var output = Vector256.Sum(outAcc) + l3_bias[bucket];
-
-        return output * EVAL_SCALE;
+        output = (int)((Vector256.Sum(outAcc) + l3_bias[bucket]) * EVAL_SCALE);
     }
     
 
