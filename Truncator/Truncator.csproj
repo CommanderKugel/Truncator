@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Evaluate/Nets/multilayer.bin"/>
+    <EmbeddedResource Include="Evaluate/Nets/multilayer-full.bin"/>
   </ItemGroup>
 
 </Project>

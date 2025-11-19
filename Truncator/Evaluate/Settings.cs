@@ -11,7 +11,7 @@ public static class Settings
 
     public const int EVAL_SCALE = 400;
 
-    public const string NET_NAME = "multilayer";
+    public const string NET_NAME = "multilayer-full";
 
     public const short QA = 255;
     public const short QB = 64;
