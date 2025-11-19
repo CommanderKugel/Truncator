@@ -9,7 +9,7 @@ public static class Settings
 
     public const int OUT_BUCKETS = 8;
 
-    public const int EVAL_SCALE = 400;
+    public const int EVAL_SCALE = 745;
 
     public const string NET_NAME = "multilayer-full";
 
