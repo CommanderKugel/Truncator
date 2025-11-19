@@ -83,15 +83,6 @@ public static class Weights
             l3_bias[buck] = net.ReadSingle();
 
         Debug.WriteLine("info string Done loading net weights");
-
-        try
-        {
-            while (true)
-            {
-                Debug.WriteLine(net.ReadChar());
-            }
-        }
-        catch {}
     }
 
 
