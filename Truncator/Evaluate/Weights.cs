@@ -56,7 +56,7 @@ public static class Weights
         for (int buck = 0; buck < OUT_BUCKETS; buck++)
             for (int l2 = 0; l2 < L2_SIZE; l2++)
                 for (int l1 = 0; l1 < L1_SIZE; l1++)
-                    l1_weight[buck * L1_SIZE * L2_SIZE + l1 * L2_SIZE + l2] = (short)net.ReadSByte();
+                    l1_weight[buck * L1_SIZE * L2_SIZE + l2 * L1_SIZE + l1] = (short)net.ReadSByte();
 
         for (int buck = 0; buck < OUT_BUCKETS; buck++)
             for (int l2 = 0; l2 < L2_SIZE; l2++)
