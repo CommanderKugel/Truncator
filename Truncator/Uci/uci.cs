@@ -32,7 +32,7 @@ public static partial class UCI
 
                 Console.WriteLine($"option name Move Overhead type spin default {TimeManager.MoveOverhead} min 0 max 999999");
 
-                Console.WriteLine($"option name SyzygyPath type string default <empty>");
+                //Console.WriteLine($"option name SyzygyPath type string default <empty>");
                 Console.WriteLine($"optino name SyzygyProbePly type spin default 40 min 1 max 256");
                 Console.WriteLine($"optino name UCI_TbLargest type spin default 7 min 1 max 7");
 
