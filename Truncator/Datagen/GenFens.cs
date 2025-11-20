@@ -16,7 +16,7 @@ public static class GenFens
         string BookPath = args[5];
 
         var temp = new StreamWriter(File.Open(@"C:\Users\nikol\Desktop\Truncator\temp.txt", FileMode.Append));
-        temp.WriteLine(BookPath + " & " + AppContext.BaseDirectory + " :)");
+        temp.WriteLine(BookPath + " & " + Directory.GetCurrentDirectory());
         temp.Close();
 
         bool dfrc = args.Length > 6 && args[6] == "dfrc";
