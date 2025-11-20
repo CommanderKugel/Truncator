@@ -15,8 +15,9 @@ public static class GenFens
 
         string BookPath = args[5];
 
-        using var temp = new StreamWriter(File.Open(@"C:\Users\nikol\Desktop\Truncator\temp.txt", FileMode.Append));
+        var temp = new StreamWriter(File.Open(@"C:\Users\nikol\Desktop\Truncator\temp.txt", FileMode.Append));
         temp.WriteLine(BookPath + " & " + AppContext.BaseDirectory + " :)");
+        temp.Close();
 
         bool dfrc = args.Length > 6 && args[6] == "dfrc";
         Castling.UCI_Chess960 = dfrc;
