@@ -13,11 +13,7 @@ public static class GenFens
         if (!int.TryParse(args[3], out int seed))
             throw new ArgumentException("info string coudnt parse the seed to initialize rng from!");
 
-        string BookPath = args[5];
-
-        var temp = new StreamWriter(File.Open(@"C:\Users\nikol\Desktop\Truncator\temp.txt", FileMode.Append));
-        temp.WriteLine(BookPath + " & " + Directory.GetCurrentDirectory());
-        temp.Close();
+        string BookPath = Path.Combine(Directory.GetCurrentDirectory(), args[5]);
 
         bool dfrc = args.Length > 6 && args[6] == "dfrc";
         Castling.UCI_Chess960 = dfrc;
