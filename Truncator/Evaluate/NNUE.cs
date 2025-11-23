@@ -23,7 +23,7 @@ public static class NNUE
 
         Node* n = &thread.nodeStack[thread.ply];
 
-        // accumulate if necessary
+        // accumulate non root nodes
 
         if (typeof(node) != typeof(RootNode))
         {
