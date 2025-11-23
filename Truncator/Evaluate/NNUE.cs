@@ -16,7 +16,10 @@ public static class NNUE
         where node : NodeType
     {      
         int simpleEval = GetSimpleEval(ref p);
-        bool useSmallnet = simpleEval > 900 && !ignoreSmalNet;
+
+        bool useSmallnet = Math.Abs(simpleEval) > 900 
+            && typeof(node) == typeof(NonPVNode)
+            && !ignoreSmalNet;
 
         Node* n = &thread.nodeStack[thread.ply];
 
