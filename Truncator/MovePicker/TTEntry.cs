@@ -46,7 +46,7 @@ public struct TTEntry
 
     public static short ConvertToSearchscore(int score, int ply)
     {
-        return (score < -Search.SCORE_EVAL_MAX) ? (short)(score +- ply) :
+        return (score < -Search.SCORE_EVAL_MAX) ? (short)(score + ply) :
             (score > Search.SCORE_EVAL_MAX) ? (short)(score - ply) :
             (short)score;
     }
