@@ -10,7 +10,7 @@ public static class Settings
     public const int EVAL_SCALE = 400;
 
     public const string BIG_NET_NAME = "1024-2-0.5";
-    public const string SMOL_NET_NAME = "smolnet";
+    public const string SMOL_NET_NAME = "s2-smolnet";
 
     public const int QA = 255;
     public const int QB = 64;
