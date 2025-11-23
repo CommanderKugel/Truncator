@@ -41,7 +41,7 @@ public class SearchThread : IDisposable
     public CorrectionHistory CorrHist;
 
 
-    public void CopyFrom(SearchThread Parent)
+    public unsafe void CopyFrom(SearchThread Parent)
     {
         ply = Parent.ply;
         rootPos.CopyFrom(Parent.rootPos);
@@ -49,10 +49,10 @@ public class SearchThread : IDisposable
 
         for (int i = 0; i < 256; i++)
         {
-            unsafe {
-                Parent.nodeStack[i].acc.CopyTo(ref this.nodeStack[i].acc);
-            }
+            Parent.nodeStack[i].bigAcc.CopyTo(ref nodeStack[i].bigAcc);
+            Parent.nodeStack[i].smolAcc.CopyTo(ref nodeStack[i].smolAcc);
         }
+
         castling = Parent.castling;
     }
 
@@ -90,14 +90,12 @@ public class SearchThread : IDisposable
             for (int i = 0; i < 8; i++)
             {
                 (NodePtr + i)->ContHist = history.ContHist.NullHist;
-                (NodePtr + i)->acc.Dispose();
-                (NodePtr + i)->acc.needsRefresh = false;
-                (NodePtr + i)->acc.needsUpdate = false;
             }
 
             for (int i = 0; i < 256; i++)
             {
-                (nodeStack + i)->acc = new Accumulator();
+                (nodeStack + i)->bigAcc = new Accumulator(bigNet: true);
+                (nodeStack + i)->smolAcc = new Accumulator(bigNet: false);
             }
 
             isReady = true;
@@ -241,7 +239,8 @@ public class SearchThread : IDisposable
             {
                 unsafe
                 {
-                    nodeStack[i].acc.Dispose();
+                    nodeStack[i].bigAcc.Dispose();
+                    nodeStack[i].smolAcc.Dispose();
                 }
             }
 

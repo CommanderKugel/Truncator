@@ -25,13 +25,14 @@ public struct Node
 
     public int CutoffCount;
 
-    public Accumulator acc;
+    public Accumulator bigAcc;
+    public Accumulator smolAcc;
 
     public unsafe void Clear()
     {
         fixed (Node* ptr = &this)
         {
-            NativeMemory.Clear(ptr, (nuint)sizeof(Node) - (nuint)sizeof(Accumulator));
+            NativeMemory.Clear(ptr, (nuint)sizeof(Node) - (nuint)sizeof(Accumulator) * 2);
         }
     }
 

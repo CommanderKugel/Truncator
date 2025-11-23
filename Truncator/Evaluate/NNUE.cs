@@ -7,11 +7,54 @@ using static Weights;
 
 public static class NNUE
 {
+    private static ReadOnlySpan<int> SimpleEvalMaterial => [
+        100, 300, 300, 500, 900, 0
+    ];
 
-    public static unsafe int Evaluate(ref Pos p, Accumulator acc)
-        => Avx2.IsSupported ? EvaluateAvx2(ref p, acc) : EvaluateFallback(ref p, acc);
 
-    public static unsafe int EvaluateFallback(ref Pos p, Accumulator acc)
+    public static unsafe int Evaluate<node>(ref Pos p, SearchThread thread, bool ignoreSmalNet = false)
+        where node : NodeType
+    {      
+        int simpleEval = GetSimpleEval(ref p);
+        bool useSmallnet = simpleEval > 900 && !ignoreSmalNet;
+
+        Node* n = &thread.nodeStack[thread.ply];
+
+        // accumulate if necessary
+
+        if (typeof(node) != typeof(RootNode))
+        {
+            Accumulator.DoLazyUpdates(n, !useSmallnet);
+        }
+
+        // now accumulate
+
+        int eval = Evaluate(ref p, useSmallnet ? n->smolAcc : n->bigAcc);
+
+        // re-evaluate bignet sometimes?
+        // material-/50mr scaling?
+
+        return eval;
+    }
+
+
+    private static int GetSimpleEval(ref Pos p)
+    {
+        int simpleEval = SimpleEvalMaterial[(int)PieceType.Pawn] * (Utils.popcnt(p.GetPieces(Color.White, PieceType.Pawn)) - Utils.popcnt(p.GetPieces(Color.Black, PieceType.Pawn)))
+            + SimpleEvalMaterial[(int)PieceType.Knight] * (Utils.popcnt(p.GetPieces(Color.White, PieceType.Knight)) - Utils.popcnt(p.GetPieces(Color.Black, PieceType.Knight)))
+            + SimpleEvalMaterial[(int)PieceType.Bishop] * (Utils.popcnt(p.GetPieces(Color.White, PieceType.Bishop)) - Utils.popcnt(p.GetPieces(Color.Black, PieceType.Bishop)))
+            + SimpleEvalMaterial[(int)PieceType.Rook] * (Utils.popcnt(p.GetPieces(Color.White, PieceType.Rook)) - Utils.popcnt(p.GetPieces(Color.Black, PieceType.Rook)))
+            + SimpleEvalMaterial[(int)PieceType.Queen] * (Utils.popcnt(p.GetPieces(Color.White, PieceType.Queen)) - Utils.popcnt(p.GetPieces(Color.Black, PieceType.Queen)));
+        return p.Us == Color.White ? simpleEval : -simpleEval;
+    }
+
+    private static int Evaluate(ref Pos p, Accumulator acc)
+    {
+        ref var weights = ref acc.bigNet ? ref BigNetWeights : ref SmallNetWeights;
+        return Avx2.IsSupported ? EvaluateAvx2(ref p, acc, ref weights) : EvaluateFallback(ref p, acc, ref weights);
+    }
+
+    private static unsafe int EvaluateFallback(ref Pos p, Accumulator acc, ref Weights weights)
     {
         // Perspective: if its blacks turn, swap whites and blacks accumulator
 
@@ -30,10 +73,10 @@ public static class NNUE
         var QAVector = new Vector<short>(QA);
         var ZeroVector = Vector<short>.Zero;
 
-        var wWeightPtr = l2_weight + outputBucket * L2_SIZE * 2;
-        var bWeightPrt = l2_weight + outputBucket * L2_SIZE * 2 + L2_SIZE;
+        var wWeightPtr = weights.l2_weight + outputBucket * weights.l1_size * 2;
+        var bWeightPrt = weights.l2_weight + outputBucket * weights.l1_size * 2 + weights.l1_size;
 
-        for (int node = 0; node < L2_SIZE; node += vecSize)
+        for (int node = 0; node < weights.l1_size; node += vecSize)
         {
             // load accumulator into vectors
 
@@ -77,12 +120,12 @@ public static class NNUE
 
         // scale and dequantize
 
-        int output = (Vector.Sum(OutputAccumulator) / QA + l2_bias[outputBucket]) * EVAL_SCALE / (QA * QB);
+        int output = (Vector.Sum(OutputAccumulator) / QA + weights.l2_bias[outputBucket]) * EVAL_SCALE / (QA * QB);
 
         return Math.Clamp(output, -Search.SCORE_EVAL_MAX, Search.SCORE_EVAL_MAX);
     }
 
-    public static unsafe int EvaluateAvx2(ref Pos p, Accumulator acc)
+    private static unsafe int EvaluateAvx2(ref Pos p, Accumulator acc, ref Weights weights)
     {
         Debug.Assert(Avx2.IsSupported);
 
@@ -99,12 +142,12 @@ public static class NNUE
         int outputBucket = GetOutputBucket(ref p);
         var OutputAccumulator = Vector256<int>.Zero;
         
-        var wWeightPtr = l2_weight + outputBucket * L2_SIZE * 2;
-        var bWeightPrt = l2_weight + outputBucket * L2_SIZE * 2 + L2_SIZE;
+        var wWeightPtr = weights.l2_weight + outputBucket * weights.l1_size * 2;
+        var bWeightPrt = weights.l2_weight + outputBucket * weights.l1_size * 2 + weights.l1_size;
 
         // main accumulation loop
 
-        for (int node = 0; node < L2_SIZE; node += VEC_SIZE)
+        for (int node = 0; node < weights.l1_size; node += VEC_SIZE)
         {
             // load accumulator into vectors
 
@@ -140,7 +183,7 @@ public static class NNUE
 
         // scale and dequantize
 
-        int output = (Vector256.Sum(OutputAccumulator) / QA + l2_bias[outputBucket]) * EVAL_SCALE / (QA * QB);
+        int output = (Vector256.Sum(OutputAccumulator) / QA + weights.l2_bias[outputBucket]) * EVAL_SCALE / (QA * QB);
 
         return Math.Clamp(output, -Search.SCORE_EVAL_MAX, Search.SCORE_EVAL_MAX);
     }

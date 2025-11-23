@@ -23,7 +23,7 @@ public static class Scale
             var fen = fens.ReadLine() ?? throw new Exception("no fen found :(");
             ThreadPool.MainThread.rootPos.SetNewFen(fen);
 
-            int eval = NNUE.Evaluate(ref ThreadPool.MainThread.rootPos.p, ThreadPool.MainThread.nodeStack[0].acc);
+            int eval = NNUE.Evaluate<PVNode>(ref ThreadPool.MainThread.rootPos.p, ThreadPool.MainThread, ignoreSmalNet: true);
 
             eval_sum += Math.Abs(eval);
             pos_count++;

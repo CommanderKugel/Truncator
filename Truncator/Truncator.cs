@@ -9,7 +9,9 @@ public static class Truncator
 
         ThreadPool.Resize(1);
         Search.ComputeLmrTable();
-        Weights.Load();
+
+        Weights.BigNetWeights.Load();
+        Weights.SmallNetWeights.Load();
 
         while (!ThreadPool.MainThread.isReady)
         {
@@ -62,6 +64,7 @@ public static class Truncator
         ThreadPool.Join();
 
         Debug.WriteLine("\n\t4) Disposing NNUE weights");
-        Weights.Dispose();
+        Weights.BigNetWeights.Dispose();
+        Weights.SmallNetWeights.Dispose();
     }
 }

@@ -74,7 +74,8 @@ public static class GenFens
 
                     unsafe
                     {
-                        thread.nodeStack[0].acc.Accumulate(ref thread.rootPos.p);
+                        thread.nodeStack[0].bigAcc.Accumulate(ref thread.rootPos.p);
+                        thread.nodeStack[0].smolAcc.Accumulate(ref thread.rootPos.p);
                     }
 
                     Search.IterativeDeepen(thread, isBench: true);

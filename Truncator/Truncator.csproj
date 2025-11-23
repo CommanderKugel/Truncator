@@ -22,4 +22,8 @@
     <EmbeddedResource Include="Evaluate/Nets/1024-2-0.5.bin"/>
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Evaluate/Nets/smolnet.bin"/>
+  </ItemGroup>
+
 </Project>

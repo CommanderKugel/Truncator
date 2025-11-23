@@ -163,9 +163,8 @@ public static partial class UCI
                     Console.WriteLine($"fen: {fen}");
                     unsafe
                     {
-                        int eval = NNUE.Evaluate(ref ThreadPool.MainThread.rootPos.p, ThreadPool.MainThread.nodeStack[0].acc);
+                        int eval = NNUE.Evaluate<PVNode>(ref ThreadPool.MainThread.rootPos.p, ThreadPool.MainThread, ignoreSmalNet: true);
                         Console.WriteLine($"eval: {eval}");
-                        Console.WriteLine($"{ThreadPool.MainThread.nodeStack[0].acc.wflip}, {ThreadPool.MainThread.nodeStack[0].acc.bflip}");
                     }
                 }
             }
