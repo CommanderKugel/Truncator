@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Evaluate/Nets/768hl_ib.bin"/>
+    <EmbeddedResource Include="Evaluate/Nets/1024_inputbuckets.bin"/>
   </ItemGroup>
 
 </Project>
