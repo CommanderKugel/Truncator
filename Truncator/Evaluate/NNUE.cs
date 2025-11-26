@@ -145,10 +145,6 @@ public static class NNUE
         return Math.Clamp(output, -Search.SCORE_EVAL_MAX, Search.SCORE_EVAL_MAX);
     }
 
-    public static int GetOutputBucket(ref Pos p)
-    {
-        const int DIV = (32 + 1) / OUTPUT_BUCKETS;
-        return (Utils.popcnt(p.blocker) - 2) / DIV;
-    }
+    public static int GetOutputBucket(ref Pos p) => OutputBucketScheme[Utils.popcnt(p.blocker)];
 
 }
