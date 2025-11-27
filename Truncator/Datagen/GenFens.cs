@@ -1,8 +1,9 @@
+using System.Diagnostics;
 
 public static class GenFens
 {
 
-    public static void Generate(string[] args)
+    public static unsafe void Generate(string[] args)
     {
         // accepts arguments in the form of:
         // genfens N seed S book <None|Books/my_book.epd> <?extra>
@@ -22,73 +23,95 @@ public static class GenFens
 
         // ignore extra for now
 
-        Random rng = new Random(seed);
+        Random rng = new(seed);
+        Stopwatch watch = new();
         SearchThread thread = ThreadPool.MainThread;
-        Span<Move> moves = stackalloc Move[256];
 
         // ToDo: open books for position here
 
-        int RandomMoves = 8;
+        int RandomMoves = 12;
+        int searchDepth = 4;
+
+        watch.Start();
 
         for (int positions = 0; positions < N;)
         {
-            // ToDo: read fen from book here
-
             try
             {
-
                 string fen = !dfrc ? Utils.startpos : Frc.GetDfrcFen(rng.Next() % 960, rng.Next() % 960);
                 thread.rootPos.SetNewFen(fen);
+                thread.Clear(clearRootPos: false);
 
                 bool success = true;
 
                 for (int i = 0; i < RandomMoves; i++)
                 {
-                    moves.Clear();
-                    int moveCount = MoveGen.GenerateLegaMoves(thread, ref moves, ref thread.rootPos.p);
+                    Debug.Assert((i & 1) == (int)thread.rootPos.p.Us);
 
-                    // position is terminal, make a new one
+                    // prepare search thread for multi-pv searching all the root moves
 
-                    if (moveCount == 0)
+                    TimeManager.Reset();
+                    TimeManager.depth = searchDepth;
+                    TimeManager.Start(thread.rootPos.p.Us);
+                    
+                    thread.rootPos.InitRootMoves();
+                    var moveCount = thread.rootPos.RootMoves.Count;
+
+                    thread.nodeStack[0].acc.Accumulate(ref thread.rootPos.p);
+
+                    ThreadPool.UCI_MultiPVCount = moveCount;
+                    ThreadPool.UpdateMultiPv();
+
+                    // do multi-pv search for all root-moves
+
+                    Search.IterativeDeepen(thread, isBench: true);
+
+                    // prepare weights with temperature to pick moves with
+
+                    var scores = thread.rootPos.PVs.Select(pv => pv[searchDepth]).ToList();
+                    var smallerScores = scores.Select(s => (s - scores.Max()) / scores.Max());
+                    var logits = smallerScores.Select(s => Math.Exp(s) / 0.1).ToList();
+                    var probs = logits.Select(l => l / logits.Sum()).ToList();
+
+                    // pick a move
+
+                    int idx = 0;
+                    double bound = rng.NextDouble();
+                    double cumulative = 0;
+
+                    for (; idx < moveCount; idx++)
+                    {
+                        cumulative += probs[idx];
+
+                        if (cumulative >= bound)
+                            break;
+                    }
+
+                    // skip very imbalanced positions
+
+                    if (i == RandomMoves - 1 && Math.Abs(thread.rootPos.PVs[idx][searchDepth]) > 1000)
                     {
                         success = false;
                         break;
                     }
 
-                    // position is not terminal, thus make a random move
+                    // otherwise make the move
 
-                    thread.rootPos.MakeMove(moves[rng.Next() % moveCount]);
+                    thread.rootPos.MakeMove(thread.rootPos.PVs[idx].BestMove);
                 }
 
                 // if the position didnt become terminal and is not terminal right now - print it
 
-                if (success && MoveGen.GenerateLegaMoves(thread, ref moves, ref thread.rootPos.p) > 0)
+                if (success)
                 {
-
-                    TimeManager.Reset();
-                    TimeManager.depth = 10;
-                    TimeManager.Start(thread.rootPos.p.Us);
-
-                    thread.Clear(clearRootPos: false);
-                    thread.rootPos.InitRootMoves();
-
-                    unsafe
-                    {
-                        thread.nodeStack[0].acc.Accumulate(ref thread.rootPos.p);
-                    }
-
-                    Search.IterativeDeepen(thread, isBench: true);
-                    int score = thread.rootPos.PVs[0][thread.completedDepth];
-
-                    // filter out very imbalanced positions
-
-                    if (Math.Abs(score) > 250)
-                    {
-                        continue;
-                    }
-
                     Console.WriteLine($"info string genfens {thread.rootPos.p.GetFen()}");
                     positions++;
+                }
+
+                if (success && positions % 10 == 0)
+                {
+                    var fenps = positions * 1000 / watch.ElapsedMilliseconds;
+                    Console.WriteLine($"info string {fenps} fen/s");
                 }
             }
             catch
