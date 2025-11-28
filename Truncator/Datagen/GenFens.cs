@@ -29,95 +29,108 @@ public static class GenFens
 
         // ToDo: open books for position here
 
-        int RandomMoves = 12;
+        int RandomMoves = 16;
         int searchDepth = 4;
 
         watch.Start();
 
         for (int positions = 0; positions < N;)
         {
-            try
+
+            string fen = !dfrc ? Utils.startpos : Frc.GetDfrcFen(rng.Next() % 960, rng.Next() % 960);
+            thread.rootPos.SetNewFen(fen);
+            thread.Clear(clearRootPos: false);
+
+            bool success = true;
+
+            for (int i = 0; i < RandomMoves; i++)
             {
-                string fen = !dfrc ? Utils.startpos : Frc.GetDfrcFen(rng.Next() % 960, rng.Next() % 960);
-                thread.rootPos.SetNewFen(fen);
-                thread.Clear(clearRootPos: false);
+                // prepare search thread for multi-pv searching all the root moves
 
-                bool success = true;
+                TimeManager.Reset();
+                TimeManager.depth = searchDepth;
+                TimeManager.Start(thread.rootPos.p.Us);
+                
+                thread.rootPos.InitRootMoves();
+                var moveCount = thread.rootPos.RootMoves.Count;
 
-                for (int i = 0; i < RandomMoves; i++)
+                // failsafe for terminal positions
+
+                if (moveCount == 0)
                 {
-                    Debug.Assert((i & 1) == (int)thread.rootPos.p.Us);
+                    success = false;
+                    break;
+                }
 
-                    // prepare search thread for multi-pv searching all the root moves
+                thread.nodeStack[0].acc.Accumulate(ref thread.rootPos.p);
 
-                    TimeManager.Reset();
-                    TimeManager.depth = searchDepth;
-                    TimeManager.Start(thread.rootPos.p.Us);
-                    
-                    thread.rootPos.InitRootMoves();
-                    var moveCount = thread.rootPos.RootMoves.Count;
+                ThreadPool.UCI_MultiPVCount = moveCount;
+                ThreadPool.UpdateMultiPv();
 
-                    thread.nodeStack[0].acc.Accumulate(ref thread.rootPos.p);
+                // do multi-pv search for all root-moves
 
-                    ThreadPool.UCI_MultiPVCount = moveCount;
-                    ThreadPool.UpdateMultiPv();
+                Search.IterativeDeepen(thread, isBench: true);
 
-                    // do multi-pv search for all root-moves
+                // prepare weights with temperature to pick moves with
 
-                    Search.IterativeDeepen(thread, isBench: true);
+                var scores = thread.rootPos.PVs.Select(pv => pv[searchDepth]);
+                var smallerScores = scores.Select(s => (double)(s - scores.Max()) / Math.Abs(scores.Max()));
+                var logits = smallerScores.Select(s => Math.Exp(s / 0.5)).ToList();
+                var probs = logits.Select(l => l / logits.Sum()).ToList();
 
-                    // prepare weights with temperature to pick moves with
+                // skip mate is possible
 
-                    var scores = thread.rootPos.PVs.Select(pv => pv[searchDepth]).ToList();
-                    var smallerScores = scores.Select(s => (s - scores.Max()) / scores.Max());
-                    var logits = smallerScores.Select(s => Math.Exp(s) / 0.1).ToList();
-                    var probs = logits.Select(l => l / logits.Sum()).ToList();
-
-                    // pick a move
-
-                    int idx = 0;
-                    double bound = rng.NextDouble();
-                    double cumulative = 0;
-
-                    for (; idx < moveCount; idx++)
-                    {
-                        cumulative += probs[idx];
-
-                        if (cumulative >= bound)
-                            break;
-                    }
-
-                    // skip very imbalanced positions
-
-                    if (i == RandomMoves - 1 && Math.Abs(thread.rootPos.PVs[idx][searchDepth]) > 1000)
+                foreach (var s in scores)
+                {
+                    if (Search.IsTerminal(s))
                     {
                         success = false;
                         break;
                     }
-
-                    // otherwise make the move
-
-                    thread.rootPos.MakeMove(thread.rootPos.PVs[idx].BestMove);
                 }
 
-                // if the position didnt become terminal and is not terminal right now - print it
+                // pick a move
 
-                if (success)
+                int idx = 0;
+                double bound = rng.NextDouble();
+                double cumulative = 0;
+
+                for (; idx < moveCount - 1; idx++)
                 {
-                    Console.WriteLine($"info string genfens {thread.rootPos.p.GetFen()}");
-                    positions++;
+                    cumulative += probs[idx];
+
+                    if (cumulative >= bound)
+                        break;
                 }
 
-                if (success && positions % 10 == 0)
+                // skip very imbalanced positions
+
+                if (i == RandomMoves - 1 && Math.Abs(thread.rootPos.PVs[idx][searchDepth]) > 1000)
                 {
-                    var fenps = positions * 1000 / watch.ElapsedMilliseconds;
-                    Console.WriteLine($"info string {fenps} fen/s");
+                    success = false;
+                    break;
                 }
+
+                // otherwise make the move
+
+                thread.rootPos.MakeMove(thread.rootPos.PVs[idx].BestMove);
             }
-            catch
+
+            // if the position didnt become terminal and is not terminal right now - print it
+
+            if (success)
             {
-                continue;
+                var f = thread.rootPos.p.GetFen();
+                Console.WriteLine($"info string genfens {thread.rootPos.p.GetFen()}");
+                positions++;
             }
+
+            if (success && positions % 10 == 0)
+            {
+                var fenps = positions * 1000 / watch.ElapsedMilliseconds;
+                Console.WriteLine($"info string {fenps} fen/s");
+            }
+
         }
     }
 
