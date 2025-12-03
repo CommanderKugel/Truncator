@@ -1,5 +1,6 @@
 
 using System.Diagnostics;
+using System.Numerics;
 
 /// <summary>
 /// Virifirmat is a highly compressed binary format to store chess games
@@ -13,47 +14,128 @@ using System.Diagnostics;
 public static class Viriformat
 {
 
+    private class ViriConverter
+    {
+        public int idx;
+        public Thread systemThread;
+        public SearchThread thread;
+        public string[] pgns;
+        
+        public long[] dist = new long[30];
+        public long gameCount = 0;
+        public long posCount = 0;
+        public long quietPosCount = 0;
+
+        public string pgnPath;
+        public string viriPath;
+
+        public bool isFinished = false;
+
+
+        public ViriConverter(
+            SearchThread  thread_,
+            string[] pgns_,
+            string pgnPath_,
+            int idx_
+        )
+        {
+            systemThread = new Thread(ConvertMyPgns);
+
+            thread = thread_;
+            pgns = pgns_;
+            pgnPath = pgnPath_;
+
+            idx = idx_;
+            var outFileName = $"converted-{idx}.viriformat";
+            viriPath = Path.Combine(pgnPath, outFileName);
+        }
+
+
+        public void ConvertMyPgns()
+        {
+            for (int i = 0; i < pgns.Length; i++)
+            {
+                var pgn = pgns[i];
+                var (gameCount, posCount) = ConvertPgnToViriformat(
+                    thread,
+                    Path.Combine(pgnPath, pgn),
+                    viriPath,
+                    dist
+                );
+
+                gameCount += gameCount;
+                posCount += posCount;
+
+                Console.WriteLine($"({idx} - {i}/{pgns.Length}) pos: {posCount} games: {gameCount}");
+            }
+
+            isFinished = true;
+        }
+    }
+
+
     public static void ConvertDirWithPgnsToViriformat(SearchThread thread, string PgnPath)
     {
         var files = Directory.GetFiles(PgnPath, "*.PGN");
         Console.WriteLine($"{files.Length} PGN files found");
 
-        string outFileName = "converted.viriformat";
-        var outPath = Path.Combine(PgnPath, outFileName);
+        // create thread-objects for parallel processing of pgns
 
-        if (!File.Exists(outPath))
+        int concurrency = ThreadPool.ThreadCount;
+        int chunkSize = (int)Math.Ceiling((double)files.Length / (double)concurrency);
+        var converters = new ViriConverter[concurrency];
+
+        for (int i=0; i<concurrency; i++)
         {
-            var stream = new FileStream(outPath, FileMode.Create);
-            stream.Close();
-            Console.WriteLine("created new viriformat-file");
-        }
-        else
-        {
-            Console.WriteLine("found existing viriformat-file");
+            int start = i * chunkSize;
+            int lengh = Math.Min(chunkSize, files.Length - start);
+            int end = start + lengh;
+
+            converters[i] = new ViriConverter(
+                ThreadPool.pool[i],
+                files[start .. end],
+                PgnPath,
+                i
+            );
         }
 
-        Console.WriteLine($"viriformat file can be found as '{outPath}'");
+        // convert
+
+        foreach (var converter in converters)
+            converter.systemThread.Start();
+
+        foreach (var converter in converters)
+            while (!converter.isFinished);
+
+        Console.WriteLine("finieshed conversion...");
+
+        // save game stats
 
         long totalGames = 0;
         long totalPos = 0;
         var dist = new long[30];
 
-        for (int i=0; i<files.Length; i++)
+        foreach (var converter in converters)
         {
-            var file = files[i];
-            Console.WriteLine($"({i+1}/{files.Length}): {file}");
+            totalGames += converter.gameCount;
+            totalPos += converter.posCount;
 
-            var (gameCount, posCount) = ConvertPgnToViriformat(
-                thread,
-                Path.Combine(PgnPath, file),
-                outPath,
-                dist
-            );
+            for (int i=0; i<dist.Length; i++)
+                dist[i] += converter.dist[i];
+        }
 
-            totalGames += gameCount;
-            totalPos += posCount;
+        // merge files
 
-            Console.WriteLine($"parsed {gameCount} games, {posCount} poitions, to total {totalGames} games and total {totalPos} positions");
+        var viriFiles = Directory.GetFiles(PgnPath, "*.viriformat");
+        var outPath = Path.Combine(PgnPath, "converted.viriformat");
+        Console.WriteLine($"concatenating {viriFiles.Length} files...");
+
+        using var concat = new FileStream(outPath, FileMode.Create, FileAccess.Write);
+
+        foreach (var viriFile in viriFiles)
+        {
+            using var f = new FileStream(viriFile, FileMode.Open, FileAccess.Read);
+            concat.CopyTo(f);
         }
 
         Console.WriteLine("Done!");

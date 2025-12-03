@@ -6,7 +6,7 @@ public static class ThreadPool
     public const int MIN_THREAD_COUNT = 1;
     public const int MAX_THREAD_COUNT = 16;
 
-    private static volatile SearchThread[] pool;
+    public static volatile SearchThread[] pool;
     public static SearchThread MainThread => pool[0];
     public static int ThreadCount => pool.Length;
 
