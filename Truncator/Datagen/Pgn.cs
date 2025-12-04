@@ -143,7 +143,6 @@ public class Pgn
 
         Debug.Assert(Fen is not null);
         Debug.Assert(Result is not null);
-        Debug.Assert(MainLine.Count > 0);
     }
     
 

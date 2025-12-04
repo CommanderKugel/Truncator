@@ -24,7 +24,6 @@ public static class Viriformat
         public long[] dist = new long[30];
         public long gameCount = 0;
         public long posCount = 0;
-        public long quietPosCount = 0;
 
         public string pgnPath;
         public string viriPath;
@@ -56,17 +55,17 @@ public static class Viriformat
             for (int i = 0; i < pgns.Length; i++)
             {
                 var pgn = pgns[i];
-                var (gameCount, posCount) = ConvertPgnToViriformat(
+                var (gameCount_, posCount_) = ConvertPgnToViriformat(
                     thread,
                     Path.Combine(pgnPath, pgn),
                     viriPath,
                     dist
                 );
 
-                gameCount += gameCount;
-                posCount += posCount;
+                gameCount += gameCount_;
+                posCount += posCount_;
 
-                Console.WriteLine($"({idx} - {i}/{pgns.Length}) pos: {posCount} games: {gameCount}");
+                Console.WriteLine($"({idx + 1} - {i}/{pgns.Length}) pos: {posCount} games: {gameCount}");
             }
 
             isFinished = true;
@@ -76,6 +75,9 @@ public static class Viriformat
 
     public static void ConvertDirWithPgnsToViriformat(SearchThread thread, string PgnPath)
     {
+        var watch = new Stopwatch();
+        watch.Start();
+
         var files = Directory.GetFiles(PgnPath, "*.PGN");
         Console.WriteLine($"{files.Length} PGN files found");
 
@@ -109,44 +111,45 @@ public static class Viriformat
 
         Console.WriteLine("finieshed conversion...");
 
-        // save game stats
-
-        long totalGames = 0;
-        long totalPos = 0;
-        var dist = new long[30];
-
-        foreach (var converter in converters)
-        {
-            totalGames += converter.gameCount;
-            totalPos += converter.posCount;
-
-            for (int i=0; i<dist.Length; i++)
-                dist[i] += converter.dist[i];
-        }
-
         // merge files
 
         var viriFiles = Directory.GetFiles(PgnPath, "*.viriformat");
         var outPath = Path.Combine(PgnPath, "converted.viriformat");
         Console.WriteLine($"concatenating {viriFiles.Length} files...");
 
-        using var concat = new FileStream(outPath, FileMode.Create, FileAccess.Write);
+        if (File.Exists(outPath)) 
+        {
+            Console.WriteLine($"deleting old file...");
+            File.Delete(outPath);
+        }
+
+        using var concat = new BinaryWriter(new FileStream(outPath, FileMode.Append));
 
         foreach (var viriFile in viriFiles)
         {
-            using var f = new FileStream(viriFile, FileMode.Open, FileAccess.Read);
-            concat.CopyTo(f);
+            var viriPath = Path.Combine(PgnPath, viriFile);
+            using var f = new BinaryReader(new FileStream(viriPath, FileMode.Open));
+            
+            for (byte[] bytes; (bytes = f.ReadBytes(1024)).Length > 0; )
+                concat.Write(bytes);
+
+            f.Close();
+            File.Delete(viriPath);
         }
+
+        concat.Close();
 
         Console.WriteLine("Done!");
 
         Console.WriteLine("{");
-        for (int i = 0; i < dist.Length; i++)
-            Console.WriteLine($"\"{i + 3}\": {dist[i]},");
-        Console.WriteLine($"\"all fens\": {totalPos},");
-        Console.WriteLine($"\"quiet fens\": {dist.Sum()},");
-        Console.WriteLine($"\"games\": {totalGames}");
+        for (int i = 0; i < converters[0].dist.Length; i++)
+            Console.WriteLine($"\"{i + 3}\": {converters.Select(x => x.dist[i]).Sum()},");
+        Console.WriteLine($"\"all fens\": {converters.Select(x => x.posCount + x.gameCount * 16).Sum()},");
+        Console.WriteLine($"\"quiet fens\": {converters.Select(x => x.dist.Sum()).Sum()},");
+        Console.WriteLine($"\"games\": {converters.Select(x => x.gameCount).Sum()}");
         Console.WriteLine("}");
+
+        Console.WriteLine("\n" + watch.Elapsed);
     }
 
     public static (long, long) ConvertPgnToViriformat(SearchThread thread, string PgnPath, string ViriPath, long[] dist = null)
@@ -163,6 +166,11 @@ public static class Viriformat
         while (!PgnReader.EndOfStream)
         {
             var pgn = new Pgn(thread, PgnReader, dist);
+
+            if (pgn.MainLine.Count == 0)
+            {
+                continue;
+            }
 
             gameCount++;
             posCount += pgn.MainLine.Count;
