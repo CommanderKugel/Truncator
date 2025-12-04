@@ -8,7 +8,7 @@ public static class Settings
 
     public const int EVAL_SCALE = 400;
 
-    public const string NET_NAME = "1024-2-0.5";
+    public const string NET_NAME = "1024_tempData";
 
     public const int QA = 255;
     public const int QB = 64;
