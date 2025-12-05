@@ -5,10 +5,11 @@ public class Pgn
 {
     public string Fen;
     public string Result;
+    public string tbResult;
 
     public List<PgnMove> MainLine;
 
-    public Pgn(SearchThread thread, StreamReader file, long[] dist = null, int distMinPly = 16)
+    public Pgn(SearchThread thread, StreamReader file, long[] dist = null, int distMinPly = 16, bool tbCorrect = false)
     {
         MainLine = [];
         string? line;
@@ -16,7 +17,7 @@ public class Pgn
 
         List<string> lines = [];
 
-        while (!file.EndOfStream && (line = file.ReadLine()) != null)
+        while (!file.EndOfStream && (line = file.ReadLine()) != null && emptyCount < 2)
         {
             lines.Add(line);
 
@@ -43,14 +44,7 @@ public class Pgn
             {
                 // skip until next game in file, then parse anew
 
-                while (!string.IsNullOrWhiteSpace(line) || ++emptyCount < 2)
-                {
-                    line = file.ReadLine();
-                    Debug.WriteLine("skipping: " + line);
-                }
-
-                // now start reading next game
-
+                skip_to_end();
                 emptyCount = 0;
                 continue;
             }
@@ -112,15 +106,49 @@ public class Pgn
 
                     unsafe
                     {
+                        ref var p = ref thread.rootPos.p;
+
                         if (dist is not null
                             && Math.Abs(score) < 10_000
                             && MainLine.Count >= distMinPly
-                            && !thread.rootPos.p.IsCapture(m)
+                            && !p.IsCapture(m)
                             && !m.IsCastling
                             && !m.IsPromotion
-                            && thread.rootPos.p.Checkers == 0)
+                            && p.Checkers == 0)
                         {
                             dist[Utils.popcnt(thread.rootPos.p.blocker) - 3]++;
+                        }
+
+
+                        if (tbCorrect
+                            && Fathom.DoTbProbing
+                            && p.CastlingRights == 0
+                            && p.FiftyMoveRule == 0
+                            && Utils.popcnt(p.blocker) <= Fathom.TbLargest)
+                        {
+                            var res = (TbResult)Fathom.ProbeWdl(ref p);
+                            Debug.Assert(res >= TbResult.TbLoss && res <= TbResult.TbWin);
+
+                            var gameResult = res == TbResult.TbWin ? (p.Us == Color.White ? "1-0" : "0-1")
+                                : res == TbResult.TbLoss ? (p.Us == Color.White ? "0-1" : "1-0")
+                                : "1/2-1/2";
+
+                            // if there is already a tb result and a player threw the result
+                            // ignore the rest of the game, its result is false
+
+                            if (tbResult is not null && gameResult != tbResult)
+                            {
+                                while (!string.IsNullOrWhiteSpace(line))
+                                {
+                                    line = file.ReadLine();
+                                }
+                                emptyCount = 2;
+                                break;
+                            }
+
+                            // otherwise keep going and save the potentially first result
+
+                            tbResult = gameResult;
                         }
                     }
 
@@ -141,8 +169,25 @@ public class Pgn
             }
         }
 
+        // overwrite the gamresult with the correct tb result
+
+        if (tbResult is not null && tbResult != Result)
+        {
+            Result = tbResult;
+            tbResult = "corrected";
+        }
+
         Debug.Assert(Fen is not null);
         Debug.Assert(Result is not null);
+
+        void skip_to_end()
+        {
+            while (!string.IsNullOrWhiteSpace(line) || ++emptyCount < 2)
+            {
+                line = file.ReadLine();
+                Debug.WriteLine("skipping: " + line);
+            }
+        }
     }
     
 
@@ -151,9 +196,9 @@ public class Pgn
         Debug.Assert(Result is not null);
         return Result switch
         {
-            "1-0" => 2,
-            "0-1" => 0,
+            "1-0"     => 2,
             "1/2-1/2" => 1,
+            "0-1"     => 0,
             _ => throw new ArgumentException($"invalid gameresult '{Result}'"),
         };
     }

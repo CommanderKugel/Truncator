@@ -1,6 +1,5 @@
 
 using System.Diagnostics;
-using System.Numerics;
 
 /// <summary>
 /// Virifirmat is a highly compressed binary format to store chess games
@@ -17,6 +16,8 @@ public static class Viriformat
     private class ViriConverter
     {
         public int idx;
+        public bool tbCorrect;
+
         public Thread systemThread;
         public SearchThread thread;
         public string[] pgns;
@@ -24,6 +25,7 @@ public static class Viriformat
         public long[] dist = new long[30];
         public long gameCount = 0;
         public long posCount = 0;
+        public long tbCorrections = 0;
 
         public string pgnPath;
         public string viriPath;
@@ -35,7 +37,8 @@ public static class Viriformat
             SearchThread  thread_,
             string[] pgns_,
             string pgnPath_,
-            int idx_
+            int idx_,
+            bool tbCorrect_
         )
         {
             systemThread = new Thread(ConvertMyPgns);
@@ -43,6 +46,7 @@ public static class Viriformat
             thread = thread_;
             pgns = pgns_;
             pgnPath = pgnPath_;
+            tbCorrect = tbCorrect_;
 
             idx = idx_;
             var outFileName = $"converted-{idx}.viriformat";
@@ -55,15 +59,17 @@ public static class Viriformat
             for (int i = 0; i < pgns.Length; i++)
             {
                 var pgn = pgns[i];
-                var (gameCount_, posCount_) = ConvertPgnToViriformat(
+                var (gameCount_, posCount_, tbCorrections_) = ConvertPgnToViriformat(
                     thread,
                     Path.Combine(pgnPath, pgn),
                     viriPath,
+                    tbCorrect,
                     dist
                 );
 
                 gameCount += gameCount_;
                 posCount += posCount_;
+                tbCorrections += tbCorrections_;
 
                 Console.WriteLine($"({idx + 1} - {i}/{pgns.Length}) pos: {posCount} games: {gameCount}");
             }
@@ -73,7 +79,7 @@ public static class Viriformat
     }
 
 
-    public static void ConvertDirWithPgnsToViriformat(SearchThread thread, string PgnPath)
+    public static void ConvertDirWithPgnsToViriformat(string PgnPath, bool tbCorrect)
     {
         var watch = new Stopwatch();
         watch.Start();
@@ -97,7 +103,8 @@ public static class Viriformat
                 ThreadPool.pool[i],
                 files[start .. end],
                 PgnPath,
-                i
+                i,
+                tbCorrect
             );
         }
 
@@ -113,8 +120,9 @@ public static class Viriformat
 
         // merge files
 
+        var name = !tbCorrect ? "converted.viriformat" : "tbcorr_converted.viriformat";
         var viriFiles = Directory.GetFiles(PgnPath, "*.viriformat");
-        var outPath = Path.Combine(PgnPath, "converted.viriformat");
+        var outPath = Path.Combine(PgnPath, name);
         Console.WriteLine($"concatenating {viriFiles.Length} files...");
 
         if (File.Exists(outPath)) 
@@ -147,12 +155,13 @@ public static class Viriformat
         Console.WriteLine($"\"all fens\": {converters.Select(x => x.posCount + x.gameCount * 16).Sum()},");
         Console.WriteLine($"\"quiet fens\": {converters.Select(x => x.dist.Sum()).Sum()},");
         Console.WriteLine($"\"games\": {converters.Select(x => x.gameCount).Sum()}");
+        Console.WriteLine($"\"tbCorrs\": {converters.Select(x => x.tbCorrections).Sum()}");
         Console.WriteLine("}");
 
         Console.WriteLine("\n" + watch.Elapsed);
     }
 
-    public static (long, long) ConvertPgnToViriformat(SearchThread thread, string PgnPath, string ViriPath, long[] dist = null)
+    public static (long, long, long) ConvertPgnToViriformat(SearchThread thread, string PgnPath, string ViriPath, bool tbCorrect, long[] dist = null)
     {
         // read all games from the file
         // and instantly convert them to viriformat
@@ -162,10 +171,11 @@ public static class Viriformat
 
         long gameCount = 0;
         long posCount = 0;
+        long tbCorrections = 0;
 
         while (!PgnReader.EndOfStream)
         {
-            var pgn = new Pgn(thread, PgnReader, dist);
+            var pgn = new Pgn(thread, PgnReader, dist, tbCorrect: tbCorrect);
 
             if (pgn.MainLine.Count == 0)
             {
@@ -174,6 +184,7 @@ public static class Viriformat
 
             gameCount++;
             posCount += pgn.MainLine.Count;
+            tbCorrections += (pgn.tbResult is not null && pgn.tbResult == "corrected") ? 1 : 0;
 
             // Marlinformat Headder
 
@@ -210,6 +221,6 @@ public static class Viriformat
             ViriWriter.Write(mainLineBuff);
         }
 
-        return (gameCount, posCount);
+        return (gameCount, posCount, tbCorrections);
     }
 }
