@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Evaluate/Nets/1024_tempData.bin"/>
+    <EmbeddedResource Include="Evaluate/Nets/1024_tbcorr.bin"/>
   </ItemGroup>
 
 </Project>
