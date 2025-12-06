@@ -70,6 +70,7 @@ public static class Tunables
     public static SpsaValue ButterflyDiv = new("ButterflyDiv", 581, 256, 4096);
     public static SpsaValue Conthist1PlyDiv = new("Conthist1PlyDiv", 1667, 256, 4096);
     public static SpsaValue Conthist2PlyDiv = new("Conthist2PlyDiv", 1394, 256, 4096);
+    public static SpsaValue CaptHistDiv = new("CaptHistDiv", 1024, 256, 4096);
 
     public static SpsaValue ButterflySearchMult = new("ButterflySearchMult", 581, 1, 4096);
     public static SpsaValue Conthist1plySearchMult = new("Conthist1plySearchMult", 1063, -256, 4096);

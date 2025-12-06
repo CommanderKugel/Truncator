@@ -347,7 +347,9 @@ public static partial class Search
 
         int movesPlayed = 0;
         int quitesCount = 0;
+        int noisyCount = 0;
         Span<Move> quietMoves = stackalloc Move[128];
+        Span<Move> captureMoves = stackalloc Move[128];
 
         Move bestmove = Move.NullMove;
 
@@ -475,6 +477,7 @@ public static partial class Search
 
             movesPlayed++;
             if (!isCapture) quietMoves[quitesCount++] = m;
+            else captureMoves[noisyCount++] = m;
             
             // late-move-reductions (LMR)
             // assuming our move-ordering is good, the first played move should be the best
@@ -589,28 +592,28 @@ public static partial class Search
 
                         flag = LOWER_BOUND;
 
+                        // update history
+                        // ToDo: Bonus = depth * (depth + (m == ttmove))
+                        // ToDo: Bonus = depth * (depth + (eval < alpha))
+
+                        int temp = depth;
+
+                        if (!ns->InCheck && ns->StaticEval < alpha)
+                        {
+                            temp++;
+                        }
+
+                        int HistDelta = temp * temp;
+
                         if (!isCapture)
                         {
-                            // update history
-                            // ToDo: Bonus = depth * (depth + (m == ttmove))
-                            // ToDo: Bonus = depth * (depth + (eval < alpha))
-
-                            int temp = depth;
-
-                            if (!ns->InCheck && ns->StaticEval < alpha)
-                            {
-                                temp++;
-                            }
-
-                            int HistDelta = temp * temp;
-
                             thread.history.UpdateQuietMoves(thread, ns, HistDelta, -HistDelta, ref ns->p, ref quietMoves, quitesCount, m);
 
                             // update killer-move
                             ns->KillerMove = m;
                         }
 
-                        // ToDo: update capture history (didnt pass yet, its cursed)
+                        thread.history.UpdateCaptureMoves(thread, ns, HistDelta, HistDelta, ref ns->p, ref captureMoves, noisyCount, m);
 
                         // ToDo: CutoffCount += isPv || nonPV
                         ns->CutoffCount++;

@@ -47,9 +47,13 @@ public ref struct MovePicker<Type> where Type : PickerType
             // captures
             if (typeof(Type) == typeof(Captures))
             {
+                var att = p.PieceTypeOn(m.from);
+                var vict = p.GetCapturedPieceType(m);
+
                 scores[i] = (SEE.SEE_threshold(m, ref p, SEEMargin) ? 1_000_000 : -1_000_000)
-                    + (int)p.GetCapturedPieceType(m) * 100
-                    - (int)p.PieceTypeOn(m.from);
+                    + (int)vict
+                    + SEE.SEEMaterial[(int)vict] * 100
+                    + thread.history.CaptHist[p.Us, att, vict, m.to];
             }
 
             // quiets
