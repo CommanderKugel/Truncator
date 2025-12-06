@@ -184,6 +184,19 @@ public static partial class Search
             && (ns - 2)->StaticEval != -SCORE_MATE
             && ns->StaticEval >= (ns - 2)->StaticEval;
 
+        bool worsening = !ns->InCheck 
+            && !(ns - 1)->InCheck 
+            && thread.ply > 0 
+            && ns->StaticEval > -(ns - 1)->StaticEval;
+
+        // hindsight extension
+        // when we expect a move to be bad, reduce it by a lot and it does not look that bad now
+
+        if ((ns - 1)->Reductions >= 3 && !worsening)
+        {
+            depth++;
+        }
+
         // sometimes whole-node-pruning can be skipped entirely
 
         if (ns->InCheck || isPV || inSingularity)
@@ -518,7 +531,9 @@ public static partial class Search
                 // or lower-bound. if a move unexpectedly beats the pv, we need to re-search it at full depth,
                 // to confirm it is really better than the pv and obtain its exact value.
 
+                ns->Reductions = R;
                 score = -Negamax<NonPVNode>(thread, -alpha - 1, -alpha, depth - R, ns + 1, true);
+                ns->Reductions = 0;
 
                 // re-search if LMR seems to beat the current best move
 
