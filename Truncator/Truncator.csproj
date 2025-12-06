@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Evaluate/Nets/1024_s3_wdl50.bin"/>
+    <EmbeddedResource Include="Evaluate/Nets/1024_s3_wdl50-2.bin"/>
   </ItemGroup>
 
 </Project>
