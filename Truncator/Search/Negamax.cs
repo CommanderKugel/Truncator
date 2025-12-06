@@ -449,13 +449,16 @@ public static partial class Search
 
                 if (singularScore < singularBeta)
                 {
+                    extension = 1;
+
                     if (!isPV && singularScore < singularBeta - SEDoubleMargin)
                     {
-                        extension = 2;
+                        extension++;
                     }
-                    else
+
+                    if (!isPV && !isCapture && singularScore < singularBeta - SEDoubleMargin - 50)
                     {
-                        extension = 1;
+                        extension++;
                     }
                 }
             }
