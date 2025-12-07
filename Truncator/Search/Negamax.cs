@@ -460,6 +460,11 @@ public static partial class Search
                     {
                         extension = 1;
                     }
+
+                    if (depth <= 9)
+                    {
+                        extension++;
+                    }
                 }
             }
 
