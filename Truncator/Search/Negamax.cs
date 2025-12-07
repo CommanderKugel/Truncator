@@ -378,10 +378,13 @@ public static partial class Search
 
             PieceType pt = ns->p.PieceTypeOn(m.from);
 
-            ns->HistScore = isCapture ? 0 :
-                (ButterflySearchMult * thread.history.Butterfly[ns->p.Threats, ns->p.Us, m]
-                + Conthist1plySearchMult * (*(ns - 1)->ContHist)[ns->p.Us, pt, m.to]
-                + Conthist2plySearchMult * (*(ns - 2)->ContHist)[ns->p.Us, pt, m.to])
+            ns->bfHist = isCapture ? 0 : thread.history.Butterfly[ns->p.Threats, ns->p.Us, m];
+            ns->contHist1 = isCapture ? 0 : (*(ns - 1)->ContHist)[ns->p.Us, pt, m.to];
+            ns->contHist2 = isCapture ? 0 : (*(ns - 2)->ContHist)[ns->p.Us, pt, m.to];
+
+            var histScore = (ButterflySearchMult * ns->bfHist
+                + Conthist1plySearchMult * ns->contHist1
+                + Conthist2plySearchMult * ns->contHist2)
                 / 1024;
 
             // move loop pruning
@@ -409,7 +412,7 @@ public static partial class Search
 
                 // main-history pruning
                 if (depth <= HpDepth
-                    && ns->HistScore < -(HpBase + HpLinMult * depth + HpSqrMult * depth * depth))
+                    && histScore < -(HpBase + HpLinMult * depth + HpSqrMult * depth * depth))
                 {
                     continue;
                 }
@@ -492,7 +495,7 @@ public static partial class Search
                     R = GetBaseLmr(depth, movesPlayed);
 
                     // reduce more for bad history values
-                    R += -ns->HistScore / LmrHistDiv;
+                    R += -histScore / LmrHistDiv;
 
                     if (thread.ply > 1 && !improving) R++;
 
