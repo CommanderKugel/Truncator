@@ -194,10 +194,19 @@ public static partial class Search
 
         // reverse futility pruning (RFP)
 
-        if (depth <= RfpDepth
-            && ns->StaticEval - RfpMargin - RfpMult * (improving ? depth - 1 : depth) >= beta)
+        if (depth <= RfpDepth && ns->StaticEval >= beta)
         {
-            return ns->StaticEval;   
+            var par = ns - 1;
+            var prevHist = par->bfHist * 2 + par->contHist1 + par->contHist2;
+            var mul = improving ? depth - 1 : depth;
+
+            if (ns->StaticEval - RfpMargin 
+                - RfpMult * mul
+                + prevHist / 64
+                >= beta)
+            {
+                return ns->StaticEval;
+            }
         }
 
         // razoring
