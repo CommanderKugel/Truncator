@@ -11,6 +11,7 @@ public class TranspositionTable : IDisposable
 
     private unsafe TTEntry* tt = null;
     private ulong size = 0;
+    private int age;
 
     public unsafe TranspositionTable(int sizemb = DEFAULT_SIZE)
     {
@@ -22,6 +23,11 @@ public class TranspositionTable : IDisposable
 
         tt = (TTEntry*)NativeMemory.Alloc((nuint)sizeof(TTEntry) * entryCount);
         this.size = entryCount;
+    }
+
+    public void Age()
+    {
+        age = (age + 1) & 0b0001_1111;
     }
 
     public unsafe void Resize(int sizemb)
@@ -68,8 +74,13 @@ public class TranspositionTable : IDisposable
     {
         Debug.Assert(tt != null);
         
-        // current policy: always replace
         ref var entry = ref tt[key % size];
+
+        // only replace not-aged entries with lower depth
+        if (entry.Age == age && entry.Depth > depth)
+        {
+            return;
+        }
 
         entry.Key = key;
         entry.Score = TTEntry.ConvertToSavescore(score, thread.ply);
@@ -86,7 +97,7 @@ public class TranspositionTable : IDisposable
         int hashfull = 0;
         for (int i = 0; i < 1000; i++)
         {
-            if (tt[i].Key != 0)
+            if (tt[i].Key != 0 && tt[0].Age == age)
             {
                 hashfull++;
             }

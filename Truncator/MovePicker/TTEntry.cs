@@ -15,23 +15,26 @@ public struct TTEntry
     private byte Packed_PV_Age_Flag;
     public readonly int Flag => Packed_PV_Age_Flag & 0b11;
     public readonly int PV => (Packed_PV_Age_Flag >> 2) & 1;
+    public readonly int Age => (Packed_PV_Age_Flag >> 3) & 0b0001_1111;
 
     public void PackPVAgeFlag(bool pv, int age, int flag)
     {
         Debug.Assert(age >= 0);
         Debug.Assert(flag >= 0 && flag < 4);
+        Debug.Assert(age <= 0b11111 && age >= 0);
         Packed_PV_Age_Flag = (byte)flag;
         if (pv)
         {
             Packed_PV_Age_Flag |= 0b0000_0100;
         }
+        Packed_PV_Age_Flag |= (byte)(age << 3);
     }
 
     public TTEntry(ulong key, int score, Move move, int depht, int flag, bool pv, SearchThread thread)
     {
-        this.Key = key;
-        this.Score = ConvertToSavescore(score, thread.ply);
-        this.MoveValue = move.value;
+        Key = key;
+        Score = ConvertToSavescore(score, thread.ply);
+        MoveValue = move.value;
         Depth = (byte)depht;
         PackPVAgeFlag(pv, 0, flag);
     }

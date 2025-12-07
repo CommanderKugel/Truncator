@@ -35,6 +35,7 @@ public static partial class Search
         {
             ThreadPool.StopAll();
             ThreadPool.ReportBestmove();
+            ThreadPool.tt.Age();
         }
     }
 
