@@ -50,9 +50,8 @@ public ref struct MovePicker<Type> where Type : PickerType
                 var att = p.PieceTypeOn(m.from);
                 var vict = p.GetCapturedPieceType(m);
 
-                scores[i] = (SEE.SEE_threshold(m, ref p, SEEMargin) ? 1_000_000 : -1_000_000)
+                scores[i] = SEE.SEEMaterial[(int)vict] * 100
                     + (int)vict
-                    + SEE.SEEMaterial[(int)vict] * 100
                     + thread.history.CaptHist[p.Us, att, vict, m.to];
             }
 
@@ -113,6 +112,13 @@ public ref struct MovePicker<Type> where Type : PickerType
                         if (m.IsNull || score < 0 || captureIndex >= captureCount)
                         {
                             stage = Stage.GenerateQuiets;
+                            continue;
+                        }
+
+                        // now we wil have a valid capture move that we didnt try SEE on yet
+                        if (!SEE.SEE_threshold(m, ref p, SEEMargin))
+                        {
+                            scores[idx] -= 1_000_000;
                             continue;
                         }
 
