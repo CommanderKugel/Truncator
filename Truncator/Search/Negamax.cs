@@ -398,7 +398,7 @@ public static partial class Search
                 if (nonPV
                     && !ns->InCheck
                     && depth <= FpDepth
-                    && ns->StaticEval + FpMargin + depth * FpMult <= alpha)
+                    && ns->StaticEval + FpMargin + depth * FpMult + histScore / 32 <= alpha)
                 {
                     continue;
                 }
