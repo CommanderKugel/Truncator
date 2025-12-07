@@ -595,15 +595,14 @@ public static partial class Search
                         if (!isCapture)
                         {
                             // update history
-                            // ToDo: Bonus = depth * (depth + (m == ttmove))
-                            // ToDo: Bonus = depth * (depth + (eval < alpha))
 
                             int temp = depth;
 
                             if (!ns->InCheck && ns->StaticEval < alpha)
-                            {
                                 temp++;
-                            }
+
+                            if (m == ttMove)
+                                temp++;
 
                             int HistDelta = temp * temp;
 
