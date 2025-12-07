@@ -380,7 +380,7 @@ public static partial class Search
 
             PieceType pt = ns->p.PieceTypeOn(m.from);
 
-            ns->HistScore = isCapture ? 0 :
+            ns->HistScore = isCapture ? thread.history.CaptHist[ns->p.Us, pt, ns->p.GetCapturedPieceType(m), m.to] :
                 (ButterflySearchMult * thread.history.Butterfly[ns->p.Threats, ns->p.Us, m]
                 + Conthist1plySearchMult * (*(ns - 1)->ContHist)[ns->p.Us, pt, m.to]
                 + Conthist2plySearchMult * (*(ns - 2)->ContHist)[ns->p.Us, pt, m.to])
@@ -509,9 +509,14 @@ public static partial class Search
                     R = Math.Max(1, R);
                 }
 
-                else if (picker.stage == Stage.BadCaptures) // isCapture
+                else // isCapture
                 {
-                    R++;
+                    R -= ns->HistScore / 512;
+
+                    if (picker.stage == Stage.BadCaptures)
+                        R++;
+
+                    R = Math.Max(1, R);
                 }
 
                 // zero-window-search (ZWS)
