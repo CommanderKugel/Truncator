@@ -422,10 +422,15 @@ public static partial class Search
             }
 
             // pvs SEE pruning
-            // ToDo: margin -= histScore / 8
             if (!isRoot
                 && notLoosing
-                && !SEE.SEE_threshold(m, ref ns->p, isCapture ? SEENoisyMult * depth : SEEQuietMult * depth * depth))
+                && !SEE.SEE_threshold(
+                    m, 
+                    ref ns->p, 
+                    isCapture ? 
+                        SEENoisyMult * depth : 
+                        SEEQuietMult * depth * depth - histScore / 8
+                ))
             {
                 continue;
             }
