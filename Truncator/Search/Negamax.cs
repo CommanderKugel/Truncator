@@ -171,7 +171,9 @@ public static partial class Search
             }
             
             ns->UncorrectedStaticEval = NNUE.Evaluate(ref ns->p, ns->acc);
-            thread.CorrHist.Correct(thread, ref ns->p, ns);
+
+            // max value corrplexity: 262
+            ns->Corrplexity = thread.CorrHist.Correct(thread, ref ns->p, ns);
         }
 
         // the past series of moves improved our static evaluation and indicates
@@ -382,6 +384,7 @@ public static partial class Search
             ns->contHist1 = isCapture ? 0 : (*(ns - 1)->ContHist)[ns->p.Us, pt, m.to];
             ns->contHist2 = isCapture ? 0 : (*(ns - 2)->ContHist)[ns->p.Us, pt, m.to];
 
+            // max value is 3.120
             var histScore = (ButterflySearchMult * ns->bfHist
                 + Conthist1plySearchMult * ns->contHist1
                 + Conthist2plySearchMult * ns->contHist2)
@@ -496,6 +499,10 @@ public static partial class Search
 
                     // reduce more for bad history values
                     R += -histScore / LmrHistDiv;
+
+                    // reduce less in very positively corrected positions
+                    // reduce more in very negatively corrected positions
+                    R -= ns->Corrplexity / 64;
 
                     if (thread.ply > 1 && !improving) R++;
 

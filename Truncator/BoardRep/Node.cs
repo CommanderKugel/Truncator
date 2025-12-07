@@ -16,6 +16,7 @@ public struct Node
 
     public int UncorrectedStaticEval;
     public int StaticEval;
+    public int Corrplexity;
 
     public Move KillerMove;
     public Move ExcludedMove;
