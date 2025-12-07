@@ -503,7 +503,7 @@ public static partial class Search
 
                     if (m == ns->KillerMove) R--;
 
-                    R = Math.Max(1, R);
+                    R = Math.Max(isPV && !isRoot ? 0 : 1, R);
                 }
 
                 else if (picker.stage == Stage.BadCaptures) // isCapture
