@@ -437,7 +437,7 @@ public static partial class Search
             if (m == ttMove
                 && !inSingularity
                 && !isRoot
-                && depth >= 8
+                && depth >= 6
                 && ttEntry.Depth >= depth - 3
                 && ttEntry.Flag > UPPER_BOUND
                 && thread.ply < thread.completedDepth * 2)
