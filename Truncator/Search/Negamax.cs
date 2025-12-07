@@ -502,7 +502,7 @@ public static partial class Search
 
                     // reduce less in very positively corrected positions
                     // reduce more in very negatively corrected positions
-                    R -= ns->Corrplexity / 64;
+                    R -= Math.Abs(ns->Corrplexity) / 64;
 
                     if (thread.ply > 1 && !improving) R++;
 
