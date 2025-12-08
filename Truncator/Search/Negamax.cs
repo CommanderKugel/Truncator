@@ -57,6 +57,7 @@ public static partial class Search
         bool ttHit = thread.tt.Probe(ns->p.ZobristKey, out TTEntry ttEntry, thread.ply);
         Move ttMove = ttHit ? new(ttEntry.MoveValue) : Move.NullMove;
         bool ttPV = ttHit && ttEntry.PV == 1 || isPV;
+        bool ttCapture = ttHit && ttMove.NotNull && ns->p.IsCapture(ttMove);
 
         // return the tt-score if the entry is sufficient
 
@@ -500,6 +501,8 @@ public static partial class Search
                     if (thread.ply > 1 && !improving) R++;
 
                     if (ttPV) R--;
+
+                    if (ttCapture) R++;
 
                     // ToDo: R += isAllnode
                     if ((ns + 1)->CutoffCount > 2) R++;
