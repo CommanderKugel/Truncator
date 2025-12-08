@@ -222,7 +222,7 @@ public static partial class Search
             && (!ttHit || ttEntry.Flag > UPPER_BOUND || ttEntry.Score >= beta))
         {
             (ns + 1)->p = ns->p;
-            (ns + 1)->p.MakeNullMove(thread, updateAcc: false);
+            (ns + 1)->p.MakeNullMove(thread);
             thread.repTable.Push((ns + 1)->p.ZobristKey);
 
             int R = NmpBaseReduction + depth / NmpDepthDivisor;
@@ -279,7 +279,7 @@ public static partial class Search
                 // verify with a quick qsearch that the capture really is not loosing
 
                 (ns + 1)->p = ns->p;
-                (ns + 1)->p.MakeMove(m, thread, updateAcc: false);
+                (ns + 1)->p.MakeMove(m, thread);
                 thread.repTable.Push((ns + 1)->p.ZobristKey);
 
                 int ProbCutScore = -QSearch<NonPVNode>(thread, -ProbCutBeta, -ProbCutBeta + 1, ns + 1);
@@ -473,7 +473,7 @@ public static partial class Search
             // make the move and update the boardstate
 
             (ns + 1)->p = ns->p;
-            (ns + 1)->p.MakeMove(m, thread, updateAcc: false);
+            (ns + 1)->p.MakeMove(m, thread);
             thread.repTable.Push((ns + 1)->p.ZobristKey);
 
             movesPlayed++;

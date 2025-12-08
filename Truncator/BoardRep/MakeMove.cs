@@ -163,7 +163,7 @@ public unsafe partial struct Pos
             || (AttackerTo(ksq, block) & ColorBB[(int)Them] & ~(1ul << to)) == 0;
     }
 
-    public void MakeMove(Move m, SearchThread thread, bool updateAcc = true)
+    public void MakeMove(Move m, SearchThread thread)
     {
         Debug.Assert(m.NotNull, "can not make null-moves the normal way!");
         int from = m.from;
@@ -334,24 +334,21 @@ public unsafe partial struct Pos
         n->move = m;
         n->ContHist = thread.history.ContHist[Us, movingPt, m.to];
 
+        // update accumulator
+
+        bool needsRefresh = movingPt == PieceType.King 
+            && Accumulator.GetFlip(from) != Accumulator.GetFlip(KingSquares[(int)Us]);
+
+        (n + 1)->acc.needsRefresh[(int)Us] = needsRefresh;
+        (n + 1)->acc.needsUpdate[(int)Us] = !needsRefresh;
+
+        (n + 1)->acc.needsRefresh[(int)Them] = false;
+        (n + 1)->acc.needsUpdate[(int)Them] = true;
+
         // swap the side-to-move
 
         Us = Them;
         ZobristKey ^= Zobrist.stmKey;
-
-        // update accumulator
-
-        (n + 1)->acc.needsRefresh = movingPt == PieceType.King && Accumulator.GetFlip(from) != Accumulator.GetFlip(KingSquares[(int)Them]);
-        (n + 1)->acc.needsUpdate = !(n + 1)->acc.needsRefresh;
-
-        if (updateAcc && (n + 1)->acc.needsUpdate)
-        {
-            (n + 1)->acc.Update(thread.nodeStack + thread.ply, ref this);
-        }
-        else if (updateAcc && (n + 1)->acc.needsRefresh)
-        {
-            (n + 1)->acc.Accumulate(ref this);
-        }
 
         // miscellaneous
 
@@ -370,7 +367,7 @@ public unsafe partial struct Pos
         Debug.Assert(Utils.popcnt(GetPieces(Color.Black, PieceType.King)) == 1);
     }
 
-    public void MakeNullMove(SearchThread thread, bool updateAcc = true)
+    public void MakeNullMove(SearchThread thread)
     {
         // swap the side-to-move
 
@@ -401,13 +398,10 @@ public unsafe partial struct Pos
         thread.nodeCount++;
         thread.ply++;
 
-        (n + 1)->acc.needsUpdate = true;
-        (n + 1)->acc.needsRefresh = false;
-
-        if (updateAcc)
-        {
-            (n + 1)->acc.Update(n, ref this);
-        }
+        (n + 1)->acc.needsUpdate[(int)Color.White] = true;
+        (n + 1)->acc.needsUpdate[(int)Color.Black] = true;
+        (n + 1)->acc.needsRefresh[(int)Color.White] = false;
+        (n + 1)->acc.needsRefresh[(int)Color.Black] = false;
     }
 
 }

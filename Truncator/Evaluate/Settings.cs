@@ -2,7 +2,7 @@ public static class Settings
 {
 
     public const int IN_SIZE = 768;
-    public const int L2_SIZE = 1024;
+    public const int L1_SIZE = 1024;
 
     public const int OUTPUT_BUCKETS = 8;
 

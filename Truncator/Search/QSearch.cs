@@ -99,7 +99,7 @@ public static partial class Search
             }
 
             (ns + 1)->p = ns->p;
-            (ns + 1)->p.MakeMove(m, thread, updateAcc: false);
+            (ns + 1)->p.MakeMove(m, thread);
 
             int score = -QSearch<Type>(thread, -beta, -alpha, ns + 1);
 

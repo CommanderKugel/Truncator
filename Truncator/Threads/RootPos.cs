@@ -46,7 +46,7 @@ public class RootPos : IDisposable
         Debug.Assert(m.NotNull);
 
         // make move on board representation
-        p.MakeMove(m, thread, updateAcc: false);
+        p.MakeMove(m, thread);
         thread.ply--;
 
         if (p.FiftyMoveRule == 0)

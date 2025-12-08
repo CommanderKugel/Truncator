@@ -16,8 +16,8 @@ public static class NNUE
         // Perspective: if its blacks turn, swap whites and blacks accumulator
 
         bool wtm = p.Us == Color.White;
-        short* WhiteAcc = wtm ? acc.WhiteAcc : acc.BlackAcc;
-        short* BlackAcc = wtm ? acc.BlackAcc : acc.WhiteAcc;
+        short* WhiteAcc = acc[p.Us];
+        short* BlackAcc = acc[p.Them];
 
         // activate the accumulated values
         // weigh them with L2 weigts
@@ -30,10 +30,10 @@ public static class NNUE
         var QAVector = new Vector<short>(QA);
         var ZeroVector = Vector<short>.Zero;
 
-        var wWeightPtr = l2_weight + outputBucket * L2_SIZE * 2;
-        var bWeightPrt = l2_weight + outputBucket * L2_SIZE * 2 + L2_SIZE;
+        var wWeightPtr = l1_weight + outputBucket * L1_SIZE * 2;
+        var bWeightPrt = l1_weight + outputBucket * L1_SIZE * 2 + L1_SIZE;
 
-        for (int node = 0; node < L2_SIZE; node += vecSize)
+        for (int node = 0; node < L1_SIZE; node += vecSize)
         {
             // load accumulator into vectors
 
@@ -77,7 +77,7 @@ public static class NNUE
 
         // scale and dequantize
 
-        int output = (Vector.Sum(OutputAccumulator) / QA + l2_bias[outputBucket]) * EVAL_SCALE / (QA * QB);
+        int output = (Vector.Sum(OutputAccumulator) / QA + l1_bias[outputBucket]) * EVAL_SCALE / (QA * QB);
 
         return Math.Clamp(output, -Search.SCORE_EVAL_MAX, Search.SCORE_EVAL_MAX);
     }
@@ -88,8 +88,8 @@ public static class NNUE
 
         // Perspective: if its blacks turn, swap whites and blacks accumulator
 
-        short* WhiteAcc = p.Us == Color.White ? acc.WhiteAcc : acc.BlackAcc;
-        short* BlackAcc = p.Us == Color.White ? acc.BlackAcc : acc.WhiteAcc;
+        short* WhiteAcc = acc[p.Us];
+        short* BlackAcc = acc[p.Them];
 
         const int VEC_SIZE = 16; // avx2 uses 256 bit registers
         
@@ -99,12 +99,12 @@ public static class NNUE
         int outputBucket = GetOutputBucket(ref p);
         var OutputAccumulator = Vector256<int>.Zero;
         
-        var wWeightPtr = l2_weight + outputBucket * L2_SIZE * 2;
-        var bWeightPrt = l2_weight + outputBucket * L2_SIZE * 2 + L2_SIZE;
+        var wWeightPtr = l1_weight + outputBucket * L1_SIZE * 2;
+        var bWeightPrt = l1_weight + outputBucket * L1_SIZE * 2 + L1_SIZE;
 
         // main accumulation loop
 
-        for (int node = 0; node < L2_SIZE; node += VEC_SIZE)
+        for (int node = 0; node < L1_SIZE; node += VEC_SIZE)
         {
             // load accumulator into vectors
 
@@ -140,7 +140,7 @@ public static class NNUE
 
         // scale and dequantize
 
-        int output = (Vector256.Sum(OutputAccumulator) / QA + l2_bias[outputBucket]) * EVAL_SCALE / (QA * QB);
+        int output = (Vector256.Sum(OutputAccumulator) / QA + l1_bias[outputBucket]) * EVAL_SCALE / (QA * QB);
 
         return Math.Clamp(output, -Search.SCORE_EVAL_MAX, Search.SCORE_EVAL_MAX);
     }

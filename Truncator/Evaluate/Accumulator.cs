@@ -2,35 +2,56 @@
 using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
-using System.Text;
 using static Settings;
 using static Weights;
 
 public partial struct Accumulator : IDisposable
 {
 
-    public unsafe short* WhiteAcc = null;
-    public unsafe short* BlackAcc = null;
+    private unsafe short* WhiteAcc = null;
+    private unsafe short* BlackAcc = null;
 
-    public int wflip;
-    public int bflip;
+    public readonly unsafe short* this[Color c]
+    {
+        get
+        {
+            Debug.Assert(c != Color.NONE);
+            return c == Color.White ? WhiteAcc : BlackAcc;
+        }
+    }
 
-    public bool needsUpdate;
-    public bool needsRefresh;
+    public unsafe fixed int flip[2];
+    public unsafe fixed bool needsUpdate[2];
+    public unsafe fixed bool needsRefresh[2];
 
 
     public unsafe Accumulator()
     {
-        WhiteAcc = (short*)NativeMemory.AlignedAlloc((nuint)sizeof(short) * L2_SIZE, 256);
-        BlackAcc = (short*)NativeMemory.AlignedAlloc((nuint)sizeof(short) * L2_SIZE, 256);
+        WhiteAcc = (short*)NativeMemory.AlignedAlloc((nuint)sizeof(short) * L1_SIZE, 256);
+        BlackAcc = (short*)NativeMemory.AlignedAlloc((nuint)sizeof(short) * L1_SIZE, 256);
 
-        wflip = 0;
-        bflip = 0;
+        flip[(int)Color.White] = 0;
+        flip[(int)Color.Black] = 0;
 
-        needsUpdate = true;
-        needsRefresh = true;
+        needsUpdate[(int)Color.White] = true;
+        needsUpdate[(int)Color.Black] = true;
+
+        needsRefresh[(int)Color.White] = true;
+        needsRefresh[(int)Color.Black] = true;
+    }
+
+    public unsafe void Kill()
+    {
+        for (Color c = Color.White; c <= Color.Black; c++)
+        {
+            flip[(int)c] = 0;
+            needsUpdate[(int)c] = false;
+            needsRefresh[(int)c] = false;
+            NativeMemory.AlignedFree(this[c]);
+        }
+
+        WhiteAcc = BlackAcc = null;
     }
 
 
@@ -40,24 +61,22 @@ public partial struct Accumulator : IDisposable
     /// there are 768 features: 2xColor, 6xPieceType, 64xSquare
     /// every feature can only be activated once
     /// </summary>
-    public unsafe void Accumulate(ref Pos p)
+    public void Accumulate(ref Pos p)
     {
-        Debug.Assert(WhiteAcc != null);
-        Debug.Assert(BlackAcc != null);
+        Accumulate(ref p, Color.White);
+        Accumulate(ref p, Color.Black);   
+    } 
 
-        Debug.Assert(Utils.popcnt(p.GetPieces(Color.White, PieceType.King)) == 1);
-        Debug.Assert(Utils.popcnt(p.GetPieces(Color.Black, PieceType.King)) == 1);
-        Debug.Assert(Utils.lsb(p.GetPieces(Color.White, PieceType.King)) == p.KingSquares[(int)Color.White]);
-        Debug.Assert(Utils.lsb(p.GetPieces(Color.Black, PieceType.King)) == p.KingSquares[(int)Color.Black]);
+    public unsafe void Accumulate(ref Pos p, Color accol)
+    {
+        Debug.Assert(this[accol] != null);
 
-        wflip = GetFlip(p.KingSquares[(int)Color.White]);
-        bflip = GetFlip(p.KingSquares[(int)Color.Black]);
+        flip[(int)accol] = GetFlip(p.KingSquares[(int)accol]);
 
         // copy bias
         // implicitly clears accumulator
 
-        NativeMemory.Copy(l1_bias, WhiteAcc, sizeof(short) * L2_SIZE);
-        NativeMemory.Copy(l1_bias, BlackAcc, sizeof(short) * L2_SIZE);
+        NativeMemory.Copy(l0_bias, this[accol], sizeof(short) * L1_SIZE);
 
         // accumulate weights for every piece on the board
 
@@ -69,13 +88,13 @@ public partial struct Accumulator : IDisposable
                 while (pieces != 0)
                 {
                     int sq = Utils.popLsb(ref pieces);
-                    Activate(c, pt, sq);
+                    Activate(c, pt, sq, accol);
                 }
             }
         }
 
-        needsUpdate = false;
-        needsRefresh = false;
+        needsUpdate[(int)accol] = false;        
+        needsRefresh[(int)accol] = false;
     }
 
 
@@ -83,12 +102,13 @@ public partial struct Accumulator : IDisposable
     /// ~makes a move
     /// add and subtract features UE style to/from this accumulator
     /// </summary>
-    public unsafe void Update(Node* parent, ref Pos p)
+    public unsafe void Update(Node* parent, ref Pos p, Color accol)
     {
-        Debug.Assert(!parent->acc.needsUpdate);
-        Debug.Assert(!parent->acc.needsRefresh);
-        Debug.Assert(parent->acc.WhiteAcc != null);
-        Debug.Assert(parent->acc.BlackAcc != null);
+        Debug.Assert(accol != Color.NONE);
+        Debug.Assert(!parent->acc.needsUpdate[(int)accol]);
+        Debug.Assert(!parent->acc.needsRefresh[(int)accol]);
+        Debug.Assert(parent->acc[Color.White] != null);
+        Debug.Assert(parent->acc[Color.Black] != null);
 
         Color Us = p.Them;
         Color Them = p.Us;
@@ -102,8 +122,8 @@ public partial struct Accumulator : IDisposable
 
         // assume the king stays in its bucket -> merged efficient updates (UE)
 
-        wflip = parent->acc.wflip;
-        bflip = parent->acc.bflip;
+        flip[(int)Color.White] = parent->acc.flip[(int)Color.White];
+        flip[(int)Color.Black] = parent->acc.flip[(int)Color.Black];
 
         if (m.IsNull)
         {
@@ -113,6 +133,7 @@ public partial struct Accumulator : IDisposable
         {
             int idx = Castling.GetCastlingIdx(Us, from < to);
             AddAddSubSub(
+                accol,
                 ref parent->acc,
                 Us, PieceType.King, Castling.KingDestinations[idx],
                 Us, PieceType.Rook, Castling.RookDestinations[idx],
@@ -123,6 +144,7 @@ public partial struct Accumulator : IDisposable
         else if (vict != PieceType.NONE)
         {
             AddSubSub(
+                accol,
                 ref parent->acc,
                 Us, m.IsPromotion ? m.PromoType : pt, to,
                 Us, pt, from,
@@ -132,14 +154,15 @@ public partial struct Accumulator : IDisposable
         else
         {
             AddSub(
+                accol,
                 ref parent->acc,
                 Us, m.IsPromotion ? m.PromoType : pt, to,
                 Us, pt, from
             );
         }
 
-        needsUpdate = false;
-        needsRefresh = false;
+        needsUpdate[(int)accol] = false;
+        needsRefresh[(int)accol] = false;
     }
 
 
@@ -156,42 +179,45 @@ public partial struct Accumulator : IDisposable
         // if current accumulator needs a full refresh
         // refresh it and skip all this
 
-        if (n->acc.needsRefresh)
+        for (Color c = Color.White; c <= Color.Black; c++)
         {
-            n->acc.Accumulate(ref n->p);
-            return;
-        }
-        
-        // if current accumulator does not need updates, skip all this
-
-        if (!n->acc.needsUpdate)
-        {
-            return;            
-        }
-
-        // find last nodes accumulator does not need an update/refresh
-
-        Node* m = n - 1;
-        while (m->acc.needsUpdate && !m->acc.needsRefresh)
-        {
-            m--;
-        }
-
-        if (m->acc.needsRefresh)
-        {
-            // if last useful accumulator needs a full refresh, 
-            // just refresh the current one instead
-
-            n->acc.Accumulate(ref n->p);
-        }
-        else
-        {
-            // incremental updates until current accumulator is up-to-date
-
-            while (m != n)
+            if (n->acc.needsRefresh[(int)c])
             {
-                m++;
-                m->acc.Update(m - 1, ref m->p);
+                n->acc.Accumulate(ref n->p);
+                return;
+            }
+            
+            // if current accumulator does not need updates, skip all this
+
+            if (!n->acc.needsUpdate[(int)c])
+            {
+                return;            
+            }
+
+            // find last nodes accumulator does not need an update/refresh
+
+            Node* m = n - 1;
+            while (m->acc.needsUpdate[(int)c] && !m->acc.needsRefresh[(int)c])
+            {
+                m--;
+            }
+
+            if (m->acc.needsRefresh[(int)c])
+            {
+                // if last useful accumulator needs a full refresh, 
+                // just refresh the current one instead
+
+                n->acc.Accumulate(ref n->p);
+            }
+            else
+            {
+                // incremental updates until current accumulator is up-to-date
+
+                while (m != n)
+                {
+                    m++;
+                    m->acc.Update(m - 1, ref m->p, c);
+                }
             }
         }
     }
@@ -203,14 +229,20 @@ public partial struct Accumulator : IDisposable
         return Utils.FileOf(ksq) > 3 ? 7 : 0;
     }
 
-    public (int, int) GetFeatureIdx(Color c, PieceType pt, int sq)
+    public unsafe int GetFeatureIdx(Color c, PieceType pt, int sq, Color accol)
     {
         Debug.Assert(c != Color.NONE);
         Debug.Assert(pt != PieceType.NONE);
         Debug.Assert(sq >= 0 && sq < 64);
-        int w = (int)c * 384 + (int)pt * 64 + (sq ^ wflip);
-        int b = (int)(1 - c) * 384 + (int)pt * 64 + (sq ^ bflip ^ 56);
-        return (w, b);
+
+        if (accol == Color.White)
+        {
+            return (int)c * 384 + (int)pt * 64 + (sq ^ flip[(int)Color.White]);
+        }
+        else
+        {
+            return (int)(1 - c) * 384 + (int)pt * 64 + (sq ^ flip[(int)Color.Black] ^ 56);
+        }
     }
 
 
@@ -218,64 +250,53 @@ public partial struct Accumulator : IDisposable
     /// accumulate a newly activated feaure in the accumulator
     /// ~a piece has been placed on the board somewhere
     /// </summary>
-    public void Activate(Color c, PieceType pt, int sq)
+    public void Activate(Color c, PieceType pt, int sq, Color accol)
     {
         if (Avx2.IsSupported)
-            ActivateAvx2(c, pt, sq);
+            ActivateAvx2(c, pt, sq, accol);
         else
-            ActivateFallback(c, pt, sq);
+            ActivateFallback(c, pt, sq, accol);
     }
 
-    private unsafe void ActivateFallback(Color c, PieceType pt, int sq)
+    private unsafe void ActivateFallback(Color c, PieceType pt, int sq, Color accol)
     {
         Debug.Assert(Avx2.IsSupported);
-        Debug.Assert(WhiteAcc != null);
-        Debug.Assert(BlackAcc != null);
+        Debug.Assert(this[Color.White] != null);
+        Debug.Assert(this[Color.Black] != null);
         Debug.Assert(c != Color.NONE);
         Debug.Assert(pt != PieceType.NONE);
         Debug.Assert(sq >= 0 && sq < 64);
 
-        var (widx, bidx) = GetFeatureIdx(c, pt, sq);
+        var acc = this[accol];
+        var idx = GetFeatureIdx(c, pt, sq, accol);
 
         int vecSize = Vector<short>.Count;
-        Debug.Assert(L2_SIZE % vecSize == 0);
+        Debug.Assert(L1_SIZE % vecSize == 0);
 
-        for (int node = 0; node < L2_SIZE; node += vecSize)
+        for (int node = 0; node < L1_SIZE; node += vecSize)
         {
-            var wacc = Vector.Load(WhiteAcc + node);
-            var bacc = Vector.Load(BlackAcc + node);
-
-            var wWeight = Vector.Load(l1_weight + widx * L2_SIZE + node);
-            var bWeight = Vector.Load(l1_weight + bidx * L2_SIZE + node);
-
-            Vector.Store(Vector.Add(wacc, wWeight), WhiteAcc + node);
-            Vector.Store(Vector.Add(bacc, bWeight), BlackAcc + node);
+            var accval = Vector.Load(acc + node);
+            var weight = Vector.Load(l0_weight + idx * L1_SIZE + node);
+            Vector.Store(Vector.Add(accval, weight), acc + node);
         }
     }
 
-    private unsafe void ActivateAvx2(Color c, PieceType pt, int sq)
+    private unsafe void ActivateAvx2(Color c, PieceType pt, int sq, Color accol)
     {
-        Debug.Assert(WhiteAcc != null);
-        Debug.Assert(BlackAcc != null);
+        Debug.Assert(this[Color.White] != null);
+        Debug.Assert(this[Color.Black] != null);
         Debug.Assert(c != Color.NONE);
         Debug.Assert(pt != PieceType.NONE);
         Debug.Assert(sq >= 0 && sq < 64);
 
-        var (widx, bidx) = GetFeatureIdx(c, pt, sq);
+        var acc = this[accol];
+        var idx = GetFeatureIdx(c, pt, sq, accol);
 
-        int vecSize = Vector256<short>.Count;
-        Debug.Assert(L2_SIZE % vecSize == 0);
-
-        for (int node = 0; node < L2_SIZE; node += vecSize)
+        for (int node = 0; node < L1_SIZE; node += 16)
         {
-            var wacc = Avx.LoadAlignedVector256(WhiteAcc + node);
-            var bacc = Avx.LoadAlignedVector256(BlackAcc + node);
-
-            var wWeight = Avx.LoadAlignedVector256(l1_weight + widx * L2_SIZE + node);
-            var bWeight = Avx.LoadAlignedVector256(l1_weight + bidx * L2_SIZE + node);
-
-            Avx.StoreAligned(WhiteAcc + node, Avx2.Add(wacc, wWeight));
-            Avx.StoreAligned(BlackAcc + node, Avx2.Add(bacc, bWeight));
+            var accval = Avx.LoadAlignedVector256(acc + node);
+            var weight = Avx.LoadAlignedVector256(l0_weight + idx * L1_SIZE + node);
+            Avx.StoreAligned(acc + node, Avx2.Add(accval, weight));
         }
     }
 
@@ -284,64 +305,53 @@ public partial struct Accumulator : IDisposable
     /// remove the accumulation of a formerly activated feaure from the accumulator
     /// ~a piece has been removed from the board somewhere
     /// </summary>
-    public void Deactivate(Color c, PieceType pt, int sq)
+    public void Deactivate(Color c, PieceType pt, int sq, Color accol)
     {
         if (Avx2.IsSupported)
-            DeactivateAvx2(c, pt, sq);
+            DeactivateAvx2(c, pt, sq, accol);
         else
-            DeactivateFallback(c, pt, sq);
+            DeactivateFallback(c, pt, sq, accol);
     }
 
-    private unsafe void DeactivateFallback(Color c, PieceType pt, int sq)
+    private unsafe void DeactivateFallback(Color c, PieceType pt, int sq, Color accol)
     {
-        Debug.Assert(WhiteAcc != null);
-        Debug.Assert(BlackAcc != null);
+        Debug.Assert(this[Color.White] != null);
+        Debug.Assert(this[Color.Black] != null);
         Debug.Assert(c != Color.NONE);
         Debug.Assert(pt != PieceType.NONE);
         Debug.Assert(sq >= 0 && sq < 64);
 
-        var (widx, bidx) = GetFeatureIdx(c, pt, sq);
+        var acc = this[accol];
+        var idx = GetFeatureIdx(c, pt, sq, accol);
 
         int vecSize = Vector<short>.Count;
-        Debug.Assert(L2_SIZE % vecSize == 0);
+        Debug.Assert(L1_SIZE % vecSize == 0);
 
-        for (int node = 0; node < L2_SIZE; node += vecSize)
+        for (int node = 0; node < L1_SIZE; node += vecSize)
         {
-            var wacc = Vector.Load(WhiteAcc + node);
-            var bacc = Vector.Load(BlackAcc + node);
-
-            var wWeight = Vector.Load(l1_weight + widx * L2_SIZE + node);
-            var bWeight = Vector.Load(l1_weight + bidx * L2_SIZE + node);
-
-            Vector.Store(Vector.Subtract(wacc, wWeight), WhiteAcc + node);
-            Vector.Store(Vector.Subtract(bacc, bWeight), BlackAcc + node);
+            var accval = Vector.Load(acc + node);
+            var weight = Vector.Load(l0_weight + idx * L1_SIZE + node);
+            Vector.Store(Vector.Subtract(accval, weight), acc + node);
         }
     }
 
-    private unsafe void DeactivateAvx2(Color c, PieceType pt, int sq)
+    private unsafe void DeactivateAvx2(Color c, PieceType pt, int sq, Color accol)
     {
         Debug.Assert(Avx2.IsSupported);
-        Debug.Assert(WhiteAcc != null);
-        Debug.Assert(BlackAcc != null);
+        Debug.Assert(this[Color.White] != null);
+        Debug.Assert(this[Color.Black] != null);
         Debug.Assert(c != Color.NONE);
         Debug.Assert(pt != PieceType.NONE);
         Debug.Assert(sq >= 0 && sq < 64);
 
-        var (widx, bidx) = GetFeatureIdx(c, pt, sq);
+        var acc = this[accol];
+        var idx = GetFeatureIdx(c, pt, sq, accol);
 
-        int vecSize = Vector256<short>.Count;
-        Debug.Assert(L2_SIZE % vecSize == 0);
-
-        for (int node = 0; node < L2_SIZE; node += vecSize)
+        for (int node = 0; node < L1_SIZE; node += 16)
         {
-            var wacc = Avx.LoadAlignedVector256(WhiteAcc + node);
-            var bacc = Avx.LoadAlignedVector256(BlackAcc + node);
-
-            var wWeight = Avx.LoadAlignedVector256(l1_weight + widx * L2_SIZE + node);
-            var bWeight = Avx.LoadAlignedVector256(l1_weight + bidx * L2_SIZE + node);
-
-            Avx.StoreAligned(WhiteAcc + node, Avx2.Subtract(wacc, wWeight));
-            Avx.StoreAligned(BlackAcc + node, Avx2.Subtract(bacc, bWeight));
+            var accval = Avx.LoadAlignedVector256(acc + node);
+            var weight = Avx.LoadAlignedVector256(l0_weight + idx * L1_SIZE + node);
+            Avx.StoreAligned(acc + node, Avx2.Subtract(accval, weight));
         }
     }
 
@@ -350,16 +360,16 @@ public partial struct Accumulator : IDisposable
     /// </summary>
     public unsafe void CopyTo(ref Accumulator child)
     {
-        Debug.Assert(WhiteAcc != null);
-        Debug.Assert(BlackAcc != null);
-        Debug.Assert(child.WhiteAcc != null);
-        Debug.Assert(child.BlackAcc != null);
+        Debug.Assert(this[Color.White] != null);
+        Debug.Assert(this[Color.Black] != null);
+        Debug.Assert(child[Color.White] != null);
+        Debug.Assert(child[Color.Black] != null);
 
-        NativeMemory.Copy(WhiteAcc, child.WhiteAcc, (nuint)sizeof(short) * L2_SIZE);
-        NativeMemory.Copy(BlackAcc, child.BlackAcc, (nuint)sizeof(short) * L2_SIZE);
+        NativeMemory.Copy(this[Color.White], child[Color.White], (nuint)sizeof(short) * L1_SIZE);
+        NativeMemory.Copy(this[Color.Black], child[Color.Black], (nuint)sizeof(short) * L1_SIZE);
 
-        child.wflip = this.wflip;
-        child.bflip = this.bflip;
+        child.flip[(int)Color.White] = flip[(int)Color.White];
+        child.flip[(int)Color.Black] = flip[(int)Color.Black];
     }
 
     /// <summary>
@@ -367,14 +377,14 @@ public partial struct Accumulator : IDisposable
     /// </summary>
     public unsafe void Clear()
     {
-        Debug.Assert(WhiteAcc != null);
-        Debug.Assert(BlackAcc != null);
+        Debug.Assert(this[Color.White] != null);
+        Debug.Assert(this[Color.Black] != null);
 
-        NativeMemory.Clear(WhiteAcc, sizeof(short) * L2_SIZE);
-        NativeMemory.Clear(BlackAcc, sizeof(short) * L2_SIZE);
+        NativeMemory.Clear(this[Color.White], sizeof(short) * L1_SIZE);
+        NativeMemory.Clear(this[Color.Black], sizeof(short) * L1_SIZE);
 
-        wflip = 0;
-        bflip = 0;
+        flip[(int)Color.White] = 0;
+        flip[(int)Color.Black] = 0;
     }
 
     /// <summary>
@@ -394,18 +404,20 @@ public partial struct Accumulator : IDisposable
 
     public unsafe bool EqualContents(ref Accumulator other)
     {
-        if (other.wflip != wflip || other.bflip != bflip)
+        if (other.flip[(int)Color.White] != flip[(int)Color.White] 
+            || other.flip[(int)Color.Black] != flip[(int)Color.Black])
         {
             return false;
         }
 
-        for (int i = 0; i < L2_SIZE; i++)
+        for (int i = 0; i < L1_SIZE; i++)
+        {
+            if (this[Color.White][i] != other[Color.White][i] 
+                || this[Color.White][i] != other[Color.Black][i])
             {
-                if (WhiteAcc[i] != other.WhiteAcc[i] || BlackAcc[i] != other.BlackAcc[i])
-                {
-                    return false;
-                }
+                return false;
             }
+        }
 
         return true;
     }
