@@ -149,15 +149,15 @@ public static partial class UCI
 
             else if (command == "eval")
             {
-                foreach (var fen in new string[] {
-                    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-                    "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
-                    "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1",
-                    "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8",
-                    "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
+                foreach (var (fen, label) in new (string, int)[] {
+                    ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 80),
+                    ("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", -226),
+                    ("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1", 357),
+                    ("rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8", -184),
+                    ("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", 209),
 
-                    "r1b1k1nr/ppq3pp/2n1p3/2ppPp2/3P4/P1P1B1Q1/2P2PPP/R3KBNR b KQkq - 3 9",
-                    "rn2kb1r/pp3ppp/2p1pn2/q7/3P4/2P2B1P/PP3PP1/RNBQ1RK1 b kq - 1 9"})
+                    ("r1b1k1nr/ppq3pp/2n1p3/2ppPp2/3P4/P1P1B1Q1/2P2PPP/R3KBNR b KQkq - 3 9", -105),
+                    ("rn2kb1r/pp3ppp/2p1pn2/q7/3P4/2P2B1P/PP3PP1/RNBQ1RK1 b kq - 1 9", -266)})
                 {
                     unsafe
                     {
@@ -166,7 +166,7 @@ public static partial class UCI
                         int eval = NNUE.Evaluate(ref ThreadPool.MainThread.rootPos.p, ThreadPool.MainThread.nodeStack[0].acc);
 
                         Console.WriteLine($"FEN: {fen}");
-                        Console.WriteLine($"EVAL: {eval}");
+                        Console.WriteLine($"EVAL: {eval} ({label} : {label == eval})");
                     }
                 }
             }
