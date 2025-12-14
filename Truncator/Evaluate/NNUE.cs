@@ -19,11 +19,11 @@ public static class NNUE
         var wacc = p.Us == Color.White ? acc.WhiteAcc : acc.BlackAcc;
         var bacc = p.Us == Color.White ? acc.BlackAcc : acc.WhiteAcc;
 
-        Span<short> l1 = stackalloc short[L1_SIZE];
+        Span<byte> l1 = stackalloc byte[L1_SIZE];
         Span<float> l2 = stackalloc float[L2_SIZE];
         Span<float> l3 = stackalloc float[L3_SIZE];
 
-        fixed (short* l1ptr = l1)
+        fixed (byte* l1ptr = l1)
         fixed (float* l2ptr = l2)
         fixed (float* l3ptr = l3)
         {
@@ -36,7 +36,7 @@ public static class NNUE
     }
 
 
-    public static unsafe void ActivatePairwiseCrelu(short* l1, short* wacc, short* bacc)
+    public static unsafe void ActivatePairwiseCrelu(byte* l1, short* wacc, short* bacc)
     {
         var step = Vector256<short>.Count;
 
@@ -65,34 +65,38 @@ public static class NNUE
             var w_mul = Avx2.MultiplyHigh(Avx2.ShiftLeftLogical(w_clamp_1, 16 - SHIFT), w_clamp_2);
             var b_mul = Avx2.MultiplyHigh(Avx2.ShiftLeftLogical(b_clamp_1, 16 - SHIFT), b_clamp_2);
 
-            Avx.Store(&l1[i], w_mul);
-            Avx.Store(&l1[j], b_mul);
+            var w_packed = Sse2.PackUnsignedSaturate(w_mul.GetLower(), w_mul.GetUpper());
+            var b_packed = Sse2.PackUnsignedSaturate(b_mul.GetLower(), b_mul.GetUpper());
+
+            Sse2.Store(&l1[i], w_packed);
+            Sse2.Store(&l1[j], b_packed);
         }
     }
 
 
-    public static unsafe void ComputeL2(float* l2, short* l1, int bucket)
+    public static unsafe void ComputeL2(float* l2, byte* l1, int bucket)
     {
-        var steps = Vector256<short>.Count;
+        var stepb = Vector256<byte>.Count;
         var stepf = Vector256<float>.Count;
 
         // weights
 
         for (int l2node = 0; l2node < L2_SIZE; l2node++)
         {
-            var l2Acc = Vector256<int>.Zero;
+            var acc = Vector256<int>.Zero;
 
-            for (int l1node = 0; l1node < L1_SIZE; l1node += steps)
+            for (int l1node = 0; l1node < L1_SIZE; l1node += stepb)
             {
-                var weight = Avx.LoadAlignedVector256(&l1_weight[bucket * L1_SIZE * L2_SIZE + l2node * L1_SIZE + l1node]);
-                var l1Vec = Avx.LoadVector256(&l1[l1node]);
+                var weight_i8 = Avx.LoadAlignedVector256(&l1_weight[bucket * L1_SIZE * L2_SIZE + l2node * L1_SIZE + l1node]);
+                var l1_u8 = Avx.LoadVector256(&l1[l1node]);
 
-                var mulAdd = Avx2.MultiplyAddAdjacent(weight, l1Vec);
+                var mulAdd_i16 = Avx2.MultiplyAddAdjacent(l1_u8, weight_i8);
+                var mulAdd_i32 = Avx2.MultiplyAddAdjacent(mulAdd_i16, Vector256<short>.One);
 
-                l2Acc = Avx2.Add(mulAdd, l2Acc);
+                acc = Avx2.Add(mulAdd_i32, acc);
             }
 
-            l2[l2node] = Vector256.Sum(l2Acc);
+            l2[l2node] = Vector256.Sum(acc);
         }
 
         // normalize
