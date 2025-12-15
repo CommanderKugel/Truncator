@@ -12,6 +12,13 @@ public static class NNUE
     private static readonly Vector256<short> VectorZero = Vector256<short>.Zero;
     private static readonly Vector256<short> VectorQA = Vector256.Create(QA);
 
+    public const int STEP_F32 = 8;
+    public const int STEP_I32 = 8;
+    public const int STEP_I16 = 16;
+    public const int STEP_I8 = 32;
+
+    public const int BYTE_PER_INT = 4;
+
 
     public static unsafe int Evaluate(ref Pos p, Accumulator acc)
     {
@@ -21,26 +28,22 @@ public static class NNUE
 
         Span<byte> l1 = stackalloc byte[L1_SIZE];
         Span<float> l2 = stackalloc float[L2_SIZE];
-        Span<float> l3 = stackalloc float[L3_SIZE];
 
         fixed (byte* l1ptr = l1)
         fixed (float* l2ptr = l2)
-        fixed (float* l3ptr = l3)
         {
             ActivatePairwiseCrelu(l1ptr, wacc, bacc);
             ComputeL2(l2ptr, l1ptr, bucket);
-            ComputeL3(l3ptr, l2ptr, bucket, out int eval);
+            ComputeL3(l2ptr, bucket, out int eval);
             
-            return Math.Clamp((int)eval , -Search.SCORE_EVAL_MAX, Search.SCORE_EVAL_MAX);
+            return Math.Clamp(eval , -Search.SCORE_EVAL_MAX, Search.SCORE_EVAL_MAX);
         }
     }
 
 
     public static unsafe void ActivatePairwiseCrelu(byte* l1, short* wacc, short* bacc)
     {
-        var step = Vector256<short>.Count;
-
-        for (int i = 0; i < L1_SIZE / 2; i += step)
+        for (int i = 0; i < L1_SIZE / 2; i += STEP_I16)
         {
             int j = i + L1_SIZE / 2;
 
@@ -76,20 +79,17 @@ public static class NNUE
 
     public static unsafe void ComputeL2(float* l2, byte* l1, int bucket)
     {
-        var stepb = Vector256<byte>.Count;
-        var stepf = Vector256<float>.Count;
-
-        // weights
+        // weigh
 
         var weight_ptr = &l1_weight[bucket * L1_SIZE * L2_SIZE];
-        var acc = stackalloc Vector256<int>[L2_SIZE / stepf];
+        var acc = stackalloc Vector256<int>[L2_SIZE / STEP_F32];
 
-        for (int l1node = 0; l1node < L1_SIZE; l1node += 4)
+        for (int l1node = 0; l1node < L1_SIZE / BYTE_PER_INT; l1node++)
         {
-            var l1_scalar = ((int*)l1)[l1node / 4];
+            var l1_scalar = ((int*)l1)[l1node];
             var l1vec = Vector256.Create(l1_scalar).AsByte();
 
-            for (int i = 0; i < L2_SIZE * 4; i += stepb)
+            for (int i = 0; i < L2_SIZE * BYTE_PER_INT; i += STEP_I8)
             {
                 // weigh accumulated and activated values from from l1
                 // compute for chunks of 4 l1-values, so 4xi8 is converted to 1xi32
@@ -97,11 +97,11 @@ public static class NNUE
                 // also helps with nnz stuff and float-masks later
                 // can be done in one instruction (dpbusd) when using avx512
 
-                var weights_i8 = Avx.LoadAlignedVector256(&weight_ptr[l1node * L2_SIZE + i]);
+                var weights_i8 = Avx.LoadAlignedVector256(&weight_ptr[l1node * L2_SIZE * 4 + i]);
                 var muladd_i16 = Avx2.MultiplyAddAdjacent(l1vec, weights_i8);
                 var muladd_i32 = Avx2.MultiplyAddAdjacent(muladd_i16, Vector256<short>.One);
 
-                var idx = i / (4 * stepf);
+                var idx = i / (BYTE_PER_INT * STEP_F32);
                 acc[idx] = Avx2.Add(muladd_i32, acc[idx]);
             }
         }
@@ -110,63 +110,65 @@ public static class NNUE
         // normalize
         // bias
         // screlu
+        
+        var normVec = Vector256.Create(L1_NORM);
 
-        for (int i = 0; i < L2_SIZE; i += stepf)
+        for (int i = 0; i < L2_SIZE / STEP_F32; i++)
         {
-            var l2Vec = Avx.ConvertToVector256Single(acc[i / stepf]);
-            var normVec = Vector256.Create(L1_NORM);
-            var biasVec = Vector256.LoadAligned(&l1_bias[bucket * L2_SIZE + i]);
-
+            var l2Vec = Avx.ConvertToVector256Single(acc[i]); 
+            var biasVec = Vector256.LoadAligned(&l1_bias[bucket * L2_SIZE + i * STEP_F32]);
             var fma = Fma.MultiplyAdd(l2Vec, normVec, biasVec);
 
             var clamped = Vector256.Clamp(fma, Vector256<float>.Zero, Vector256<float>.One);
             var squared = Avx.Multiply(clamped, clamped);
 
-            Avx.Store(&l2[i], squared);
+            Avx.Store(&l2[i * STEP_F32], squared);
         }
     }
 
-    public static unsafe void ComputeL3(float* l3, float* l2, int bucket, out int output)
+    public static unsafe void ComputeL3(float* l2, int bucket, out int output)
     {
-        var step = Vector256<float>.Count;
-
-        // weights
-
         var weightPtr = &l2_weight[bucket * L2_SIZE * L3_SIZE];
+        var acc = stackalloc Vector256<float>[L3_SIZE / STEP_F32];
 
-        for (int l3node = 0; l3node < L3_SIZE; l3node++)
+        // load bias
+
+        for (int i = 0; i < L3_SIZE / STEP_F32; i++)
         {
-            var l3acc = Vector256<float>.Zero;
-
-            for (int l2node = 0; l2node < L2_SIZE; l2node += step)
-            {
-                var weight = Avx.LoadAlignedVector256(&weightPtr[l3node * L2_SIZE + l2node]);
-                var l2Vec = Avx.LoadVector256(&l2[l2node]);
-                
-                l3acc = Fma.MultiplyAdd(weight, l2Vec, l3acc);
-            }
-
-            l3[l3node] = Vector256.Sum(l3acc);
+            acc[i] = Avx.LoadAlignedVector256(&l2_bias[bucket * L3_SIZE + i * STEP_F32]);
         }
 
-        // bias
+        // sum weights
+
+        for (int l2node = 0; l2node < L2_SIZE; l2node++)
+        {
+            var l2Vec = Vector256.Create(l2[l2node]);
+
+            for (int l3node = 0; l3node < L3_SIZE / STEP_F32; l3node++)
+            {
+                var weight = Avx.LoadAlignedVector256(&weightPtr[l2node * L3_SIZE + l3node * STEP_F32]);
+                acc[l3node] = Fma.MultiplyAdd(weight, l2Vec, acc[l3node]);
+            }
+        }
+
         // screlu
         // out weights
 
         var outAcc = Vector256<float>.Zero;
 
-        for (int i = 0; i < L3_SIZE; i += step)
+        for (int i = 0; i < L3_SIZE / STEP_F32; i++)
         {
-            var biasVec = Vector256.LoadAligned(&l2_bias[bucket * L3_SIZE + i]);
-            var l3Vec = Vector256.Load(&l3[i]);
-            var l3Weight = Vector256.LoadAligned(&l3_weight[bucket * L3_SIZE + i]);
-
-            var sum = Avx.Add(biasVec, l3Vec);
-            var clamp = Vector256.Clamp(sum, Vector256<float>.Zero, Vector256<float>.One);
+            var clamp = Vector256.Clamp(acc[i], Vector256<float>.Zero, Vector256<float>.One);
             var square = Avx.Multiply(clamp, clamp);
-            
-            outAcc = Fma.MultiplyAdd(square, l3Weight, outAcc);
+
+            var weight = Vector256.LoadAligned(&l3_weight[bucket * L3_SIZE + i * STEP_F32]);
+            outAcc = Fma.MultiplyAdd(square, weight, outAcc);
         }
+
+        // sum 
+        // bias
+        // scale
+        // f32 to i32
 
         output = (int)((Vector256.Sum(outAcc) + l3_bias[bucket]) * EVAL_SCALE);
     }

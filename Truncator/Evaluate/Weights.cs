@@ -1,4 +1,5 @@
 using static Settings;
+using static NNUE;
 
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -61,16 +62,16 @@ public static class Weights
                     temp_l1[buck, l1, l2] = net.ReadSByte();
 
         for (int buck = 0; buck < OUT_BUCKETS; buck++)
-            for (int l1 = 0; l1 < L1_SIZE / 4; l1++)
+            for (int l1 = 0; l1 < L1_SIZE / BYTE_PER_INT; l1++)
                 for (int l2 = 0; l2 < L2_SIZE; l2++)
-                    for (int k = 0; k < 4; k++)
+                    for (int k = 0; k < BYTE_PER_INT; k++)
                     {
                         var idx = buck * L1_SIZE * L2_SIZE 
-                            + l1 * L2_SIZE * 4
-                            + l2 * 4
+                            + l1 * L2_SIZE * BYTE_PER_INT
+                            + l2 * BYTE_PER_INT
                             + k;
 
-                        l1_weight[idx] = temp_l1[buck, l1 * 4 + k, l2];
+                        l1_weight[idx] = temp_l1[buck, l1 * BYTE_PER_INT + k, l2];
                     }
                     
 
@@ -83,7 +84,7 @@ public static class Weights
         for (int buck = 0; buck < OUT_BUCKETS; buck++)
             for (int l3 = 0; l3 < L3_SIZE; l3++)
                 for (int l2 = 0; l2 < L2_SIZE; l2++)
-                    l2_weight[buck * L2_SIZE * L3_SIZE + l3 * L2_SIZE + l2] = net.ReadSingle();
+                    l2_weight[buck * L2_SIZE * L3_SIZE + l2 * L3_SIZE + l3] = net.ReadSingle();
 
         for (int buck = 0; buck < OUT_BUCKETS; buck++)
             for (int l3 = 0; l3 < L3_SIZE; l3++)
