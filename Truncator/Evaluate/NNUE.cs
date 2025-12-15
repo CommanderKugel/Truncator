@@ -81,23 +81,33 @@ public static class NNUE
 
         // weights
 
-        for (int l2node = 0; l2node < L2_SIZE; l2node++)
+        var buff = stackalloc sbyte[32];
+        var acc = stackalloc int[L2_SIZE];
+
+        for (int l1node = 0; l1node < L1_SIZE; l1node += 4)
         {
-            var acc = Vector256<int>.Zero;
+            var l1_scalar = ((int*)l1)[l1node / 4];
+            var l1vec = Vector256.Create(l1_scalar);
 
-            for (int l1node = 0; l1node < L1_SIZE; l1node += stepb)
+            for (int i = 0; i < L2_SIZE * 4; i += stepb)
             {
-                var weight_i8 = Avx.LoadAlignedVector256(&l1_weight[bucket * L1_SIZE * L2_SIZE + l2node * L1_SIZE + l1node]);
-                var l1_u8 = Avx.LoadVector256(&l1[l1node]);
+                var j = bucket * L1_SIZE * L2_SIZE
+                    + l1node * L2_SIZE
+                    + i;
 
-                var mulAdd_i16 = Avx2.MultiplyAddAdjacent(l1_u8, weight_i8);
-                var mulAdd_i32 = Avx2.MultiplyAddAdjacent(mulAdd_i16, Vector256<short>.One);
+                var weights_i8 = Avx.LoadAlignedVector256(&l1_weight[j]);
+                var muladd_i16 = Avx2.MultiplyAddAdjacent(l1vec.AsByte(), weights_i8);
+                var muladd_i32 = Avx2.MultiplyAddAdjacent(muladd_i16, Vector256<short>.One);
 
-                acc = Avx2.Add(mulAdd_i32, acc);
+                var acc_vec = Avx.LoadVector256(&acc[i / 4]);
+                var sum = Avx2.Add(muladd_i32, acc_vec);
+
+                Avx.Store(&acc[i / 4], sum);
             }
-
-            l2[l2node] = Vector256.Sum(acc);
         }
+
+        for (int i = 0; i < L2_SIZE; i++)
+            l2[i] = acc[i];
 
         // normalize
         // bias

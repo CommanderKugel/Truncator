@@ -53,10 +53,26 @@ public static class Weights
 
         // read l1
 
+        var temp_l1 = new sbyte[OUT_BUCKETS, L1_SIZE, L2_SIZE];
+
         for (int buck = 0; buck < OUT_BUCKETS; buck++)
             for (int l2 = 0; l2 < L2_SIZE; l2++)
                 for (int l1 = 0; l1 < L1_SIZE; l1++)
-                    l1_weight[buck * L1_SIZE * L2_SIZE + l2 * L1_SIZE + l1] = net.ReadSByte();
+                    temp_l1[buck, l1, l2] = net.ReadSByte();
+
+        for (int buck = 0; buck < OUT_BUCKETS; buck++)
+            for (int l1 = 0; l1 < L1_SIZE / 4; l1++)
+                for (int l2 = 0; l2 < L2_SIZE; l2++)
+                    for (int k = 0; k < 4; k++)
+                    {
+                        var idx = buck * L1_SIZE * L2_SIZE 
+                            + l1 * L2_SIZE * 4
+                            + l2 * 4
+                            + k;
+
+                        l1_weight[idx] = temp_l1[buck, l1 * 4 + k, l2];
+                    }
+                    
 
         for (int buck = 0; buck < OUT_BUCKETS; buck++)
             for (int l2 = 0; l2 < L2_SIZE; l2++)
