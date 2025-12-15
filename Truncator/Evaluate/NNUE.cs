@@ -81,17 +81,24 @@ public static class NNUE
 
         // weights
 
+        var weight_ptr = &l1_weight[bucket * L1_SIZE * L2_SIZE];
         var acc = stackalloc Vector256<int>[L2_SIZE / stepf];
 
         for (int l1node = 0; l1node < L1_SIZE; l1node += 4)
         {
             var l1_scalar = ((int*)l1)[l1node / 4];
-            var l1vec = Vector256.Create(l1_scalar);
+            var l1vec = Vector256.Create(l1_scalar).AsByte();
 
             for (int i = 0; i < L2_SIZE * 4; i += stepb)
             {
-                var weights_i8 = Avx.LoadAlignedVector256(&l1_weight[bucket * L1_SIZE * L2_SIZE + l1node * L2_SIZE + i]);
-                var muladd_i16 = Avx2.MultiplyAddAdjacent(l1vec.AsByte(), weights_i8);
+                // weigh accumulated and activated values from from l1
+                // compute for chunks of 4 l1-values, so 4xi8 is converted to 1xi32
+                // and all fits perfectly into the avx lanes
+                // also helps with nnz stuff and float-masks later
+                // can be done in one instruction (dpbusd) when using avx512
+
+                var weights_i8 = Avx.LoadAlignedVector256(&weight_ptr[l1node * L2_SIZE + i]);
+                var muladd_i16 = Avx2.MultiplyAddAdjacent(l1vec, weights_i8);
                 var muladd_i32 = Avx2.MultiplyAddAdjacent(muladd_i16, Vector256<short>.One);
 
                 var idx = i / (4 * stepf);
@@ -99,22 +106,19 @@ public static class NNUE
             }
         }
 
-        // convert i32-accumulator to f32
-
-        for (int i = 0; i < L2_SIZE / stepf; i++)
-            Avx.Store(&l2[i * stepf], Avx.ConvertToVector256Single(acc[i]));
-
+        // convert from i32 to f32
         // normalize
         // bias
         // screlu
 
         for (int i = 0; i < L2_SIZE; i += stepf)
         {
-            var l2Vec = Vector256.Load(&l2[i]);
+            var l2Vec = Avx.ConvertToVector256Single(acc[i / stepf]);
             var normVec = Vector256.Create(L1_NORM);
             var biasVec = Vector256.LoadAligned(&l1_bias[bucket * L2_SIZE + i]);
 
             var fma = Fma.MultiplyAdd(l2Vec, normVec, biasVec);
+
             var clamped = Vector256.Clamp(fma, Vector256<float>.Zero, Vector256<float>.One);
             var squared = Avx.Multiply(clamped, clamped);
 
