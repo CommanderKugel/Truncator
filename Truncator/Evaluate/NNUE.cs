@@ -43,36 +43,35 @@ public static class NNUE
 
     public static unsafe void ActivatePairwiseCrelu(byte* l1, short* wacc, short* bacc)
     {
-        for (int i = 0; i < L1_SIZE / 2; i += STEP_I16)
+        for (Color c = Color.White; c <= Color.Black; c++)
         {
-            int j = i + L1_SIZE / 2;
+            var acc = c == Color.White ? wacc : bacc;
 
-            var w_vec_1 = Avx.LoadAlignedVector256(&wacc[i]);
-            var w_vec_2 = Avx.LoadAlignedVector256(&wacc[j]);
+            for (int i = 0; i < L1_SIZE / 2; i += STEP_I16)
+            {
+                int j = i + L1_SIZE / 2;
 
-            var b_vec_1 = Avx.LoadAlignedVector256(&bacc[i]);
-            var b_vec_2 = Avx.LoadAlignedVector256(&bacc[j]);
+                var vec_1 = Avx.LoadAlignedVector256(&acc[i]);
+                var vec_2 = Avx.LoadAlignedVector256(&acc[j]);
 
-            var w_clamp_1 = Vector256.Clamp(w_vec_1, Vector256<short>.Zero, Vector256.Create(QA));
-            var w_clamp_2 = Vector256.Clamp(w_vec_2, Vector256<short>.Zero, Vector256.Create(QA));
+                var clamp_1 = Vector256.Clamp(vec_1, Vector256<short>.Zero, Vector256.Create(QA));
+                var clamp_2 = Vector256.Clamp(vec_2, Vector256<short>.Zero, Vector256.Create(QA));
 
-            var b_clamp_1 = Vector256.Clamp(b_vec_1, Vector256<short>.Zero, Vector256.Create(QA));
-            var b_clamp_2 = Vector256.Clamp(b_vec_2, Vector256<short>.Zero, Vector256.Create(QA));
+                // we want to compute ((clamp_a * clamp_b) >> SHIFT) but that will probably overflows
+                // as 255 * 255 does not fit into a short
+                // we need to multiply high which only takes the upper 16 bits of the resulting integer
+                // which is effectifely a right shift by 16
+                // so we counteract that by  (16 - SHIFT) and get the resullt we want
 
-            // we want to compute ((clamp_a * clamp_b) >> SHIFT) but that will probably overflows
-            // as 255 * 255 does not fit into a short
-            // we need to multiply high which only takes the upper 16 bits of the resulting integer
-            // which is effectifely a right shift by 16
-            // so we counteract that by  (16 - SHIFT) and get the resullt we want
+                var mul = Avx2.MultiplyHigh(Avx2.ShiftLeftLogical(clamp_1, 16 - SHIFT), clamp_2);
+                var packed = Sse2.PackUnsignedSaturate(mul.GetLower(), mul.GetUpper());
 
-            var w_mul = Avx2.MultiplyHigh(Avx2.ShiftLeftLogical(w_clamp_1, 16 - SHIFT), w_clamp_2);
-            var b_mul = Avx2.MultiplyHigh(Avx2.ShiftLeftLogical(b_clamp_1, 16 - SHIFT), b_clamp_2);
+                Sse2.Store(&l1[i + (int)c * L1_SIZE / 2], packed);
 
-            var w_packed = Sse2.PackUnsignedSaturate(w_mul.GetLower(), w_mul.GetUpper());
-            var b_packed = Sse2.PackUnsignedSaturate(b_mul.GetLower(), b_mul.GetUpper());
+                // find all 4-byte blocks that contain at least one non-zero (nnz) values
 
-            Sse2.Store(&l1[i], w_packed);
-            Sse2.Store(&l1[j], b_packed);
+                //var nnz_mask = Avx.MoveMask(Avx2.CompareGreaterThan(mul.AsInt32(), Vector256<int>.Zero).AsSingle());
+            }
         }
     }
 
