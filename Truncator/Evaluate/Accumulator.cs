@@ -104,11 +104,18 @@ public partial struct Accumulator : IDisposable
     /// </summary>
     public unsafe void Update(Node* parent, ref Pos p, Color accol)
     {
+        Debug.Assert(p.ZobristKey == (parent + 1)->p.ZobristKey);
         Debug.Assert(accol != Color.NONE);
+
         Debug.Assert(!parent->acc.needsUpdate[(int)accol]);
         Debug.Assert(!parent->acc.needsRefresh[(int)accol]);
-        Debug.Assert(parent->acc[Color.White] != null);
-        Debug.Assert(parent->acc[Color.Black] != null);
+        Debug.Assert(!needsRefresh[(int)accol]);
+        Debug.Assert(needsUpdate[(int)accol]);
+
+        Debug.Assert(this[accol] != null);
+        Debug.Assert(parent->acc[accol] != null);
+
+        Debug.Assert(parent->acc.flip[(int)accol] == GetFlip(parent->p.KingSquares[(int)accol]), $"ksq: {(Square)parent->p.KingSquares[(int)accol]}");
 
         Color Us = p.Them;
         Color Them = p.Us;
@@ -122,12 +129,9 @@ public partial struct Accumulator : IDisposable
 
         // assume the king stays in its bucket -> merged efficient updates (UE)
 
-        flip[(int)Color.White] = parent->acc.flip[(int)Color.White];
-        flip[(int)Color.Black] = parent->acc.flip[(int)Color.Black];
-
         if (m.IsNull)
         {
-            parent->acc.CopyTo(ref this);
+            parent->acc.CopyTo(ref this, accol);
         }
         else if (m.IsCastling)
         {
@@ -183,41 +187,40 @@ public partial struct Accumulator : IDisposable
         {
             if (n->acc.needsRefresh[(int)c])
             {
-                n->acc.Accumulate(ref n->p);
-                return;
+                n->acc.Accumulate(ref n->p, c);
+                continue;
             }
             
             // if current accumulator does not need updates, skip all this
 
             if (!n->acc.needsUpdate[(int)c])
             {
-                return;            
+                continue;
             }
 
             // find last nodes accumulator does not need an update/refresh
 
+            int ply = 0;
             Node* m = n - 1;
             while (m->acc.needsUpdate[(int)c] && !m->acc.needsRefresh[(int)c])
             {
                 m--;
+                ply++;
             }
+
+            // refresh the earliest acc that does not need updates if needed
 
             if (m->acc.needsRefresh[(int)c])
             {
-                // if last useful accumulator needs a full refresh, 
-                // just refresh the current one instead
-
-                n->acc.Accumulate(ref n->p);
+                m->acc.Accumulate(ref m->p, c);
             }
-            else
-            {
-                // incremental updates until current accumulator is up-to-date
 
-                while (m != n)
-                {
-                    m++;
-                    m->acc.Update(m - 1, ref m->p, c);
-                }
+            // incremental updates until current accumulator is up-to-date
+
+            while (m != n)
+            {
+                m++;
+                m->acc.Update(m - 1, ref m->p, c);               
             }
         }
     }
@@ -315,8 +318,7 @@ public partial struct Accumulator : IDisposable
 
     private unsafe void DeactivateFallback(Color c, PieceType pt, int sq, Color accol)
     {
-        Debug.Assert(this[Color.White] != null);
-        Debug.Assert(this[Color.Black] != null);
+        Debug.Assert(this[accol] != null);
         Debug.Assert(c != Color.NONE);
         Debug.Assert(pt != PieceType.NONE);
         Debug.Assert(sq >= 0 && sq < 64);
@@ -338,8 +340,7 @@ public partial struct Accumulator : IDisposable
     private unsafe void DeactivateAvx2(Color c, PieceType pt, int sq, Color accol)
     {
         Debug.Assert(Avx2.IsSupported);
-        Debug.Assert(this[Color.White] != null);
-        Debug.Assert(this[Color.Black] != null);
+        Debug.Assert(this[accol] != null);
         Debug.Assert(c != Color.NONE);
         Debug.Assert(pt != PieceType.NONE);
         Debug.Assert(sq >= 0 && sq < 64);
@@ -358,18 +359,24 @@ public partial struct Accumulator : IDisposable
     /// <summary>
     /// copy accumulated values to childs White- & BlackAcc
     /// </summary>
-    public unsafe void CopyTo(ref Accumulator child)
+    public void CopyTo(ref Accumulator child)
     {
-        Debug.Assert(this[Color.White] != null);
-        Debug.Assert(this[Color.Black] != null);
-        Debug.Assert(child[Color.White] != null);
-        Debug.Assert(child[Color.Black] != null);
+        CopyTo(ref child, Color.White);
+        CopyTo(ref child, Color.Black);
+    } 
 
-        NativeMemory.Copy(this[Color.White], child[Color.White], (nuint)sizeof(short) * L1_SIZE);
-        NativeMemory.Copy(this[Color.Black], child[Color.Black], (nuint)sizeof(short) * L1_SIZE);
 
-        child.flip[(int)Color.White] = flip[(int)Color.White];
-        child.flip[(int)Color.Black] = flip[(int)Color.Black];
+    public unsafe void CopyTo(ref Accumulator child, Color accol)
+    {
+        Debug.Assert(accol != Color.NONE);
+        Debug.Assert(this[accol] != null);
+        Debug.Assert(child[accol] != null);
+
+        NativeMemory.Copy(this[accol], child[accol], (nuint)sizeof(short) * L1_SIZE);
+
+        child.flip[(int)accol] = flip[(int)accol];
+        child.needsRefresh[(int)accol] = needsRefresh[(int)accol];
+        child.needsUpdate[(int)accol] = needsUpdate[(int)accol];
     }
 
     /// <summary>
@@ -402,18 +409,26 @@ public partial struct Accumulator : IDisposable
     }
 
 
-    public unsafe bool EqualContents(ref Accumulator other)
+    public unsafe bool EqualContents(ref Accumulator other, Color c)
     {
-        if (other.flip[(int)Color.White] != flip[(int)Color.White] 
-            || other.flip[(int)Color.Black] != flip[(int)Color.Black])
+        if (other.flip[(int)c] != flip[(int)c])
         {
-            return false;
+            throw new Exception($"flip[{c}]: other={other.flip[(int)c]} vs this={flip[(int)c]}");
+        }
+
+        if (other.needsRefresh[(int)c] != needsRefresh[(int)c])
+        {
+            throw new Exception($"needsRefresh[{c}]: other={other.needsRefresh[(int)c]} vs this={needsRefresh[(int)c]}");
+        }
+
+        if (other.needsUpdate[(int)c] != needsUpdate[(int)c])
+        {
+            throw new Exception($"needsUpdate[{c}]: other={other.needsUpdate[(int)c]} vs this={needsUpdate[(int)c]}");
         }
 
         for (int i = 0; i < L1_SIZE; i++)
         {
-            if (this[Color.White][i] != other[Color.White][i] 
-                || this[Color.White][i] != other[Color.Black][i])
+            if (this[c][i] != other[c][i])
             {
                 return false;
             }

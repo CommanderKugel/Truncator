@@ -336,8 +336,12 @@ public unsafe partial struct Pos
 
         // update accumulator
 
-        bool needsRefresh = movingPt == PieceType.King 
-            && Accumulator.GetFlip(from) != Accumulator.GetFlip(KingSquares[(int)Us]);
+        var flip = Accumulator.GetFlip(KingSquares[(int)Us]);
+        var needsRefresh = flip != n->acc.flip[(int)Us];
+
+        // already update flips, doing this lazily is bugged somehow
+        (n + 1)->acc.flip[(int)Us] = flip;
+        (n + 1)->acc.flip[(int)Them] = n->acc.flip[(int)Them];
 
         (n + 1)->acc.needsRefresh[(int)Us] = needsRefresh;
         (n + 1)->acc.needsUpdate[(int)Us] = !needsRefresh;
