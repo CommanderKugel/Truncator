@@ -1,4 +1,6 @@
 
+//#define COLLECT_CORRECTIONS
+
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
@@ -23,6 +25,11 @@ public struct CorrectionHistory : IDisposable
 
     public PieceToHistory MoveTable;
 
+#if COLLECT_CORRECTIONS
+    public int CollectionCount = 0;
+    public StreamWriter CollectionWriter;
+#endif
+
 
     public unsafe CorrectionHistory()
     {
@@ -34,6 +41,11 @@ public struct CorrectionHistory : IDisposable
         ThreatTable = (HistVal*)NativeMemory.AllocZeroed((nuint)sizeof(HistVal) * SIZE * 2);
 
         MoveTable = new();
+
+#if COLLECT_CORRECTIONS
+        CollectionWriter = new StreamWriter(@"C:\Users\nikol\Desktop\Truncator\CorrhistCollection.csv", append: false);
+        CollectionWriter.WriteLine("label,raw,pawn,npwhite,npblack,minor,major,threat,prevpiece");
+#endif
     }
 
     private ulong MakeKey(Color c, ulong key)
@@ -62,8 +74,11 @@ public struct CorrectionHistory : IDisposable
             PrevPieceCorrhistWeight * MoveTable[p.Us, (n - 1)->MovedPieceType, (n - 1)->move.to] : 0;
 
         int CorrectionValue = (pawn + npwhite + npblack + minor + major + threat + prevPiece) / CorrhistFinalDiv;
-        n->StaticEval = Math.Clamp(n->UncorrectedStaticEval + CorrectionValue, -Search.SCORE_EVAL_MAX, Search.SCORE_EVAL_MAX);
 
+        var input = new Span<int>([0, pawn, npwhite, npblack, minor, major, threat, prevPiece]);
+        int NetCorrection = TinyNet.Forward(input);
+
+        n->StaticEval = Math.Clamp(n->UncorrectedStaticEval + CorrectionValue + NetCorrection, -Search.SCORE_EVAL_MAX, Search.SCORE_EVAL_MAX);
         return CorrectionValue;
     }
 
@@ -75,6 +90,25 @@ public struct CorrectionHistory : IDisposable
     {
         Debug.Assert(PawnTable != null && WhiteNonPawnTable != null && BlackNonPawnTable != null && MinorTable != null);
         var delta = Math.Clamp((score - eval) * depth * CorrhistDelta / 1024, MIN_BONUS, MAX_BONUS);
+
+#if COLLECT_CORRECTIONS
+
+        if (depth > 3)
+        {
+            int label = score - eval;
+
+            int paw = PawnTable[MakeKey(p.Us, p.PawnKey)];
+            int npw = WhiteNonPawnTable[MakeKey(p.Us, p.NonPawnMaterialKey(Color.White))];
+            int npb = BlackNonPawnTable[MakeKey(p.Us, p.NonPawnMaterialKey(Color.Black))];
+            int min = MinorTable[MakeKey(p.Us, p.MinorKey)];
+            int maj = MajorTable[MakeKey(p.Us, p.MajorKey)];
+            int thr = ThreatTable[MakeKey(p.Us, Utils.murmurHash(p.Threats & p.ColorBB[(int)p.Us]))];
+            int pmv = (thread.ply > 0 && (n-1)->move.NotNull) ? MoveTable[p.Us, (n - 1)->MovedPieceType, (n - 1)->move.to] : 0;
+
+            CollectionCount++;
+            CollectionWriter.WriteLine($"{label},{0},{paw},{npw},{npb},{min},{maj},{thr},{pmv}");
+        }
+#endif
 
         PawnTable[MakeKey(p.Us, p.PawnKey)].Update(delta, PawnCorrhistDiv);
         WhiteNonPawnTable[MakeKey(p.Us, p.NonPawnMaterialKey(Color.White))].Update(delta, NpCorrhistDiv);
