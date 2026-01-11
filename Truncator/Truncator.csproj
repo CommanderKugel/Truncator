@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Evaluate/Nets/1024_tbcorr.bin"/>
+    <EmbeddedResource Include="Evaluate/Nets/clean_corr_s3.bin"/>
   </ItemGroup>
 
 </Project>
