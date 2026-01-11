@@ -22,6 +22,7 @@ public partial struct Accumulator : IDisposable
     }
 
     public unsafe fixed int flip[2];
+    public unsafe fixed int buck[2];
     public unsafe fixed bool needsUpdate[2];
     public unsafe fixed bool needsRefresh[2];
 
@@ -31,14 +32,11 @@ public partial struct Accumulator : IDisposable
         WhiteAcc = (short*)NativeMemory.AlignedAlloc((nuint)sizeof(short) * L1_SIZE, 256);
         BlackAcc = (short*)NativeMemory.AlignedAlloc((nuint)sizeof(short) * L1_SIZE, 256);
 
-        flip[(int)Color.White] = 0;
-        flip[(int)Color.Black] = 0;
+        flip[(int)Color.White] = flip[(int)Color.Black] = 0;
+        buck[(int)Color.White] = buck[(int)Color.Black] = 0;
 
-        needsUpdate[(int)Color.White] = true;
-        needsUpdate[(int)Color.Black] = true;
-
-        needsRefresh[(int)Color.White] = true;
-        needsRefresh[(int)Color.Black] = true;
+        needsUpdate[(int)Color.White] = needsUpdate[(int)Color.Black] = true;
+        needsRefresh[(int)Color.White] = needsRefresh[(int)Color.Black] = true;
     }
 
     public unsafe void Kill()
@@ -46,6 +44,7 @@ public partial struct Accumulator : IDisposable
         for (Color c = Color.White; c <= Color.Black; c++)
         {
             flip[(int)c] = 0;
+            buck[(int)c] = 0;
             needsUpdate[(int)c] = false;
             needsRefresh[(int)c] = false;
             NativeMemory.AlignedFree(this[c]);
@@ -72,6 +71,7 @@ public partial struct Accumulator : IDisposable
         Debug.Assert(this[accol] != null);
 
         flip[(int)accol] = GetFlip(p.KingSquares[(int)accol]);
+        buck[(int)accol] = GetBucket(p.KingSquares[(int)accol], accol);
 
         // copy bias
         // implicitly clears accumulator
@@ -116,6 +116,7 @@ public partial struct Accumulator : IDisposable
         Debug.Assert(parent->acc[accol] != null);
 
         Debug.Assert(parent->acc.flip[(int)accol] == GetFlip(parent->p.KingSquares[(int)accol]), $"ksq: {(Square)parent->p.KingSquares[(int)accol]}");
+        Debug.Assert(parent->acc.buck[(int)accol] == GetBucket(parent->p.KingSquares[(int)accol], accol), $"ksq: {(Square)parent->p.KingSquares[(int)accol]}");
 
         Color Us = p.Them;
         Color Them = p.Us;
@@ -232,19 +233,27 @@ public partial struct Accumulator : IDisposable
         return Utils.FileOf(ksq) > 3 ? 7 : 0;
     }
 
+    public static int GetBucket(int ksq, Color c)
+    {
+        Debug.Assert(ksq >= 0 && ksq < 64);
+        Debug.Assert(c != Color.NONE);
+        return KingBuckets[ksq ^ ((int)c * 56)];
+    }
+
     public unsafe int GetFeatureIdx(Color c, PieceType pt, int sq, Color accol)
     {
         Debug.Assert(c != Color.NONE);
         Debug.Assert(pt != PieceType.NONE);
         Debug.Assert(sq >= 0 && sq < 64);
+        Debug.Assert(accol != Color.NONE);
 
         if (accol == Color.White)
         {
-            return (int)c * 384 + (int)pt * 64 + (sq ^ flip[(int)Color.White]);
+            return buck[(int)Color.White] * 768 + (int)c * 384 + (int)pt * 64 + (sq ^ flip[(int)Color.White]);
         }
         else
         {
-            return (int)(1 - c) * 384 + (int)pt * 64 + (sq ^ flip[(int)Color.Black] ^ 56);
+            return buck[(int)Color.Black] * 768 + (int)(1 - c) * 384 + (int)pt * 64 + (sq ^ flip[(int)Color.Black] ^ 56);
         }
     }
 
@@ -264,8 +273,8 @@ public partial struct Accumulator : IDisposable
     private unsafe void ActivateFallback(Color c, PieceType pt, int sq, Color accol)
     {
         Debug.Assert(Avx2.IsSupported);
-        Debug.Assert(this[Color.White] != null);
-        Debug.Assert(this[Color.Black] != null);
+        Debug.Assert(accol != Color.NONE);
+        Debug.Assert(this[accol] != null);
         Debug.Assert(c != Color.NONE);
         Debug.Assert(pt != PieceType.NONE);
         Debug.Assert(sq >= 0 && sq < 64);
@@ -286,8 +295,8 @@ public partial struct Accumulator : IDisposable
 
     private unsafe void ActivateAvx2(Color c, PieceType pt, int sq, Color accol)
     {
-        Debug.Assert(this[Color.White] != null);
-        Debug.Assert(this[Color.Black] != null);
+        Debug.Assert(accol != Color.NONE);
+        Debug.Assert(this[accol] != null);
         Debug.Assert(c != Color.NONE);
         Debug.Assert(pt != PieceType.NONE);
         Debug.Assert(sq >= 0 && sq < 64);
@@ -318,6 +327,7 @@ public partial struct Accumulator : IDisposable
 
     private unsafe void DeactivateFallback(Color c, PieceType pt, int sq, Color accol)
     {
+        Debug.Assert(accol != Color.NONE);
         Debug.Assert(this[accol] != null);
         Debug.Assert(c != Color.NONE);
         Debug.Assert(pt != PieceType.NONE);
@@ -340,6 +350,7 @@ public partial struct Accumulator : IDisposable
     private unsafe void DeactivateAvx2(Color c, PieceType pt, int sq, Color accol)
     {
         Debug.Assert(Avx2.IsSupported);
+        Debug.Assert(accol != Color.NONE);
         Debug.Assert(this[accol] != null);
         Debug.Assert(c != Color.NONE);
         Debug.Assert(pt != PieceType.NONE);
@@ -375,6 +386,7 @@ public partial struct Accumulator : IDisposable
         NativeMemory.Copy(this[accol], child[accol], (nuint)sizeof(short) * L1_SIZE);
 
         child.flip[(int)accol] = flip[(int)accol];
+        child.buck[(int)accol] = buck[(int)accol];
         child.needsRefresh[(int)accol] = needsRefresh[(int)accol];
         child.needsUpdate[(int)accol] = needsUpdate[(int)accol];
     }

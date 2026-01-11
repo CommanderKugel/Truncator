@@ -18,7 +18,7 @@ public static class Weights
     {
         // allocate the arrays
 
-        l0_weight = (short*)NativeMemory.AlignedAlloc((nuint)sizeof(short) * IN_SIZE * L1_SIZE, 256);
+        l0_weight = (short*)NativeMemory.AlignedAlloc((nuint)sizeof(short) * INPUT_BUCKETS * IN_SIZE * L1_SIZE, 256);
         l0_bias = (short*)NativeMemory.AlignedAlloc((nuint)sizeof(short) * L1_SIZE, 256);
         l1_weight = (short*)NativeMemory.AlignedAlloc((nuint)sizeof(short) * 2 * L1_SIZE * OUTPUT_BUCKETS, 256);
         l1_bias = (short*)NativeMemory.AlignedAlloc((nuint)sizeof(short) * OUTPUT_BUCKETS, 256);
@@ -31,9 +31,10 @@ public static class Weights
 
         // read weights from file
 
-        for (int feat = 0; feat < IN_SIZE; feat++)
-            for (int node = 0; node < L1_SIZE; node++)
-                l0_weight[feat * L1_SIZE + node] = net.ReadInt16();
+        for (int buck = 0; buck < INPUT_BUCKETS; buck++)
+            for (int feat = 0; feat < IN_SIZE; feat++)
+                for (int node = 0; node < L1_SIZE; node++)
+                    l0_weight[buck * IN_SIZE * L1_SIZE + feat * L1_SIZE + node] = net.ReadInt16();
 
         for (int node = 0; node < L1_SIZE; node++)
             l0_bias[node] = net.ReadInt16();

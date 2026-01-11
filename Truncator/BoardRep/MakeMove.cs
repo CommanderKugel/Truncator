@@ -337,11 +337,18 @@ public unsafe partial struct Pos
         // update accumulator
 
         var flip = Accumulator.GetFlip(KingSquares[(int)Us]);
-        var needsRefresh = flip != n->acc.flip[(int)Us];
+        var buck = Accumulator.GetBucket(KingSquares[(int)Us], Us);
 
-        // already update flips, doing this lazily is bugged somehow
+        var needsRefresh = flip != n->acc.flip[(int)Us] || buck != n->acc.buck[(int)Us];
+
+        // already update flips and buckets
+        // doesnt impact speed whatsoever while avoiding stupid mistakes
+
         (n + 1)->acc.flip[(int)Us] = flip;
         (n + 1)->acc.flip[(int)Them] = n->acc.flip[(int)Them];
+
+        (n + 1)->acc.buck[(int)Us] = buck;
+        (n + 1)->acc.buck[(int)Them] = n->acc.buck[(int)Them];
 
         (n + 1)->acc.needsRefresh[(int)Us] = needsRefresh;
         (n + 1)->acc.needsUpdate[(int)Us] = !needsRefresh;
